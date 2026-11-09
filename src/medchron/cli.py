@@ -24,6 +24,31 @@ def _cmd_synth(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_ingest(args: argparse.Namespace) -> int:
+    from medchron.ingestion import ingest_pdf
+
+    case = ingest_pdf(Path(args.pdf), args.matter, ocr=not args.no_ocr)
+    for p in case.pages:
+        flags = []
+        if p.duplicate_of:
+            flags.append(f"duplicate of p{p.duplicate_of}")
+        if p.needs_review:
+            flags.append("NEEDS REVIEW")
+        conf = f" ocr={p.ocr_confidence}" if p.ocr_confidence is not None else ""
+        print(f"p{p.page_no:>4} {p.source.value:<10}{conf} words={len(p.words)} {' '.join(flags)}")
+    print(f"{len(case.pages)} pages, {len(case.spans)} spans")
+    if args.save:
+        from sqlalchemy.orm import Session
+
+        from medchron.db.store import make_engine, save_ingested
+        from medchron.retrieval.embeddings import get_embedder
+
+        with Session(make_engine()) as session, session.begin():
+            save_ingested(session, case, get_embedder())
+        print(f"Saved matter {case.case_id} to the database")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="medchron",
@@ -37,6 +62,13 @@ def build_parser() -> argparse.ArgumentParser:
     synth.add_argument("--start-seed", type=int, default=1, help="first seed (one seed per case)")
     synth.add_argument("--out", default="data/generated", help="output directory")
     synth.set_defaults(func=_cmd_synth)
+
+    ingest = sub.add_parser("ingest", help="OCR, de-duplicate and chunk a PDF production")
+    ingest.add_argument("pdf", help="path to the PDF")
+    ingest.add_argument("--matter", required=True, help="matter / case ID")
+    ingest.add_argument("--no-ocr", action="store_true", help="skip OCR of image-only pages")
+    ingest.add_argument("--save", action="store_true", help="persist to DATABASE_URL")
+    ingest.set_defaults(func=_cmd_ingest)
     return parser
 
 

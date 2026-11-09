@@ -64,12 +64,27 @@ medchron synth --cases 5 --start-seed 1 --out data/generated
 
 ## Quickstart (developers)
 
+Requirements: Python 3.12+, [uv](https://docs.astral.sh/uv/), Docker (for Postgres + pgvector) and, optionally, [Tesseract](https://github.com/tesseract-ocr/tesseract) for OCR of scanned pages.
+
 ```bash
 git clone https://github.com/hanzalah5/medchron-agent.git
 cd medchron-agent
-make install
-make check
+make install          # .venv with dev dependencies
+make check            # lint, type-check, tests
+make db-up            # Postgres + pgvector via docker compose, then migrations
+
+# Ingest a synthetic production: text layer + OCR, duplicate detection, page-anchored spans
+.venv/bin/medchron ingest data/synthetic/case_0003.pdf --matter case_0003 --save
 ```
+
+## What's built so far
+
+| Component | Where | Notes |
+|---|---|---|
+| Synthetic benchmark generator | `src/medchron/synth/` | Seeded, deterministic, gold labels with exact quote and page sources |
+| Ingestion | `src/medchron/ingestion/` | PyMuPDF text with word bounding boxes, Tesseract OCR fallback with confidence, duplicate-page detection that ignores fax headers, page-bounded chunks with resolvable span IDs (`case:p12:340-918`) |
+| Storage | `src/medchron/db/`, `migrations/` | Postgres + pgvector: matters, pages, spans with generated `tsvector` (GIN) and HNSW cosine index; Alembic migrations |
+| Embeddings | `src/medchron/retrieval/` | Local `bge-small` (optional extra) or a deterministic hashing embedder for tests and CI, so record text is never sent out to be embedded |
 
 ## License
 

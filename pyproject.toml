@@ -9,6 +9,12 @@ dependencies = [
     "pydantic>=2.7",
     "reportlab>=4.2",
     "pillow>=10.4",
+    "pymupdf>=1.24",
+    "pytesseract>=0.3.10",
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.2",
+    "pgvector>=0.3",
+    "alembic>=1.13",
 ]
 
 [project.optional-dependencies]
@@ -17,6 +23,10 @@ dev = [
     "pytest-cov>=5",
     "ruff>=0.6",
     "mypy>=1.10",
+]
+
+embeddings = [
+    "sentence-transformers>=3.0",
 ]
 
 [project.scripts]
@@ -44,8 +54,12 @@ packages = ["medchron"]
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
-module = ["reportlab.*"]
+module = ["reportlab.*", "pytesseract.*", "pymupdf.*", "pgvector.*", "sentence_transformers.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["medchron.ingestion.pdf"]  # PyMuPDF is only partially annotated
+disallow_untyped_calls = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

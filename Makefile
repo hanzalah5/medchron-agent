@@ -1,4 +1,4 @@
-.PHONY: install lint format typecheck test check synth smoke-data
+.PHONY: install lint format typecheck test check synth smoke-data db-up migrate
 
 install:  ## Create .venv and install the package with dev extras
 	uv venv --python 3.12 --allow-existing .venv || uv venv --allow-existing .venv
@@ -25,3 +25,10 @@ synth:  ## Generate N synthetic cases into data/generated (make synth CASES=20)
 
 smoke-data:  ## Regenerate the committed smoke set
 	.venv/bin/medchron synth --cases 5 --start-seed 1 --out data/synthetic
+
+db-up:  ## Start Postgres + pgvector and apply migrations
+	docker compose up -d --wait db
+	.venv/bin/alembic upgrade head
+
+migrate:
+	.venv/bin/alembic upgrade head
