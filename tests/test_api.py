@@ -45,7 +45,7 @@ def client(engine: Engine, tmp_path_factory: pytest.TempPathFactory) -> Iterator
     os.environ["MEDCHRON_GOLD_DIR"] = str(ROOT / "data" / "synthetic")
     os.environ["MEDCHRON_RUNS_DIR"] = str(tmp / "runs")
     app = create_app(engine, LocalStorage(tmp / "storage"))
-    with TestClient(app) as c:
+    with TestClient(app, headers={"X-Dev-User": "alice", "X-Dev-Roles": "attorney"}) as c:
         yield c
 
 

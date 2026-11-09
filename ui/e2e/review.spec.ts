@@ -5,7 +5,16 @@ import { fileURLToPath } from "node:url";
 const SAMPLE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../data/synthetic/case_0003.pdf");
 const SHOTS = process.env.SCREENSHOT_DIR;
 
-test("upload → pipeline → click citation → highlighted source → review", async ({ page }) => {
+test("dev sign-in is required", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+  await page.locator('input[name="user"]').fill("e2e-signin");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page.getByTestId("whoami")).toContainText("e2e-signin");
+});
+
+test("upload → pipeline → click citation → highlighted source → review", async ({ page, context, baseURL }) => {
+  await context.addCookies([{ name: "medchron_dev", value: "e2e-attorney:attorney", url: baseURL! }]);
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "New matter" })).toBeVisible();
 

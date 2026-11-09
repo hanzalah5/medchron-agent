@@ -34,14 +34,19 @@ from medchron.db.store import (
     save_ingested,
     save_issues,
 )
-from medchron.llm.providers import LLMProvider, MeteredProvider
+from medchron.llm.providers import CallRecord, LLMProvider, MeteredProvider
+from medchron.observability import setup_tracing
 from medchron.orchestrator.pipeline import RunConfig, run_case
 from medchron.retrieval.embeddings import get_embedder
+from medchron.security import audit
 from medchron.storage import LocalStorage
 
 log = logging.getLogger(__name__)
 
 PROVIDERS = {"anthropic", "replay", "oracle"}
+WORKER = "system:worker"
+STALE_AFTER = dt.timedelta(minutes=10)
+MAX_ATTEMPTS = 3
 
 
 def enqueue(
@@ -78,7 +83,8 @@ def claim_next(session: Session) -> Job | None:
     ).first()
     if job is not None:
         job.status = "running"
-        job.started_at = dt.datetime.now(dt.UTC)
+        job.started_at = job.heartbeat_at = dt.datetime.now(dt.UTC)
+        job.attempts += 1
     return job
 
 
@@ -111,6 +117,9 @@ def process(engine: Engine, job_id: str, storage: LocalStorage | None = None) ->
     def note(message: str) -> None:
         with Session(engine) as s, s.begin():
             s.add(JobEvent(job_id=job_id, message=message))
+            job = s.get(Job, job_id)
+            if job is not None:
+                job.heartbeat_at = dt.datetime.now(dt.UTC)  # proves the worker is alive
 
     with Session(engine) as s:
         job = s.get(Job, job_id)
@@ -139,6 +148,15 @@ def process(engine: Engine, job_id: str, storage: LocalStorage | None = None) ->
         job.status, job.error, job.summary = status, error, summary
         job.finished_at = dt.datetime.now(dt.UTC)
         s.add(JobEvent(job_id=job_id, message=f"finished: {status}"))
+        audit.record(
+            s,
+            WORKER,
+            f"job.{status}",
+            matter_id=matter_id,
+            object_type="job",
+            object_id=job_id,
+            details={"kind": kind, "provider": provider_name, "error": (error or "")[:200]},
+        )
 
 
 def _pipeline(
@@ -161,7 +179,34 @@ def _pipeline(
         save_ingested(s, result.case, get_embedder())
         save_chronology(s, result.chronology)
         save_issues(s, matter_id, result.issues)
+        _audit_calls(s, matter_id, result.calls)
     return result.summary.model_dump(mode="json")
+
+
+def _audit_calls(session: Session, matter_id: str, calls: list[CallRecord]) -> None:
+    """One audit entry per LLM call: model, tokens, cost and content hashes only."""
+    for c in calls:
+        audit.record(
+            session,
+            WORKER,
+            "llm.call",
+            matter_id=matter_id,
+            object_type="llm",
+            object_id=c.request_id or c.request_sha256[:16],
+            details={
+                "route": c.route,
+                "model": c.model,
+                "prompt": c.prompt_version,
+                "request_sha256": c.request_sha256,
+                "response_sha256": c.response_sha256,
+                "stop": c.stop_reason,
+                "input_tokens": c.usage.input_tokens,
+                "output_tokens": c.usage.output_tokens,
+                "cache_read_tokens": c.usage.cache_read_input_tokens,
+                "cost_usd": round(c.cost_usd, 6),
+                "fallback": c.served_by_fallback,
+            },
+        )
 
 
 def _draft(
@@ -187,6 +232,7 @@ def _draft(
     memo = draft_memo(metered, case, chron, issues)
     memo_id = str(uuid.uuid4())
     with Session(engine) as s, s.begin():
+        _audit_calls(s, matter_id, metered.records)
         s.add(
             MemoRow(
                 memo_id=memo_id,
@@ -204,10 +250,37 @@ def _draft(
     }
 
 
+def requeue_stale(engine: Engine, stale_after: dt.timedelta = STALE_AFTER) -> int:
+    """Recover jobs whose worker died: requeue them, or fail them after MAX_ATTEMPTS.
+
+    Pipeline steps are checkpointed and idempotent, so a requeued job resumes
+    where it stopped, and results are replaced rather than duplicated.
+    """
+    cutoff = dt.datetime.now(dt.UTC) - stale_after
+    n = 0
+    with Session(engine) as s, s.begin():
+        stale = s.scalars(
+            select(Job)
+            .where(Job.status == "running", Job.heartbeat_at < cutoff)
+            .with_for_update(skip_locked=True)
+        ).all()
+        for job in stale:
+            n += 1
+            if job.attempts >= MAX_ATTEMPTS:
+                job.status, job.error = "failed", "worker lost too many times"
+                job.finished_at = dt.datetime.now(dt.UTC)
+            else:
+                job.status = "queued"
+            s.add(JobEvent(job_id=job.job_id, message=f"recovered stale job -> {job.status}"))
+    return n
+
+
 def work(engine: Engine, *, once: bool = False, poll_seconds: float = 1.0) -> int:
     """Worker loop. Returns the number of jobs processed (useful with ``once``)."""
+    setup_tracing("medchron-worker")
     processed = 0
     while True:
+        requeue_stale(engine)
         with Session(engine) as s, s.begin():
             job = claim_next(s)
             job_id = job.job_id if job else None

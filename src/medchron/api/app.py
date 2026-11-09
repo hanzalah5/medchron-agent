@@ -1,7 +1,19 @@
-"""HTTP API: upload productions, follow jobs, read chronologies and pages.
+"""HTTP API: upload productions, follow jobs, review chronologies, issues and memos.
 
-There is no authentication yet. OIDC, RBAC and matter ACLs arrive in the
-hardening step, so run this only on localhost with synthetic data.
+Every endpoint except ``/healthz`` requires an authenticated principal (OIDC
+in production, dev headers locally; see ``medchron.security.auth``).
+Access is enforced in three layers:
+
+1. **Role permissions**: what the user may do (for example, only attorneys
+   triage issues or approve memos).
+2. **Matter membership**: which matters the user may touch (ethical walls),
+   checked in the API.
+3. **Postgres row-level security**: the same membership rule enforced in the
+   database for every query (migration 0005), so a bug in layer 2 still
+   can't leak another matter's rows.
+
+Every read of record content, every review decision and every export is
+written to the hash-chained audit log, with metadata only.
 """
 
 from __future__ import annotations
@@ -30,27 +42,70 @@ from sqlalchemy.orm import Session
 from medchron import __version__
 from medchron.chronology.export import to_markdown
 from medchron.chronology.models import Chronology
-from medchron.db.models import EventRow, IssueRow, Job, JobEvent, Matter, MemoRow, PageRow
+from medchron.db.models import (
+    AuditRow,
+    EventRow,
+    IssueRow,
+    Job,
+    JobEvent,
+    Matter,
+    MatterMember,
+    MemoRow,
+    PageRow,
+)
 from medchron.db.store import load_chronology, make_engine, reviewed_chronology
 from medchron.ingestion.models import Page
 from medchron.jobs import PROVIDERS, enqueue
+from medchron.observability import setup_tracing
 from medchron.retrieval.embeddings import get_embedder
 from medchron.retrieval.search import PostgresSearch, SearchHit
+from medchron.security import audit
+from medchron.security.auth import Principal, Role, authenticate, require
 from medchron.storage import LocalStorage
 
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 MATTER_ID = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+USER_ID = re.compile(r"^[A-Za-z0-9_.@+-]{1,128}$")
 
 
-def db(request: Request) -> Iterator[Session]:
-    with Session(request.app.state.engine) as session:
-        yield session
+def current_principal(request: Request) -> Principal:
+    return authenticate(request)
+
+
+User = Annotated[Principal, Depends(current_principal)]
+
+
+def db(request: Request, user: User) -> Iterator[Session]:
+    """A session that acts as the user, so Postgres row-level security applies."""
+    with Session(request.app.state.engine, info={"actor": user.user_id, "principal": user}) as s:
+        yield s
 
 
 DB = Annotated[Session, Depends(db)]
 
 
+def who(session: Session) -> Principal:
+    principal: Principal = session.info["principal"]
+    return principal
+
+
+def get_matter(session: Session, matter_id: str, permission: str = "matter.read") -> Matter:
+    """Load a matter the caller may access. Non-members get 404, which doesn't reveal existence."""
+    user = who(session)
+    require(user, permission)
+    member = session.get(MatterMember, (matter_id, user.user_id))
+    matter = session.get(Matter, matter_id) if member else None
+    if matter is None:
+        raise HTTPException(404, "matter not found")
+    return matter
+
+
+def log(session: Session, action: str, matter_id: str | None = None, **kw: Any) -> None:
+    audit.record(session, who(session).user_id, action, matter_id=matter_id, **kw)
+
+
 def create_app(engine: Engine | None = None, storage: LocalStorage | None = None) -> FastAPI:
+    setup_tracing("medchron-api")
     app = FastAPI(
         title="MedChron API",
         version=__version__,
@@ -59,16 +114,15 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
     app.state.engine = engine or make_engine()
     app.state.storage = storage or LocalStorage()
 
-    def get_matter(session: Session, matter_id: str) -> Matter:
-        matter = session.get(Matter, matter_id)
-        if matter is None:
-            raise HTTPException(404, "matter not found")
-        return matter
-
     @app.get("/healthz")
     def healthz() -> dict[str, str]:
         return {"status": "ok", "version": __version__}
 
+    @app.get("/api/me")
+    def me(user: User) -> dict[str, Any]:
+        return {"user_id": user.user_id, "roles": sorted(r.value for r in user.roles)}
+
+    # ------------------------------------------------------------------ matters
     @app.post("/api/matters", status_code=202)
     async def create_matter(
         session: DB,
@@ -78,6 +132,8 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
         provider: Annotated[str, Form()] = "anthropic",
         budget_usd: Annotated[float | None, Form()] = None,
     ) -> dict[str, str]:
+        user = who(session)
+        require(user, "matter.create")
         data = await file.read(MAX_UPLOAD_BYTES + 1)
         if len(data) > MAX_UPLOAD_BYTES:
             raise HTTPException(413, "file too large")
@@ -88,24 +144,35 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
         mid = matter_id or f"m-{uuid.uuid4().hex[:10]}"
         if not MATTER_ID.match(mid):
             raise HTTPException(422, "matter_id may contain letters, digits, '.', '_' and '-'")
-        if session.get(Matter, mid) is not None:
+        exists = session.execute(
+            select(func.medchron_matter_exists(mid))  # sees past RLS without revealing rows
+        ).scalar()
+        if exists:
             raise HTTPException(409, "matter already exists")
+        sha = hashlib.sha256(data).hexdigest()
         key = request_storage(app).put(data)
         session.add(
             Matter(
                 matter_id=mid,
                 title=title[:255],
-                source_sha256=hashlib.sha256(data).hexdigest(),
+                source_sha256=sha,
                 source_path=key,
+                created_by=user.user_id,
             )
         )
         session.flush()
+        session.add(MatterMember(matter_id=mid, user_id=user.user_id, added_by=user.user_id))
+        session.flush()
         job = enqueue(session, mid, provider, budget_usd)
+        log(session, "matter.create", mid, object_type="file", object_id=sha,
+            details={"bytes": len(data), "provider": provider})  # fmt: skip
         session.commit()
         return {"matter_id": mid, "job_id": job.job_id}
 
     @app.get("/api/matters")
     def list_matters(session: DB) -> list[dict[str, Any]]:
+        user = who(session)
+        mine = select(MatterMember.matter_id).where(MatterMember.user_id == user.user_id)
         latest = (
             select(Job.matter_id, func.max(Job.created_at).label("at"))
             .group_by(Job.matter_id)
@@ -113,6 +180,7 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
         )
         rows = session.execute(
             select(Matter, Job)
+            .where(Matter.matter_id.in_(mine))
             .outerjoin(latest, latest.c.matter_id == Matter.matter_id)
             .outerjoin(Job, (Job.matter_id == Matter.matter_id) & (Job.created_at == latest.c.at))
             .order_by(Matter.created_at.desc())
@@ -141,16 +209,45 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
             "jobs": [_job_json(j) for j in jobs],
         }
 
+    @app.get("/api/matters/{matter_id}/members")
+    def members(session: DB, matter_id: str) -> list[dict[str, Any]]:
+        get_matter(session, matter_id)
+        rows = session.scalars(select(MatterMember).where(MatterMember.matter_id == matter_id))
+        return [{"user_id": r.user_id, "added_by": r.added_by} for r in rows]
+
+    @app.post("/api/matters/{matter_id}/members", status_code=201)
+    def add_member(session: DB, matter_id: str, body: NewMember) -> dict[str, str]:
+        user = who(session)
+        require(user, "matter.members")
+        # Admins manage ethical walls without being members (they can't read content).
+        if Role.ADMIN not in user.roles:
+            get_matter(session, matter_id)
+        elif not session.execute(select(func.medchron_matter_exists(matter_id))).scalar():
+            raise HTTPException(404, "matter not found")
+        if session.get(MatterMember, (matter_id, body.user_id)) is None:
+            session.add(
+                MatterMember(matter_id=matter_id, user_id=body.user_id, added_by=user.user_id)
+            )
+        log(session, "matter.member_add", matter_id, object_type="user", object_id=body.user_id)
+        session.commit()
+        return {"matter_id": matter_id, "user_id": body.user_id}
+
+    # ------------------------------------------------------------------ records
     @app.get("/api/matters/{matter_id}/chronology", response_model=Chronology)
     def chronology(session: DB, matter_id: str) -> Chronology:
         get_matter(session, matter_id)
+        log(session, "chronology.view", matter_id)
+        session.commit()
         return load_chronology(session, matter_id)
 
     @app.get("/api/matters/{matter_id}/pages/{page_no}", response_model=Page)
     def page(session: DB, matter_id: str, page_no: int) -> Page:
+        get_matter(session, matter_id)
         row = session.get(PageRow, (matter_id, page_no))
         if row is None:
             raise HTTPException(404, "page not found")
+        log(session, "page.view", matter_id, object_type="page", object_id=str(page_no))
+        session.commit()
         return Page.model_validate(
             {
                 "page_no": row.page_no,
@@ -171,6 +268,8 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
         png = _render_page(request_storage(app), m.source_path, page_no, min(max(dpi, 50), 200))
         if png is None:
             raise HTTPException(404, "page not found")
+        log(session, "page.image", matter_id, object_type="page", object_id=str(page_no))
+        session.commit()
         return Response(
             png, media_type="image/png", headers={"Cache-Control": "private, max-age=3600"}
         )
@@ -178,26 +277,36 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
     @app.get("/api/matters/{matter_id}/search", response_model=list[SearchHit])
     def search(session: DB, matter_id: str, q: str, limit: int = 8) -> list[SearchHit]:
         get_matter(session, matter_id)
+        # The query may itself contain PHI, so only its hash is audited.
+        log(session, "records.search", matter_id,
+            details={"query_sha256": hashlib.sha256(q.encode()).hexdigest()})  # fmt: skip
+        session.commit()
         return PostgresSearch(session, matter_id, get_embedder()).search(q, limit=min(limit, 25))
 
+    # ------------------------------------------------------------------ jobs
     @app.get("/api/jobs/{job_id}")
     def job(session: DB, job_id: str) -> dict[str, Any]:
         j = session.get(Job, job_id)
         if j is None:
             raise HTTPException(404, "job not found")
+        get_matter(session, j.matter_id)
         return _job_json(j)
 
     @app.get("/api/jobs/{job_id}/events")
-    async def job_events(request: Request, job_id: str) -> StreamingResponse:
+    async def job_events(request: Request, user: User, job_id: str) -> StreamingResponse:
         engine: Engine = request.app.state.engine
+        with Session(engine, info={"actor": user.user_id, "principal": user}) as s:
+            j = s.get(Job, job_id)
+            if j is None:
+                raise HTTPException(404, "job not found")
+            get_matter(s, j.matter_id)
 
         async def stream() -> AsyncIterator[str]:
             last = 0
             while True:
-                with Session(engine) as s:
+                with Session(engine, info={"actor": user.user_id}) as s:
                     j = s.get(Job, job_id)
                     if j is None:
-                        yield _sse({"error": "job not found"})
                         return
                     events = s.scalars(
                         select(JobEvent)
@@ -218,7 +327,7 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
 
         return StreamingResponse(stream(), media_type="text/event-stream")
 
-    # ------------------------------------------------------------------ review (HITL)
+    # ------------------------------------------------------------------ review (HITL-1/2)
     @app.get("/api/matters/{matter_id}/review")
     def review_state(session: DB, matter_id: str) -> dict[str, Any]:
         m = get_matter(session, matter_id)
@@ -235,6 +344,7 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
     def review_event(
         session: DB, matter_id: str, event_id: str, body: EventReview
     ) -> dict[str, Any]:
+        get_matter(session, matter_id, "events.review")
         row = session.get(EventRow, (matter_id, event_id))
         if row is None:
             raise HTTPException(404, "event not found")
@@ -246,19 +356,22 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
         row.reviewer_note = body.note[:2000]
         row.edited_summary = (body.summary or None) if body.status == "edited" else None
         row.edited_date = body.date if body.status == "edited" else None
-        row.reviewed_by = CURRENT_USER  # replaced by the authenticated user in the hardening step
+        row.reviewed_by = who(session).user_id
         row.reviewed_at = dt.datetime.now(dt.UTC)
+        log(session, "event.review", matter_id, object_type="event", object_id=event_id,
+            details={"status": body.status})  # fmt: skip
         session.commit()
         return _review_json(row)
 
     @app.post("/api/matters/{matter_id}/index/confirm")
     def confirm_index(session: DB, matter_id: str) -> dict[str, str]:
-        m = get_matter(session, matter_id)
-        m.index_confirmed_by = CURRENT_USER
+        m = get_matter(session, matter_id, "index.confirm")
+        m.index_confirmed_by = who(session).user_id
         m.index_confirmed_at = dt.datetime.now(dt.UTC)
+        log(session, "index.confirm", matter_id)
         session.commit()
         return {
-            "index_confirmed_by": CURRENT_USER,
+            "index_confirmed_by": m.index_confirmed_by,
             "index_confirmed_at": m.index_confirmed_at.isoformat(),
         }
 
@@ -267,8 +380,12 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
         """Draft chronology with reviewer edits applied and rejected events left out."""
         get_matter(session, matter_id)
         chron = reviewed_chronology(session, matter_id)
+        body = to_markdown(chron)
+        log(session, "chronology.export", matter_id,
+            details={"sha256": hashlib.sha256(body.encode()).hexdigest()})  # fmt: skip
+        session.commit()
         return Response(
-            to_markdown(chron),
+            body,
             media_type="text/markdown",
             headers={"Content-Disposition": f'attachment; filename="{matter_id}-chronology.md"'},
         )
@@ -286,20 +403,23 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
     def triage_issue(
         session: DB, matter_id: str, issue_id: str, body: IssueTriage
     ) -> dict[str, Any]:
+        get_matter(session, matter_id, "issues.triage")
         row = session.get(IssueRow, (matter_id, issue_id))
         if row is None:
             raise HTTPException(404, "issue not found")
         if body.status == "dismiss" and not body.note.strip():
             raise HTTPException(422, "dismissing an issue requires a reason")
         row.triage_status, row.triage_note = body.status, body.note[:2000]
-        row.triaged_by, row.triaged_at = CURRENT_USER, dt.datetime.now(dt.UTC)
+        row.triaged_by, row.triaged_at = who(session).user_id, dt.datetime.now(dt.UTC)
+        log(session, "issue.triage", matter_id, object_type="issue", object_id=issue_id,
+            details={"status": body.status})  # fmt: skip
         session.commit()
         return _issue_json(row)
 
     # ------------------------------------------------------------------ memo (HITL-4)
     @app.post("/api/matters/{matter_id}/memo", status_code=202)
     def request_memo(session: DB, matter_id: str, body: MemoRequest) -> dict[str, str]:
-        m = get_matter(session, matter_id)
+        m = get_matter(session, matter_id, "memo.draft")
         if m.index_confirmed_at is None:
             raise HTTPException(409, "confirm the document index before drafting a memo")
         pending = session.scalar(
@@ -310,6 +430,7 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
         if pending:
             raise HTTPException(409, f"{pending} issue(s) still need triage")
         job = enqueue(session, matter_id, body.provider, body.budget_usd, kind="memo")
+        log(session, "memo.request", matter_id, object_type="job", object_id=job.job_id)
         session.commit()
         return {"job_id": job.job_id}
 
@@ -328,18 +449,22 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
 
     @app.post("/api/matters/{matter_id}/memo/{memo_id}/approve")
     def approve_memo(session: DB, matter_id: str, memo_id: str) -> dict[str, Any]:
+        get_matter(session, matter_id, "memo.approve")
         row = session.get(MemoRow, memo_id)
         if row is None or row.matter_id != matter_id:
             raise HTTPException(404, "memo not found")
         if any(not c.get("citation_valid", True) for c in row.claims):
             raise HTTPException(409, "memo has citations that failed verification")
-        row.status, row.approved_by = "approved", CURRENT_USER
+        row.status, row.approved_by = "approved", who(session).user_id
         row.approved_at = dt.datetime.now(dt.UTC)
+        log(session, "memo.approve", matter_id, object_type="memo", object_id=memo_id,
+            details={"sha256": hashlib.sha256(row.markdown.encode()).hexdigest()})  # fmt: skip
         session.commit()
         return _memo_json(row)
 
     @app.get("/api/matters/{matter_id}/memo/{memo_id}/export.md")
     def export_memo(session: DB, matter_id: str, memo_id: str) -> Response:
+        get_matter(session, matter_id)
         row = session.get(MemoRow, memo_id)
         if row is None or row.matter_id != matter_id:
             raise HTTPException(404, "memo not found")
@@ -349,17 +474,50 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
             f"\n\n---\nApproved by {row.approved_by} on "
             f"{row.approved_at.isoformat() if row.approved_at else ''}. Synthetic records.\n"
         )
+        log(session, "memo.export", matter_id, object_type="memo", object_id=memo_id)
+        session.commit()
         return Response(
             row.markdown + footer,
             media_type="text/markdown",
             headers={"Content-Disposition": f'attachment; filename="{matter_id}-memo.md"'},
         )
 
+    # ------------------------------------------------------------------ audit
+    @app.get("/api/audit")
+    def audit_log(
+        session: DB, matter_id: str | None = None, limit: int = 200
+    ) -> list[dict[str, Any]]:
+        require(who(session), "audit.read")
+        q = select(AuditRow).order_by(AuditRow.id.desc()).limit(min(limit, 1000))
+        if matter_id:
+            q = q.where(AuditRow.matter_id == matter_id)
+        return [
+            {
+                "id": r.id,
+                "at": r.at,
+                "actor": r.actor,
+                "action": r.action,
+                "matter_id": r.matter_id,
+                "object_type": r.object_type,
+                "object_id": r.object_id,
+                "details": r.details,
+                "hash": r.hash,
+            }
+            for r in session.scalars(q)
+        ]
+
+    @app.get("/api/audit/verify")
+    def audit_verify(session: DB) -> dict[str, Any]:
+        require(who(session), "audit.read")
+        ok, n, bad = audit.verify_chain(session)
+        return {"ok": ok, "rows": n, "first_bad_id": bad}
+
     _mount_ui(app)
     return app
 
 
-CURRENT_USER = "local-reviewer"
+class NewMember(BaseModel):
+    user_id: str = Field(pattern=USER_ID.pattern)
 
 
 class IssueTriage(BaseModel):
@@ -370,6 +528,13 @@ class IssueTriage(BaseModel):
 class MemoRequest(BaseModel):
     provider: Literal["anthropic", "replay", "oracle"] = "anthropic"
     budget_usd: float | None = None
+
+
+class EventReview(BaseModel):
+    status: Literal["pending", "accepted", "edited", "rejected"]
+    note: str = ""
+    summary: str | None = Field(default=None, max_length=300)
+    date: dt.date | None = None
 
 
 def _issue_json(r: IssueRow) -> dict[str, Any]:
@@ -398,13 +563,6 @@ def _memo_json(r: MemoRow) -> dict[str, Any]:
         "approved_by": r.approved_by,
         "approved_at": r.approved_at.isoformat() if r.approved_at else None,
     }
-
-
-class EventReview(BaseModel):
-    status: Literal["pending", "accepted", "edited", "rejected"]
-    note: str = ""
-    summary: str | None = Field(default=None, max_length=300)
-    date: dt.date | None = None
 
 
 def _review_json(r: EventRow) -> dict[str, Any]:

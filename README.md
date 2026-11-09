@@ -78,7 +78,7 @@ medchron synth --cases 30 --start-seed 100 --out data/generated   # a larger dat
 | 1 | Grounded extraction MVP and eval harness v1 (`v0.1`) | ✅ Done (live scorecard pending an API-key run) |
 | 2 | Reviewer UI with click-to-source, human-in-the-loop queues (`v0.2`) | ✅ Done |
 | 3 | Issue analyst, verifier and cited memo drafting (`v0.3`) | ✅ Done (live scorecard pending an API-key run) |
-| 4 | Production hardening: auth, RBAC, audit, observability, cost controls (`v0.4`) | ⏳ |
+| 4 | Production hardening: auth, RBAC, audit, observability, cost controls (`v0.4`) | ✅ Done (batch-mode extraction deferred) |
 | 5 | Infrastructure as code and deployment, hosted replay demo (`v0.5`) | ⏳ |
 | 6 | Architecture decision records (ADRs), eval report, demo video (`v1.0`) | ⏳ |
 
@@ -99,11 +99,12 @@ make db-up            # Postgres + pgvector via docker compose, then migrations
 # Run the agent pipeline with Claude (needs ANTHROPIC_API_KEY); outputs in runs/case_0003/
 .venv/bin/medchron run data/synthetic/case_0003.pdf --matter case_0003 --budget 2.00
 
-# Reviewer UI + API + worker (localhost only until auth lands in the hardening phase)
+# Reviewer UI + API + worker (dev sign-in locally; set MEDCHRON_AUTH_MODE=oidc when deployed)
 (cd ui && npm ci && npm run build)    # the API serves ui/dist at http://127.0.0.1:8000/
 .venv/bin/medchron serve &            # API docs at http://127.0.0.1:8000/docs
 .venv/bin/medchron worker &
-curl -F file=@data/synthetic/case_0003.pdf -F provider=oracle http://127.0.0.1:8000/api/matters
+curl -H "X-Dev-User: me" -H "X-Dev-Roles: attorney" \
+     -F file=@data/synthetic/case_0003.pdf -F provider=oracle http://127.0.0.1:8000/api/matters
 
 # ...or with no API key, using the gold-label oracle test double (plumbing check only)
 .venv/bin/medchron run data/synthetic/case_0003.pdf --matter case_0003 \
@@ -131,6 +132,8 @@ curl -F file=@data/synthetic/case_0003.pdf -F provider=oracle http://127.0.0.1:8
 | Verifier | `src/medchron/agents/verifier.py` | An independent LLM judge that sees each issue with only its cited evidence and rates it supported, partial or unsupported. Unsupported issues are shown, not hidden |
 | Memo drafter | `src/medchron/agents/drafter.py` | Uses Claude's **Citations** feature on per-page text documents. Every citation's character range is checked against the page and can be clicked to its highlight. It drafts only from reviewed events and triaged issues |
 | Human checkpoints | API and UI | 1: confirm the document index. 2: accept, edit or reject events. 3: triage issues (pursue, ask an expert, or dismiss with a reason). 4: approve the memo, which is the only way to export it. Memo drafting is blocked until checkpoints 1 and 3 are complete |
+| Security | `src/medchron/security/`, migration `0005` | OIDC (JWT and JWKS) or local dev sign-in, RBAC, matter membership checked in the API **and** enforced by Postgres row-level security, hash-chained append-only audit log with a verify endpoint, PHI-safe structured logging. See [docs/security.md](docs/security.md) for the threat model |
+| Reliability and observability | `jobs.py`, `observability.py` | Worker heartbeats, stale-job recovery that resumes from checkpoints with an attempt limit, OpenTelemetry spans for cases and LLM calls (no content), with OTLP export to any backend |
 | Prompts | `src/medchron/prompts/` | Versioned files (`name/vN.md`). Each call records `name@vN+sha` |
 | Embeddings | `src/medchron/retrieval/` | Local `bge-small` (optional extra) or a deterministic hashing embedder for tests and CI, so record text is never sent out to be embedded |
 

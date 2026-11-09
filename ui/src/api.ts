@@ -137,7 +137,13 @@ async function json<T>(res: Response): Promise<T> {
 
 const enc = encodeURIComponent;
 
+export type Me = { user_id: string; roles: string[] };
+
 export const api = {
+  me: async (): Promise<Me | null> => {
+    const r = await fetch("/api/me");
+    return r.status === 401 ? null : json<Me>(r);
+  },
   matters: () => fetch("/api/matters").then((r) => json<MatterSummary[]>(r)),
   matter: (id: string) => fetch(`/api/matters/${enc(id)}`).then((r) => json<MatterDetail>(r)),
   chronology: (id: string) => fetch(`/api/matters/${enc(id)}/chronology`).then((r) => json<Chronology>(r)),

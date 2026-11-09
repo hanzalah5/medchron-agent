@@ -12,6 +12,7 @@ from typing import Any
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
+    BigInteger,
     Computed,
     Date,
     DateTime,
@@ -41,6 +42,7 @@ class Matter(Base):
     title: Mapped[str] = mapped_column(String(255), default="")
     source_sha256: Mapped[str] = mapped_column(String(64))
     source_path: Mapped[str] = mapped_column(String(512), default="", server_default="")
+    created_by: Mapped[str] = mapped_column(String(128), default="", server_default="")
     index_confirmed_by: Mapped[str | None] = mapped_column(String(128))
     index_confirmed_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[dt.datetime] = mapped_column(
@@ -66,6 +68,8 @@ class Job(Base):
         DateTime(timezone=True), server_default=func.now()
     )
     started_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    heartbeat_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     finished_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
 
 
@@ -224,3 +228,36 @@ class MemoRow(Base):
     )
     approved_by: Mapped[str | None] = mapped_column(String(128))
     approved_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class MatterMember(Base):
+    """Matter-level access (ethical walls). Only members can read a matter's records."""
+
+    __tablename__ = "matter_members"
+
+    matter_id: Mapped[str] = mapped_column(
+        ForeignKey("matters.matter_id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    added_by: Mapped[str] = mapped_column(String(128))
+    added_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class AuditRow(Base):
+    """Append-only, hash-chained audit log (see medchron.security.audit)."""
+
+    __tablename__ = "audit_log"
+    __table_args__ = (Index("ix_audit_matter", "matter_id"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    at: Mapped[str] = mapped_column(String(40))
+    actor: Mapped[str] = mapped_column(String(128))
+    action: Mapped[str] = mapped_column(String(64))
+    matter_id: Mapped[str | None] = mapped_column(String(64))
+    object_type: Mapped[str | None] = mapped_column(String(32))
+    object_id: Mapped[str | None] = mapped_column(String(128))
+    details: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    prev_hash: Mapped[str] = mapped_column(String(64))
+    hash: Mapped[str] = mapped_column(String(64), unique=True)

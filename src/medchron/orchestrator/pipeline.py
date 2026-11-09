@@ -47,6 +47,7 @@ from medchron.llm.config import effort_for, model_for
 from medchron.llm.prompts import load_prompt
 from medchron.llm.providers import CallRecord, LLMProvider, MeteredProvider
 from medchron.llm.types import BudgetExceededError, LLMError
+from medchron.observability import span
 from medchron.retrieval.embeddings import get_embedder
 from medchron.retrieval.search import MemorySearch
 
@@ -133,6 +134,22 @@ def _settings(route: str, *prompts: str) -> str:
 
 
 def run_case(
+    pdf: Path,
+    case_id: str,
+    provider: LLMProvider,
+    config: RunConfig,
+    *,
+    progress: Callable[[str], None] | None = None,
+) -> RunResult:
+    with span("case.run", matter_id=case_id) as sp:
+        result = _run_case(pdf, case_id, provider, config, progress=progress)
+        sp.set_attribute("case.status", result.summary.status)
+        sp.set_attribute("case.events", result.summary.events)
+        sp.set_attribute("case.cost_usd", result.summary.cost_usd)
+        return result
+
+
+def _run_case(
     pdf: Path,
     case_id: str,
     provider: LLMProvider,

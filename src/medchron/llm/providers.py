@@ -27,6 +27,7 @@ from medchron.llm.types import (
     LLMResponse,
     Usage,
 )
+from medchron.observability import span
 
 log = logging.getLogger("medchron.llm")
 
@@ -142,7 +143,13 @@ class MeteredProvider:
                     f"case budget ${self.budget_usd:.2f} spent (${self.spent_usd:.4f})"
                 )
         start = time.perf_counter()
-        resp = self._inner.complete(req)
+        with span("llm.call", route=req.route, prompt=req.prompt_version) as sp:
+            resp = self._inner.complete(req)
+            sp.set_attribute("llm.model", resp.model)
+            sp.set_attribute("llm.stop_reason", resp.stop_reason.value)
+            sp.set_attribute("llm.input_tokens", resp.usage.input_tokens)
+            sp.set_attribute("llm.output_tokens", resp.usage.output_tokens)
+            sp.set_attribute("llm.cache_read_tokens", resp.usage.cache_read_input_tokens)
         latency = int((time.perf_counter() - start) * 1000)
         model = resp.model or req.model or model_for(req.route)
         record = CallRecord(
