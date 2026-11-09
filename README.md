@@ -84,6 +84,8 @@ make db-up            # Postgres + pgvector via docker compose, then migrations
 | Synthetic benchmark generator | `src/medchron/synth/` | Seeded, deterministic, gold labels with exact quote and page sources |
 | Ingestion | `src/medchron/ingestion/` | PyMuPDF text with word bounding boxes, Tesseract OCR fallback with confidence, duplicate-page detection that ignores fax headers, page-bounded chunks with resolvable span IDs (`case:p12:340-918`) |
 | Storage | `src/medchron/db/`, `migrations/` | Postgres + pgvector: matters, pages, spans with generated `tsvector` (GIN) and HNSW cosine index; Alembic migrations |
+| LLM layer | `src/medchron/llm/` | A provider-neutral interface and a Claude implementation: per-route model and effort settings, strict tool schemas, prompt-cache breakpoints, server-side refusal fallback, typed error classes, every stop reason handled, a bounded tool loop, a per-case budget, PHI-safe call logs (hashes only) and record/replay fixtures for offline runs |
+| Prompts | `src/medchron/prompts/` | Versioned files (`name/vN.md`). Each call records `name@vN+sha` |
 | Embeddings | `src/medchron/retrieval/` | Local `bge-small` (optional extra) or a deterministic hashing embedder for tests and CI, so record text is never sent out to be embedded |
 
 ## License
