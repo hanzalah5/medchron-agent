@@ -112,6 +112,9 @@ jobs:
         with:
           version: v0.72.0 # older release assets have been removed upstream
           image-ref: medchron:ci
+          # Vulnerabilities only. Repository secrets are covered by gitleaks above; the image's
+          # secret scan flags example credentials in third-party SDK docstrings (false positives).
+          scanners: vuln
           severity: CRITICAL
           ignore-unfixed: true
           exit-code: "1"
