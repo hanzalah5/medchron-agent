@@ -108,8 +108,9 @@ jobs:
           curl -fsS localhost:8080/ | grep -q "MedChron Reviewer"
           docker rm -f api
       - name: Vulnerability scan (fail on fixable critical)
-        uses: aquasecurity/trivy-action@v0.33.1
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
+          version: v0.72.0 # older release assets have been removed upstream
           image-ref: medchron:ci
           severity: CRITICAL
           ignore-unfixed: true
