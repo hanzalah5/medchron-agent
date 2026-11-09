@@ -53,3 +53,42 @@ jobs:
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  ui-e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: medchron
+          POSTGRES_PASSWORD: medchron
+          POSTGRES_DB: medchron_e2e
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U medchron"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      E2E_DATABASE_URL: postgresql+psycopg://medchron:medchron@localhost:5432/medchron_e2e
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Tesseract OCR
+        run: sudo apt-get update -q && sudo apt-get install -y -q tesseract-ocr
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Install backend
+        run: make install
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - name: Build UI (type-check + bundle)
+        working-directory: ui
+        run: npm ci && npm run build
+      - name: Install Playwright Chromium
+        working-directory: ui
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end test (upload -> pipeline -> click-to-source -> review)
+        working-directory: ui
+        run: npm run e2e

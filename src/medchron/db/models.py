@@ -41,6 +41,8 @@ class Matter(Base):
     title: Mapped[str] = mapped_column(String(255), default="")
     source_sha256: Mapped[str] = mapped_column(String(64))
     source_path: Mapped[str] = mapped_column(String(512), default="", server_default="")
+    index_confirmed_by: Mapped[str | None] = mapped_column(String(128))
+    index_confirmed_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -115,6 +117,8 @@ class EventRow(Base):
     sources: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
     review_status: Mapped[str] = mapped_column(String(16), default="pending")
     reviewer_note: Mapped[str] = mapped_column(Text, default="")
+    edited_summary: Mapped[str | None] = mapped_column(Text)
+    edited_date: Mapped[dt.date | None] = mapped_column(Date)
     reviewed_by: Mapped[str | None] = mapped_column(String(128))
     reviewed_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
 

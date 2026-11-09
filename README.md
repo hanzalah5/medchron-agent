@@ -12,6 +12,10 @@
 > [!NOTE]
 > **Status: work in progress.** The project is being built in public, phase by phase. See the [roadmap](#roadmap).
 
+![Reviewer UI: every chronology entry links to its highlighted source on the page](docs/images/reviewer.png)
+
+*Reviewer UI, running on a synthetic case: clicking a citation (`p8`) opens the source page with the quoted text highlighted from stored word boxes. Each event can be accepted, edited or rejected, and rejections require a reason.*
+
 ## The problem
 
 Firms handling medical malpractice and personal-injury matters receive record productions that run to hundreds or thousands of pages: scanned, duplicated, out of order and spread across many providers. Paralegals and nurse consultants build a **medical chronology** by hand. Generic "chat with your PDF" tools are not trustworthy here, because they paraphrase without verifiable citations and can invent dates.
@@ -66,7 +70,7 @@ medchron synth --cases 30 --start-seed 100 --out data/generated   # a larger dat
 |---|---|---|
 | 0 | Repo foundations, synthetic benchmark generator with gold labels | ✅ Done |
 | 1 | Grounded extraction MVP and eval harness v1 (`v0.1`) | ✅ Done (live scorecard pending an API-key run) |
-| 2 | Reviewer UI with click-to-source, human-in-the-loop queues (`v0.2`) | ⏳ |
+| 2 | Reviewer UI with click-to-source, human-in-the-loop queues (`v0.2`) | ✅ Done |
 | 3 | Issue analyst, verifier and cited memo drafting (`v0.3`) | ⏳ |
 | 4 | Production hardening: auth, RBAC, audit, observability, cost controls (`v0.4`) | ⏳ |
 | 5 | Infrastructure as code and deployment, hosted replay demo (`v0.5`) | ⏳ |
@@ -89,8 +93,9 @@ make db-up            # Postgres + pgvector via docker compose, then migrations
 # Run the agent pipeline with Claude (needs ANTHROPIC_API_KEY); outputs in runs/case_0003/
 .venv/bin/medchron run data/synthetic/case_0003.pdf --matter case_0003 --budget 2.00
 
-# API + worker (localhost only until auth lands in the hardening phase)
-.venv/bin/medchron serve &            # http://127.0.0.1:8000/docs
+# Reviewer UI + API + worker (localhost only until auth lands in the hardening phase)
+(cd ui && npm ci && npm run build)    # the API serves ui/dist at http://127.0.0.1:8000/
+.venv/bin/medchron serve &            # API docs at http://127.0.0.1:8000/docs
 .venv/bin/medchron worker &
 curl -F file=@data/synthetic/case_0003.pdf -F provider=oracle http://127.0.0.1:8000/api/matters
 
@@ -115,6 +120,7 @@ curl -F file=@data/synthetic/case_0003.pdf -F provider=oracle http://127.0.0.1:8
 | Agent tools | `src/medchron/tools/` | Read-only, matter-scoped tools: `search_records` (hybrid search), `get_page`, `query_timeline` and `find_gaps`. Every result carries span IDs or page numbers, and no tool can write, send or fetch, so an injected document has nothing to exfiltrate through |
 | Retrieval | `src/medchron/retrieval/` | Hybrid search: Postgres full-text ranking and pgvector cosine distance, fused with reciprocal rank fusion (RRF) in SQL, plus an in-memory BM25 version for offline runs |
 | API and jobs | `src/medchron/api/`, `src/medchron/jobs.py` | FastAPI: upload a production, track the job (progress over SSE), and read the chronology, page text with word boxes, page images and search. A Postgres `SKIP LOCKED` job queue serves any number of workers. A failed job records its error and doesn't stop the worker |
+| Reviewer UI | `ui/` | React and TypeScript. Click-to-source page viewer that highlights exact word boxes (OCR pages included), chronology review (accept / edit / reject with reason), "for review" signals, document-index confirmation (human checkpoint 1), live job progress and Markdown export with reviewer decisions applied. A Playwright test covers the whole flow in CI |
 | Prompts | `src/medchron/prompts/` | Versioned files (`name/vN.md`). Each call records `name@vN+sha` |
 | Embeddings | `src/medchron/retrieval/` | Local `bge-small` (optional extra) or a deterministic hashing embedder for tests and CI, so record text is never sent out to be embedded |
 

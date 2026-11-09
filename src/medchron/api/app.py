@@ -7,25 +7,30 @@ hardening step, so run this only on localhost with synthetic data.
 from __future__ import annotations
 
 import asyncio
+import datetime as dt
 import hashlib
 import json
+import os
 import re
 import uuid
 from collections.abc import AsyncIterator, Iterator
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 import pymupdf
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import Response, StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from medchron import __version__
+from medchron.chronology.export import to_markdown
 from medchron.chronology.models import Chronology
-from medchron.db.models import Job, JobEvent, Matter, PageRow
+from medchron.db.models import EventRow, Job, JobEvent, Matter, PageRow
 from medchron.db.store import load_chronology, make_engine
 from medchron.ingestion.models import Page
 from medchron.jobs import PROVIDERS, enqueue
@@ -213,7 +218,108 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
 
         return StreamingResponse(stream(), media_type="text/event-stream")
 
+    # ------------------------------------------------------------------ review (HITL)
+    @app.get("/api/matters/{matter_id}/review")
+    def review_state(session: DB, matter_id: str) -> dict[str, Any]:
+        m = get_matter(session, matter_id)
+        rows = session.scalars(select(EventRow).where(EventRow.matter_id == matter_id)).all()
+        return {
+            "index_confirmed_by": m.index_confirmed_by,
+            "index_confirmed_at": m.index_confirmed_at.isoformat()
+            if m.index_confirmed_at
+            else None,
+            "events": {r.event_id: _review_json(r) for r in rows},
+        }
+
+    @app.patch("/api/matters/{matter_id}/events/{event_id}")
+    def review_event(
+        session: DB, matter_id: str, event_id: str, body: EventReview
+    ) -> dict[str, Any]:
+        row = session.get(EventRow, (matter_id, event_id))
+        if row is None:
+            raise HTTPException(404, "event not found")
+        if body.status == "edited" and not (body.summary or body.date):
+            raise HTTPException(422, "an edit needs a new summary or date")
+        if body.status == "rejected" and not body.note.strip():
+            raise HTTPException(422, "rejecting an event requires a reason")
+        row.review_status = body.status
+        row.reviewer_note = body.note[:2000]
+        row.edited_summary = (body.summary or None) if body.status == "edited" else None
+        row.edited_date = body.date if body.status == "edited" else None
+        row.reviewed_by = CURRENT_USER  # replaced by the authenticated user in the hardening step
+        row.reviewed_at = dt.datetime.now(dt.UTC)
+        session.commit()
+        return _review_json(row)
+
+    @app.post("/api/matters/{matter_id}/index/confirm")
+    def confirm_index(session: DB, matter_id: str) -> dict[str, str]:
+        m = get_matter(session, matter_id)
+        m.index_confirmed_by = CURRENT_USER
+        m.index_confirmed_at = dt.datetime.now(dt.UTC)
+        session.commit()
+        return {
+            "index_confirmed_by": CURRENT_USER,
+            "index_confirmed_at": m.index_confirmed_at.isoformat(),
+        }
+
+    @app.get("/api/matters/{matter_id}/export.md")
+    def export_markdown(session: DB, matter_id: str) -> Response:
+        """Draft chronology with reviewer edits applied and rejected events left out."""
+        get_matter(session, matter_id)
+        chron = load_chronology(session, matter_id)
+        reviews = {
+            r.event_id: r
+            for r in session.scalars(select(EventRow).where(EventRow.matter_id == matter_id))
+        }
+        kept = []
+        for e in chron.events:
+            r = reviews.get(e.event_id)
+            if r is None or r.review_status == "rejected":
+                continue
+            update: dict[str, Any] = {"flags": [*e.flags, f"review:{r.review_status}"]}
+            if r.edited_summary:
+                update["summary"] = r.edited_summary
+            if r.edited_date:
+                update["date"] = r.edited_date
+            kept.append(e.model_copy(update=update))
+        chron.events = kept
+        return Response(
+            to_markdown(chron),
+            media_type="text/markdown",
+            headers={"Content-Disposition": f'attachment; filename="{matter_id}-chronology.md"'},
+        )
+
+    _mount_ui(app)
     return app
+
+
+CURRENT_USER = "local-reviewer"
+
+
+class EventReview(BaseModel):
+    status: Literal["pending", "accepted", "edited", "rejected"]
+    note: str = ""
+    summary: str | None = Field(default=None, max_length=300)
+    date: dt.date | None = None
+
+
+def _review_json(r: EventRow) -> dict[str, Any]:
+    return {
+        "event_id": r.event_id,
+        "status": r.review_status,
+        "note": r.reviewer_note,
+        "edited_summary": r.edited_summary,
+        "edited_date": r.edited_date.isoformat() if r.edited_date else None,
+        "reviewed_by": r.reviewed_by,
+        "reviewed_at": r.reviewed_at.isoformat() if r.reviewed_at else None,
+    }
+
+
+def _mount_ui(app: FastAPI) -> None:
+    """Serve the built reviewer UI (ui/dist) at / when it exists."""
+    dist = Path(os.environ.get("MEDCHRON_UI_DIST", "ui/dist"))
+    if (dist / "index.html").exists():
+        app.mount("/", StaticFiles(directory=dist, html=True), name="ui")
 
 
 def request_storage(app: FastAPI) -> LocalStorage:

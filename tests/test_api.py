@@ -137,3 +137,39 @@ def test_failed_job_is_recorded(client: TestClient, engine: Engine) -> None:
     assert work(engine, once=True) == 1
     job = client.get(f"/api/jobs/{r.json()['job_id']}").json()
     assert job["status"] == "failed" and job["error"]
+
+
+def test_review_workflow(client: TestClient, processed: dict[str, str]) -> None:
+    chron = client.get("/api/matters/demo-0003/chronology").json()
+    first, second, third = (e["event_id"] for e in chron["events"][:3])
+    base = "/api/matters/demo-0003/events"
+
+    ok = client.patch(f"{base}/{first}", json={"status": "accepted"})
+    assert ok.status_code == 200 and ok.json()["status"] == "accepted"
+    assert ok.json()["reviewed_by"] and ok.json()["reviewed_at"]
+
+    assert client.patch(f"{base}/{second}", json={"status": "rejected"}).status_code == 422
+    rej = client.patch(f"{base}/{second}", json={"status": "rejected", "note": "duplicate entry"})
+    assert rej.status_code == 200
+
+    assert client.patch(f"{base}/{third}", json={"status": "edited"}).status_code == 422
+    edit = client.patch(
+        f"{base}/{third}",
+        json={"status": "edited", "summary": "Corrected summary", "date": "2024-01-02"},
+    )
+    assert edit.json()["edited_summary"] == "Corrected summary"
+    assert client.patch(f"{base}/nope", json={"status": "accepted"}).status_code == 404
+    assert client.patch(f"{base}/{first}", json={"status": "approved"}).status_code == 422
+
+    state = client.get("/api/matters/demo-0003/review").json()
+    assert state["events"][first]["status"] == "accepted"
+    assert state["index_confirmed_at"] is None
+    confirmed = client.post("/api/matters/demo-0003/index/confirm").json()
+    assert confirmed["index_confirmed_by"]
+
+    md = client.get("/api/matters/demo-0003/export.md")
+    assert md.status_code == 200 and "attachment" in md.headers["content-disposition"]
+    text_md = md.text
+    assert "Corrected summary" in text_md and "2024-01-02" in text_md
+    assert "review:accepted" in text_md
+    assert "review:rejected" not in text_md  # rejected events are excluded
