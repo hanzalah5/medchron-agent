@@ -1,151 +1,171 @@
 # MedChron Agent
 
-**Grounded, human-in-the-loop AI agents that turn large medical record productions into a cited medical chronology for legal teams.**
+**Grounded, human-in-the-loop AI agents that turn large medical record productions into a cited medical chronology, questions for expert review and a draft case memo for legal teams.**
 
 [![CI](https://github.com/hanzalah5/medchron-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/hanzalah5/medchron-agent/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+![Data: synthetic only](https://img.shields.io/badge/data-synthetic%20only-orange)
 
 > [!IMPORTANT]
 > **This is a portfolio reference implementation**, built for a realistic legal and healthcare scenario: medical record review for malpractice and personal-injury matters.
 > It runs **only on synthetic data** that this repository generates. It is **not** a product delivered to any client, it has **not** been validated for real-world use, and it is **not legal or medical advice**. See [DISCLAIMER.md](DISCLAIMER.md).
 
-> [!NOTE]
-> **Status: work in progress.** The project is being built in public, phase by phase. See the [roadmap](#roadmap).
+![Demo: upload, cited chronology, click-to-source, issue triage, cited memo, approval](docs/images/demo.gif)
 
-![Reviewer UI: every chronology entry links to its highlighted source on the page](docs/images/reviewer.png)
-
-*Reviewer UI, running on a synthetic case: clicking a citation (`p8`) opens the source page with the quoted text highlighted from stored word boxes. Each event can be accepted, edited or rejected, and rejections require a reason.*
-
-<details><summary>Issue triage and the cited memo (checkpoints 3 and 4)</summary>
-
-![Questions for expert review with verifier verdicts and triage](docs/images/issues-memo.png)
-
-</details>
+*Synthetic case, demo engine. Every statement links to the exact text on the source page, including scanned (OCR) pages, and nothing leaves the system without attorney approval.*
 
 ## The problem
 
-Firms handling medical malpractice and personal-injury matters receive record productions that run to hundreds or thousands of pages: scanned, duplicated, out of order and spread across many providers. Paralegals and nurse consultants build a **medical chronology** by hand. Generic "chat with your PDF" tools are not trustworthy here, because they paraphrase without verifiable citations and can invent dates.
+Firms handling medical malpractice and personal-injury matters receive record productions that run to hundreds or thousands of pages: scanned, duplicated, out of order and spread across many providers. Paralegals and nurse consultants build a **medical chronology** by hand, which is slow, and a missed event or missing record can change a case. Generic "chat with your PDF" tools are not trustworthy here, because they paraphrase without verifiable citations and can invent dates.
 
-## What MedChron does (target design)
+**Users:** paralegals and legal nurse consultants (build and verify the chronology), attorneys (triage issues, approve work product) and admins and auditors (access and audit).
 
-1. **Ingests** messy PDFs: it runs OCR, de-duplicates pages, segments the bundle into documents and anchors every span of text to a page and position.
-2. **Extracts** clinical events with agents that must cite the exact source span for every claim.
-3. **Builds a chronology**: it normalizes dates, merges duplicates and detects conflicts and missing records.
-4. **Investigates**: an issue-analyst agent flags gaps, contradictions and delays *as questions for expert review*, never as legal or medical conclusions.
-5. **Verifies**: a citation-auditor agent rejects any claim its source does not support.
-6. **Drafts** a case memo with native page-level citations.
-7. Keeps **humans in control** at four review checkpoints. Nothing is exported without attorney sign-off.
+## What it does
 
-Every statement in the output can be clicked through to the highlighted source page.
+1. **Ingests** messy PDFs: text layer plus Tesseract OCR with confidence scores, duplicate-page detection, segmentation into documents, and page-anchored spans with word boxes.
+2. **Extracts** events with agents whose tool **rejects any event it can't ground**: the span must exist, the quote must be found in it, and the date must parse and match. The model corrects itself.
+3. **Builds a chronology**: merges mentions across documents (keeping every source), and flags *candidate* date conflicts and missing follow-up records.
+4. **Investigates**: an issue-analyst agent with read-only tools raises **questions for expert review**. A scope guard rejects conclusions ("negligent", "met the standard of care").
+5. **Verifies**: an independent judge rates each issue against only its cited evidence.
+6. **Drafts** a memo with Claude's native **Citations**. Every cited character range is checked against the page text.
+7. Keeps **humans in control** at four checkpoints: confirm the index → review events → triage issues → approve the memo, which is the only route to export.
 
-## Architecture (summary)
+## Architecture
 
 ```
-Upload → Ingestion (code) → Classifier → Extraction agents (fan-out) → Chronology builder
-      → [HITL review] → Issue analyst (agent loop) → Verifier → [HITL triage]
-      → Drafting agent (citations) → [Attorney sign-off] → Export
+PDF ─► Ingest (code) ─► Classify (LLM) ─► Segment (code) ─► Extract ×N (bounded tool loops)
+                                                              │  grounding validator (code)
+          ┌───────────────────────────────────────────────────┘
+          ▼
+   Chronology (code) ─► [checkpoints 1-2] ─► Issue analyst (agent loop, read-only tools) ─► Verifier
+          │                                                                                   │
+          └────────────────────────► [checkpoint 3: triage] ◄─────────────────────────────────┘
+                                              ▼
+                        Memo drafter (Citations API) ─► [checkpoint 4: approval] ─► export
 ```
 
-Control flow belongs to a **code-orchestrated DAG**. Agents get autonomy only inside bounded, budgeted steps. The full design covers agents, tools, retrieval, memory, security, evaluation and deployment, in [docs/plan.md](docs/plan.md).
+- **The DAG is code. Autonomy lives only inside bounded steps**, with turn limits, a per-case budget and read-only, matter-scoped tools ([ADR-0001](docs/adr/0001-code-orchestrated-dag.md)).
+- **Postgres + pgvector** holds relational data, hybrid search (full-text plus vector, fused with RRF), the job queue, the audit log and row-level security.
+- **One container**: the API (FastAPI) also serves the React reviewer UI, and the worker runs as a scale-to-zero Cloud Run job.
+
+Diagrams, a sequence diagram of one claim and a module map are in **[docs/architecture.md](docs/architecture.md)**.
+
+## Why you can trust the output
+
+| Guardrail | How |
+|---|---|
+| Grounding | Every event, issue and memo sentence carries a span ID or character range. Quotes are located in the source, tolerating OCR noise but **rejecting fabricated text** |
+| Dates | Parsed in code across formats, and the date as written must match the ISO date |
+| Verification | An LLM judge sees only the cited evidence. Memo approval is blocked while any citation fails validation |
+| Scope | A conclusory-language guard on issues and memos: questions for experts, not legal conclusions |
+| Prompt injection | Records are treated as data. Tools are read-only with no exfiltration channel. Injected instructions are flagged, and evals fail when output follows them |
+| Humans | Four checkpoints. Rejections and dismissals require a reason. Everything is audited |
 
 ## Evaluation
 
-The project ships its own **synthetic benchmark**: generated patient histories, rendered as messy PDFs, with exact gold labels and deliberately planted issues. Five smoke cases are committed in [`data/synthetic/`](data/synthetic/). Each is a multi-provider PDF with scanned pages, duplicates and fax covers.
+The project ships its own **synthetic benchmark**: seeded, multi-provider PDF productions with fax covers, duplicates, scanned pages and mixed date formats. Each case has **exact gold labels** and **planted issues** (date conflicts, missing records, inconsistencies, potential delays, prompt injection). Five cases are committed in [`data/synthetic/`](data/synthetic/).
 
-The harness ([`src/medchron/evals/`](src/medchron/evals/), [methodology](docs/eval-methodology.md)) measures:
-- event precision, recall and F1, strict and with ±1-day dates
+The harness reports the following. Each result records the git SHA, models, efforts and exact prompt versions. A **regression gate** fails a run on metric drops, new scope violations or any injection compliance.
+- event P/R/F1, strict and with ±1-day dates
 - citation validity
-- document segmentation and document type accuracy
-- planted-issue recall
-- cost, tokens and latency per case
+- segmentation
+- planted-issue recall by kind
+- verifier support rate
+- memo citation validity and coverage
+- scope violations and injection compliance
+- cost per 100 pages and latency
 
-Each result records the git SHA, the models and the exact prompt versions. A regression gate fails a run that drops more than a set tolerance against a baseline.
-
-**Live model scorecard: pending.** No live evaluation has been run yet, and no model numbers are published until they have been measured. The [evaluation report](evals/REPORT.md) currently shows only **harness self-checks**: runs with a gold-label oracle (a test double, not a model) that confirm the metrics work. For example, injecting 30% noise drops strict recall from 100% to about 37%, while grounding rejects every altered quote.
+**Live model scorecard: pending.** No live model evaluation has been run yet, and no model numbers are published until they have been measured. The [evaluation report](evals/REPORT.md) currently holds **harness self-checks** from a gold-label *oracle* (a test double, not a model), which confirm the metrics respond. For example, 30% injected noise drops strict recall from 100% to about 37%, while grounding rejects every altered quote. See [docs/eval-methodology.md](docs/eval-methodology.md).
 
 ```bash
-make eval-selfcheck                 # oracle self-check, no API key
-make eval-live BUDGET=1.00          # live Claude run on the smoke set (needs ANTHROPIC_API_KEY)
-make eval-report                    # regenerate evals/REPORT.md
-medchron synth --cases 30 --start-seed 100 --out data/generated   # a larger dataset
+make eval-selfcheck            # oracle self-check (no API key)
+make eval-live BUDGET=1.00     # live Claude run on the smoke set, spend-capped per case
+make eval-report               # regenerate evals/REPORT.md
 ```
 
-## Roadmap
+## Production concerns
+
+- **Security** ([docs/security.md](docs/security.md)): OIDC with RBAC (paralegal, attorney, admin, auditor). Matter isolation is enforced in the API **and by Postgres row-level security** (tested with raw SQL). Admins manage ethical walls but cannot read records.
+- **Audit**: an append-only, **hash-chained** audit log of views, searches (hashed), exports, every review decision and every LLM call (model, tokens, cost, hashes). Tampering is detected even with the trigger disabled.
+- **Sensitive data**: synthetic only. No content in logs or traces (scrubbing filter as a backstop, plus a test), minimum-necessary prompts, local embeddings and no cross-matter memory. What a real deployment needs (BAAs, firm cloud, CMEK, a non-owner DB role) is listed in [docs/deployment.md](docs/deployment.md#what-changes-for-a-real-production-rollout).
+- **Reliability**: checkpointed, idempotent steps resume after crashes. Failed documents become review flags. Stale jobs are recovered with an attempt limit.
+- **Cost**: a per-case budget stop, prompt caching on the stable prefix, per-route model and effort settings, an early tool-loop exit (about half the calls on extraction), and a replay or oracle demo that costs nothing to view.
+- **Observability**: OpenTelemetry spans for cases and LLM calls (no content), with OTLP export to Tempo, Jaeger or Langfuse.
+
+## Quickstart
+
+```bash
+git clone https://github.com/hanzalah5/medchron-agent.git && cd medchron-agent
+docker compose --profile app up --build      # http://localhost:8080 - sign in, upload data/synthetic/case_0003.pdf
+```
+
+The **Demo oracle** engine needs no API key: it runs the bundled synthetic cases end to end. For real model runs, set `ANTHROPIC_API_KEY` and choose **Claude**.
+
+<details><summary>Native development setup</summary>
+
+Requirements: Python 3.12+, [uv](https://docs.astral.sh/uv/), Node 22, Docker (Postgres + pgvector) and, optionally, Tesseract.
+
+```bash
+make install && make check                     # venv, lint, type-check, tests
+make db-up                                     # Postgres + pgvector, migrations
+(cd ui && npm ci && npm run build)             # UI, served by the API
+.venv/bin/medchron serve & .venv/bin/medchron worker &
+
+# CLI, no server:
+.venv/bin/medchron synth --cases 5 --out data/generated
+.venv/bin/medchron run data/synthetic/case_0003.pdf --matter c3 --budget 2.00          # Claude
+.venv/bin/medchron run data/synthetic/case_0003.pdf --matter c3 \
+    --provider oracle --gold data/synthetic/case_0003.gold.json                        # no key
+```
+</details>
+
+Deployment to Google Cloud (Cloud Run, Terraform, GitHub OIDC) is covered in [docs/deployment.md](docs/deployment.md).
+
+## Design decisions and trade-offs
+
+| ADR | Decision | Trade-off |
+|---|---|---|
+| [0001](docs/adr/0001-code-orchestrated-dag.md) | Code-owned DAG with bounded agent loops | Less "autonomous", far more auditable and resumable |
+| [0002](docs/adr/0002-strict-tools-vs-citations.md) | Strict tools for extraction, Citations API for the memo | Two output styles; every claim is verifiable |
+| [0003](docs/adr/0003-postgres-for-everything.md) | Postgres for data, vectors, queue and audit | Revisit vector indexing at very large scale |
+| [0004](docs/adr/0004-no-cross-matter-memory.md) | No cross-matter memory | No learning from client data; improvements ship as reviewed changes |
+| [0005](docs/adr/0005-local-embeddings.md) | Local embeddings | A smaller model, offset by hybrid retrieval; less PHI egress |
+| [0006](docs/adr/0006-deterministic-rules-in-code.md) | Dates, grounding and rules in code | More code to own; checks are testable and explainable |
+| [0007](docs/adr/0007-oracle-and-replay.md) | Oracle test double and replay; no fabricated numbers | Live scores need a deliberate, paid run |
+| [0008](docs/adr/0008-llm-judge-verifier.md) | Independent verifier, calibrated before it's trusted | Calibration pending |
+| [0009](docs/adr/0009-defense-in-depth-isolation.md) | Isolation in the API and Postgres RLS | Requires a non-owner DB role in production |
+| [0010](docs/adr/0010-scale-to-zero-worker-job.md) | Scale-to-zero worker job | Seconds of cold start on an async job |
+
+## Roadmap and limitations
 
 | Phase | Milestone | Status |
 |---|---|---|
-| 0 | Repo foundations, synthetic benchmark generator with gold labels | ✅ Done |
-| 1 | Grounded extraction MVP and eval harness v1 (`v0.1`) | ✅ Done (live scorecard pending an API-key run) |
-| 2 | Reviewer UI with click-to-source, human-in-the-loop queues (`v0.2`) | ✅ Done |
-| 3 | Issue analyst, verifier and cited memo drafting (`v0.3`) | ✅ Done (live scorecard pending an API-key run) |
-| 4 | Production hardening: auth, RBAC, audit, observability, cost controls (`v0.4`) | ✅ Done (batch-mode extraction deferred) |
-| 5 | Infrastructure as code and deployment, hosted demo (`v0.5`) | ✅ Built and validated in CI (`terraform apply` needs a GCP project) |
-| 6 | Architecture decision records (ADRs), eval report, demo video (`v1.0`) | ⏳ |
+| 0 | Repo, synthetic benchmark with gold labels | ✅ |
+| 1 | Grounded extraction MVP and eval harness (`v0.1`) | ✅ |
+| 2 | Reviewer UI, click-to-source, review checkpoints (`v0.2`) | ✅ |
+| 3 | Issue analyst, verifier, cited memo, triage and approval (`v0.3`) | ✅ |
+| 4 | Hardening: auth, RBAC, RLS, audit, observability (`v0.4`) | ✅ |
+| 5 | Container, Terraform, CI/CD (`v0.5`) | ✅ validated in CI; `terraform apply` needs a GCP project |
+| 6 | ADRs, docs, demo (`v1.0`) | ✅ |
+| Next | First **live evaluation** and published scorecard, verifier calibration (about 100 hand-labeled claims), larger and more varied synthetic set, batch-API extraction mode, narrated video, MCP server exposing the case tools | ⏳ |
 
-## Quickstart (developers)
+**Known limitations:**
+- The synthetic notes are cleaner than real records, and there are only three clinical scenarios.
+- Issue *precision* isn't scored.
+- The public demo engine is a test double, not a model.
+- The production gaps are listed in [docs/security.md](docs/security.md#known-gaps-what-a-real-rollout-still-needs).
 
-The fastest way to try it is the full stack in Docker:
+## Repository layout
 
-```bash
-docker compose --profile app up --build     # http://localhost:8080  (Postgres, migrations, API + UI, worker)
+```
+src/medchron/   synth · ingestion · llm · agents · grounding · chronology · orchestrator
+                tools · retrieval · api · jobs · security · evals · prompts
+ui/             React reviewer app + Playwright e2e
+migrations/     Alembic (incl. row-level security)        infra/terraform/   GCP module + envs
+data/synthetic/ committed smoke cases + gold labels       evals/             results + REPORT.md
+docs/           plan · architecture · security · deployment · eval methodology · ADRs
 ```
 
-Or run the pieces natively:
+## License and acknowledgements
 
-Requirements: Python 3.12+, [uv](https://docs.astral.sh/uv/), Docker (for Postgres + pgvector) and, optionally, [Tesseract](https://github.com/tesseract-ocr/tesseract) for OCR of scanned pages.
-
-```bash
-git clone https://github.com/hanzalah5/medchron-agent.git
-cd medchron-agent
-make install          # .venv with dev dependencies
-make check            # lint, type-check, tests
-make db-up            # Postgres + pgvector via docker compose, then migrations
-
-# Ingest a synthetic production: text layer + OCR, duplicate detection, page-anchored spans
-.venv/bin/medchron ingest data/synthetic/case_0003.pdf --matter case_0003 --save
-
-# Run the agent pipeline with Claude (needs ANTHROPIC_API_KEY); outputs in runs/case_0003/
-.venv/bin/medchron run data/synthetic/case_0003.pdf --matter case_0003 --budget 2.00
-
-# Reviewer UI + API + worker (dev sign-in locally; set MEDCHRON_AUTH_MODE=oidc when deployed)
-(cd ui && npm ci && npm run build)    # the API serves ui/dist at http://127.0.0.1:8000/
-.venv/bin/medchron serve &            # API docs at http://127.0.0.1:8000/docs
-.venv/bin/medchron worker &
-curl -H "X-Dev-User: me" -H "X-Dev-Roles: attorney" \
-     -F file=@data/synthetic/case_0003.pdf -F provider=oracle http://127.0.0.1:8000/api/matters
-
-# ...or with no API key, using the gold-label oracle test double (plumbing check only)
-.venv/bin/medchron run data/synthetic/case_0003.pdf --matter case_0003 \
-    --provider oracle --gold data/synthetic/case_0003.gold.json
-```
-
-## What's built so far
-
-| Component | Where | Notes |
-|---|---|---|
-| Synthetic benchmark generator | `src/medchron/synth/` | Seeded, deterministic, gold labels with exact quote and page sources |
-| Ingestion | `src/medchron/ingestion/` | PyMuPDF text with word bounding boxes, Tesseract OCR fallback with confidence, duplicate-page detection that ignores fax headers, page-bounded chunks with resolvable span IDs (`case:p12:340-918`) |
-| Storage | `src/medchron/db/`, `migrations/` | Postgres + pgvector: matters, pages, spans with generated `tsvector` (GIN) and HNSW cosine index; Alembic migrations |
-| LLM layer | `src/medchron/llm/` | A provider-neutral interface and a Claude implementation: per-route model and effort settings, strict tool schemas, prompt-cache breakpoints, server-side refusal fallback, typed error classes, every stop reason handled, a bounded tool loop, a per-case budget, PHI-safe call logs (hashes only) and record/replay fixtures for offline runs |
-| Agents | `src/medchron/agents/` | **Classifier**: labels pages through a strict tool, then code segments them into documents. **Extractor**: one bounded tool loop per document. Its `record_events` tool validates every event as it records (the cited span must exist, the quote must be found in it, the date must parse and match) and returns rejections, so the model corrects itself |
-| Grounding | `src/medchron/grounding/` | Quote location that tolerates OCR errors but rejects fabricated text, with page-level character offsets for highlighting. Deterministic date parsing across formats |
-| Chronology | `src/medchron/chronology/` | Merges mentions across documents with all sources kept, orders events, flags *candidate* date conflicts and missing follow-up records for review, and exports Markdown, CSV and JSON |
-| Orchestrator | `src/medchron/orchestrator/` | Code-owned DAG, checkpointed idempotent steps (resume after a crash), bounded parallel fan-out, failed documents become review flags, per-case budget stop |
-| Oracle | `src/medchron/evals/oracle.py` | A **test double** that answers from gold labels, used to test the whole pipeline without an API key. Its runs are never reported as model results |
-| Agent tools | `src/medchron/tools/` | Read-only, matter-scoped tools: `search_records` (hybrid search), `get_page`, `query_timeline` and `find_gaps`. Every result carries span IDs or page numbers, and no tool can write, send or fetch, so an injected document has nothing to exfiltrate through |
-| Retrieval | `src/medchron/retrieval/` | Hybrid search: Postgres full-text ranking and pgvector cosine distance, fused with reciprocal rank fusion (RRF) in SQL, plus an in-memory BM25 version for offline runs |
-| API and jobs | `src/medchron/api/`, `src/medchron/jobs.py` | FastAPI: upload a production, track the job (progress over SSE), and read the chronology, page text with word boxes, page images and search. A Postgres `SKIP LOCKED` job queue serves any number of workers. A failed job records its error and doesn't stop the worker |
-| Reviewer UI | `ui/` | React and TypeScript. Click-to-source page viewer that highlights exact word boxes (OCR pages included), chronology review (accept / edit / reject with reason), "for review" signals, document-index confirmation (human checkpoint 1), live job progress and Markdown export with reviewer decisions applied. A Playwright test covers the whole flow in CI |
-| Issue analyst | `src/medchron/agents/analyst.py` | An investigation loop over the read-only tools, with a turn limit and the budget. `record_issue` rejects conclusory wording ("negligent", "met the standard of care"), quotes it can't find and unknown event IDs, and the model corrects itself |
-| Verifier | `src/medchron/agents/verifier.py` | An independent LLM judge that sees each issue with only its cited evidence and rates it supported, partial or unsupported. Unsupported issues are shown, not hidden |
-| Memo drafter | `src/medchron/agents/drafter.py` | Uses Claude's **Citations** feature on per-page text documents. Every citation's character range is checked against the page and can be clicked to its highlight. It drafts only from reviewed events and triaged issues |
-| Human checkpoints | API and UI | 1: confirm the document index. 2: accept, edit or reject events. 3: triage issues (pursue, ask an expert, or dismiss with a reason). 4: approve the memo, which is the only way to export it. Memo drafting is blocked until checkpoints 1 and 3 are complete |
-| Security | `src/medchron/security/`, migration `0005` | OIDC (JWT and JWKS) or local dev sign-in, RBAC, matter membership checked in the API **and** enforced by Postgres row-level security, hash-chained append-only audit log with a verify endpoint, PHI-safe structured logging. See [docs/security.md](docs/security.md) for the threat model |
-| Reliability and observability | `jobs.py`, `observability.py` | Worker heartbeats, stale-job recovery that resumes from checkpoints with an attempt limit, OpenTelemetry spans for cases and LLM calls (no content), with OTLP export to any backend |
-| Deployment | `Dockerfile`, `infra/terraform/`, `.github/workflows/deploy.yml` | One non-root image (UI, API and worker). Terraform for Cloud Run (API service plus a scale-to-zero worker job), GCS, Secret Manager, Artifact Registry and GitHub OIDC with Workload Identity Federation (no keys). CI builds and scans the image and validates the Terraform; deploys are gated by an environment. See [docs/deployment.md](docs/deployment.md) |
-| Prompts | `src/medchron/prompts/` | Versioned files (`name/vN.md`). Each call records `name@vN+sha` |
-| Embeddings | `src/medchron/retrieval/` | Local `bge-small` (optional extra) or a deterministic hashing embedder for tests and CI, so record text is never sent out to be embedded |
-
-## License
-
-[Apache-2.0](LICENSE). See [DISCLAIMER.md](DISCLAIMER.md) for the limits on use.
+[Apache-2.0](LICENSE). See [DISCLAIMER.md](DISCLAIMER.md) for the limits on use. Built with [Claude](https://www.anthropic.com/claude), PyMuPDF, Tesseract, PostgreSQL and pgvector, FastAPI, SQLAlchemy and Alembic, React and Vite, and Playwright. All patient, provider and facility names are fictional.

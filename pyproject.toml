@@ -1,6 +1,6 @@
 [project]
 name = "medchron"
-version = "0.0.1"
+version = "1.0.0"
 description = "Reference implementation: grounded multi-agent medical record review and chronology for legal-healthcare work (synthetic data only)."
 readme = "README.md"
 license = "Apache-2.0"

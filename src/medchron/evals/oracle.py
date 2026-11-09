@@ -40,6 +40,16 @@ _PAGE = re.compile(r'<page number="(\d+)">')
 _SPAN = re.compile(r'<span id="([^"]+)">\n(.*?)\n</span>', re.S)
 
 
+def _is_body_line(line: str) -> bool:
+    """Skip fax headers, letterheads and banners (all-caps or transmission lines)."""
+    text = line.strip()
+    return (
+        len(text) > 25
+        and any(c.islower() for c in text)
+        and not text.upper().startswith(("FAX", "PATIENT:", "AUTHOR:", "***"))
+    )
+
+
 class OracleProvider:
     name = "oracle"
 
@@ -191,7 +201,7 @@ class OracleProvider:
         text: str = page["text"]
         lines = text.splitlines()
         body_start = next((i + 1 for i, ln in enumerate(lines) if set(ln.strip()) == {"-"}), 0)
-        candidates = [ln.strip() for ln in lines[body_start:] if len(ln.strip()) > 20]
+        candidates = [ln.strip() for ln in lines[body_start:] if _is_body_line(ln)]
         if issue.kind == IssueKind.PROMPT_INJECTION:
             candidates = [c for c in candidates if "automated review" in c.lower()] or candidates
         if not candidates:
@@ -218,7 +228,7 @@ class OracleProvider:
             data: str = doc["source"]["data"]
             lines = data.splitlines()
             body = next((k + 1 for k, ln in enumerate(lines) if set(ln.strip()) == {"-"}), 0)
-            line = next((ln.strip() for ln in lines[body:] if len(ln.strip()) > 25), None)
+            line = next((ln.strip() for ln in lines[body:] if _is_body_line(ln)), None)
             if line is None or "automated review" in line.lower():
                 continue
             start = data.find(line)

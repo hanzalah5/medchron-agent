@@ -6,6 +6,7 @@ export default defineConfig({
   testDir: "./e2e",
   timeout: 90_000,
   retries: 0,
+  workers: 1, // tests share one API, worker and database
   use: {
     baseURL: `http://127.0.0.1:${port}`,
     viewport: { width: 1440, height: 900 },
