@@ -69,6 +69,7 @@ export type Job = {
   matter_id: string;
   status: string;
   provider: string;
+  kind: "pipeline" | "memo";
   error: string | null;
   summary: Record<string, unknown> | null;
   created_at: string | null;
@@ -92,6 +93,32 @@ export type ReviewState = {
   index_confirmed_by: string | null;
   index_confirmed_at: string | null;
   events: Record<string, Review>;
+};
+
+export type IssueCitation = { span_id: string; page_no: number; quote: string; char_start: number; char_end: number };
+export type TriageStatus = "pending" | "pursue" | "expert" | "dismiss";
+export type Issue = {
+  issue_id: string;
+  category: string;
+  description: string;
+  event_ids: string[];
+  citations: IssueCitation[];
+  severity_hint: string;
+  verdict: string;
+  verdict_reason: string;
+  triage_status: TriageStatus;
+  triage_note: string;
+  triaged_by: string | null;
+};
+export type MemoClaim = { text: string; citations: IssueCitation[]; citation_valid: boolean };
+export type Memo = {
+  memo_id: string;
+  status: "draft" | "approved";
+  markdown: string;
+  claims: MemoClaim[];
+  created_at: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
 };
 
 async function json<T>(res: Response): Promise<T> {
@@ -136,5 +163,25 @@ export const api = {
     fetch(`/api/matters/${enc(id)}/index/confirm`, { method: "POST" }).then((r) =>
       json<{ index_confirmed_by: string; index_confirmed_at: string }>(r),
     ),
+  issues: (id: string) => fetch(`/api/matters/${enc(id)}/issues`).then((r) => json<Issue[]>(r)),
+  triageIssue: (id: string, issueId: string, body: { status: TriageStatus; note?: string }) =>
+    fetch(`/api/matters/${enc(id)}/issues/${enc(issueId)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then((r) => json<Issue>(r)),
+  requestMemo: (id: string, provider: string) =>
+    fetch(`/api/matters/${enc(id)}/memo`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider }),
+    }).then((r) => json<{ job_id: string }>(r)),
+  memo: async (id: string): Promise<Memo | null> => {
+    const r = await fetch(`/api/matters/${enc(id)}/memo`);
+    return r.status === 404 ? null : json<Memo>(r);
+  },
+  approveMemo: (id: string, memoId: string) =>
+    fetch(`/api/matters/${enc(id)}/memo/${enc(memoId)}/approve`, { method: "POST" }).then((r) => json<Memo>(r)),
+  memoExportUrl: (id: string, memoId: string) => `/api/matters/${enc(id)}/memo/${enc(memoId)}/export.md`,
   jobEvents: (jobId: string) => new EventSource(`/api/jobs/${enc(jobId)}/events`),
 };

@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 import io
 
-from medchron.chronology.models import Chronology
+from medchron.chronology.models import Chronology, Issue
 
 
 def _cell(text: str) -> str:
@@ -77,3 +77,18 @@ def to_csv(chron: Chronology) -> str:
             ]
         )
     return buf.getvalue()
+
+
+def issues_markdown(chronology_md: str, issues: list[Issue]) -> str:
+    """Append the analyst's questions for expert review to a chronology export."""
+    if not issues:
+        return chronology_md
+    lines = ["", "## Questions for expert review (issue analyst, verified)", ""]
+    for i in issues:
+        cites = "; ".join(f'p{c.page_no}: "{_cell(c.quote)}"' for c in i.citations)
+        lines.append(f"- **[{i.category.replace('_', ' ')}]** {i.description}")
+        lines.append(f"  - Evidence: {cites}")
+        lines.append(
+            f"  - Verifier: {i.verdict}{f' - {i.verdict_reason}' if i.verdict_reason else ''}"
+        )
+    return chronology_md + "\n".join(lines) + "\n"

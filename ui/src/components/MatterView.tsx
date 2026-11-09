@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, Chronology, Job, MatterDetail, ReviewState, ReviewStatus } from "../api";
+import { api, Chronology, Issue, Job, MatterDetail, Memo, ReviewState, ReviewStatus, TriageStatus } from "../api";
 import { ChronologyTable } from "./ChronologyTable";
+import { IssuesPanel } from "./IssuesPanel";
+import { MemoPanel } from "./MemoPanel";
 import { Highlight, PageViewer } from "./PageViewer";
 import { StatusBadge } from "./StatusBadge";
 
@@ -8,6 +10,8 @@ export function MatterView({ matterId }: { matterId: string }) {
   const [detail, setDetail] = useState<MatterDetail | null>(null);
   const [chron, setChron] = useState<Chronology | null>(null);
   const [review, setReview] = useState<ReviewState | null>(null);
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [memo, setMemo] = useState<Memo | null>(null);
   const [progress, setProgress] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [highlight, setHighlight] = useState<Highlight | null>(null);
@@ -18,11 +22,18 @@ export function MatterView({ matterId }: { matterId: string }) {
     try {
       const d = await api.matter(matterId);
       setDetail(d);
-      const job = d.jobs[0];
+      const job = d.jobs.find((j) => j.kind !== "memo");
       if (job && !["queued", "running"].includes(job.status)) {
-        const [c, r] = await Promise.all([api.chronology(matterId), api.review(matterId)]);
+        const [c, r, i, m] = await Promise.all([
+          api.chronology(matterId),
+          api.review(matterId),
+          api.issues(matterId),
+          api.memo(matterId),
+        ]);
         setChron(c);
         setReview(r);
+        setIssues(i);
+        setMemo(m);
       }
     } catch (e) {
       setError((e as Error).message);
@@ -33,8 +44,22 @@ export function MatterView({ matterId }: { matterId: string }) {
     loadAll();
   }, [loadAll]);
 
-  // Stream job progress while the pipeline runs.
-  const job: Job | undefined = detail?.jobs[0];
+  // Stream job progress while the pipeline (or a memo draft) runs.
+  const job: Job | undefined = detail?.jobs.find((j) => j.kind !== "memo");
+  const memoJob: Job | undefined = detail?.jobs.find((j) => j.kind === "memo");
+  const drafting = !!memoJob && ["queued", "running"].includes(memoJob.status);
+  useEffect(() => {
+    if (!memoJob || !drafting) return;
+    const es = api.jobEvents(memoJob.job_id);
+    es.onmessage = (msg) => {
+      if (JSON.parse(msg.data).done) {
+        es.close();
+        loadAll();
+      }
+    };
+    es.onerror = () => es.close();
+    return () => es.close();
+  }, [memoJob?.job_id, drafting, loadAll]);
   useEffect(() => {
     if (!job || !["queued", "running"].includes(job.status)) return;
     const es = api.jobEvents(job.job_id);
@@ -64,6 +89,33 @@ export function MatterView({ matterId }: { matterId: string }) {
     }
   }
 
+  async function onTriage(issueId: string, status: TriageStatus, note: string) {
+    try {
+      const updated = await api.triageIssue(matterId, issueId, { status, note });
+      setIssues((prev) => prev.map((i) => (i.issue_id === issueId ? updated : i)));
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  async function draftMemo() {
+    try {
+      await api.requestMemo(matterId, job?.provider ?? "anthropic");
+      await loadAll();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  async function approveMemo() {
+    if (!memo) return;
+    try {
+      setMemo(await api.approveMemo(matterId, memo.memo_id));
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
   async function confirmIndex() {
     const r = await api.confirmIndex(matterId);
     setReview((prev) => (prev ? { ...prev, ...r } : prev));
@@ -76,6 +128,11 @@ export function MatterView({ matterId }: { matterId: string }) {
   }
 
   const totalPages = detail?.pages ?? 0;
+  const untriaged = issues.filter((i) => i.triage_status === "pending").length;
+  const blockers = [
+    ...(review?.index_confirmed_at ? [] : ["confirm the document index"]),
+    ...(untriaged ? [`triage ${untriaged} issue(s)`] : []),
+  ];
   const pagesNeedingReview = chron?.flags.filter((f) => f.kind === "page_needs_review") ?? [];
   const otherFlags = chron?.flags.filter((f) => f.kind !== "page_needs_review") ?? [];
 
@@ -144,12 +201,25 @@ export function MatterView({ matterId }: { matterId: string }) {
               </ul>
             </section>
 
+            <IssuesPanel issues={issues} onCite={(h) => cite(null, h)} onTriage={onTriage} />
+
             <ChronologyTable
               events={chron.events}
               reviews={review.events}
               selected={selected}
               onCite={cite}
               onReview={onReview}
+            />
+
+            <MemoPanel
+              matterId={matterId}
+              memo={memo}
+              canDraft={blockers.length === 0}
+              blockers={blockers}
+              drafting={drafting}
+              onDraft={draftMemo}
+              onApprove={approveMemo}
+              onCite={(h) => cite(null, h)}
             />
 
             <section className="card" data-testid="doc-index">

@@ -30,8 +30,8 @@ from sqlalchemy.orm import Session
 from medchron import __version__
 from medchron.chronology.export import to_markdown
 from medchron.chronology.models import Chronology
-from medchron.db.models import EventRow, Job, JobEvent, Matter, PageRow
-from medchron.db.store import load_chronology, make_engine
+from medchron.db.models import EventRow, IssueRow, Job, JobEvent, Matter, MemoRow, PageRow
+from medchron.db.store import load_chronology, make_engine, reviewed_chronology
 from medchron.ingestion.models import Page
 from medchron.jobs import PROVIDERS, enqueue
 from medchron.retrieval.embeddings import get_embedder
@@ -266,27 +266,93 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
     def export_markdown(session: DB, matter_id: str) -> Response:
         """Draft chronology with reviewer edits applied and rejected events left out."""
         get_matter(session, matter_id)
-        chron = load_chronology(session, matter_id)
-        reviews = {
-            r.event_id: r
-            for r in session.scalars(select(EventRow).where(EventRow.matter_id == matter_id))
-        }
-        kept = []
-        for e in chron.events:
-            r = reviews.get(e.event_id)
-            if r is None or r.review_status == "rejected":
-                continue
-            update: dict[str, Any] = {"flags": [*e.flags, f"review:{r.review_status}"]}
-            if r.edited_summary:
-                update["summary"] = r.edited_summary
-            if r.edited_date:
-                update["date"] = r.edited_date
-            kept.append(e.model_copy(update=update))
-        chron.events = kept
+        chron = reviewed_chronology(session, matter_id)
         return Response(
             to_markdown(chron),
             media_type="text/markdown",
             headers={"Content-Disposition": f'attachment; filename="{matter_id}-chronology.md"'},
+        )
+
+    # ------------------------------------------------------------------ issues (HITL-3)
+    @app.get("/api/matters/{matter_id}/issues")
+    def list_issues(session: DB, matter_id: str) -> list[dict[str, Any]]:
+        get_matter(session, matter_id)
+        rows = session.scalars(
+            select(IssueRow).where(IssueRow.matter_id == matter_id).order_by(IssueRow.issue_id)
+        ).all()
+        return [_issue_json(r) for r in rows]
+
+    @app.patch("/api/matters/{matter_id}/issues/{issue_id}")
+    def triage_issue(
+        session: DB, matter_id: str, issue_id: str, body: IssueTriage
+    ) -> dict[str, Any]:
+        row = session.get(IssueRow, (matter_id, issue_id))
+        if row is None:
+            raise HTTPException(404, "issue not found")
+        if body.status == "dismiss" and not body.note.strip():
+            raise HTTPException(422, "dismissing an issue requires a reason")
+        row.triage_status, row.triage_note = body.status, body.note[:2000]
+        row.triaged_by, row.triaged_at = CURRENT_USER, dt.datetime.now(dt.UTC)
+        session.commit()
+        return _issue_json(row)
+
+    # ------------------------------------------------------------------ memo (HITL-4)
+    @app.post("/api/matters/{matter_id}/memo", status_code=202)
+    def request_memo(session: DB, matter_id: str, body: MemoRequest) -> dict[str, str]:
+        m = get_matter(session, matter_id)
+        if m.index_confirmed_at is None:
+            raise HTTPException(409, "confirm the document index before drafting a memo")
+        pending = session.scalar(
+            select(func.count()).where(
+                IssueRow.matter_id == matter_id, IssueRow.triage_status == "pending"
+            )
+        )
+        if pending:
+            raise HTTPException(409, f"{pending} issue(s) still need triage")
+        job = enqueue(session, matter_id, body.provider, body.budget_usd, kind="memo")
+        session.commit()
+        return {"job_id": job.job_id}
+
+    @app.get("/api/matters/{matter_id}/memo")
+    def latest_memo(session: DB, matter_id: str) -> dict[str, Any]:
+        get_matter(session, matter_id)
+        row = session.scalars(
+            select(MemoRow)
+            .where(MemoRow.matter_id == matter_id)
+            .order_by(MemoRow.created_at.desc())
+            .limit(1)
+        ).first()
+        if row is None:
+            raise HTTPException(404, "no memo drafted yet")
+        return _memo_json(row)
+
+    @app.post("/api/matters/{matter_id}/memo/{memo_id}/approve")
+    def approve_memo(session: DB, matter_id: str, memo_id: str) -> dict[str, Any]:
+        row = session.get(MemoRow, memo_id)
+        if row is None or row.matter_id != matter_id:
+            raise HTTPException(404, "memo not found")
+        if any(not c.get("citation_valid", True) for c in row.claims):
+            raise HTTPException(409, "memo has citations that failed verification")
+        row.status, row.approved_by = "approved", CURRENT_USER
+        row.approved_at = dt.datetime.now(dt.UTC)
+        session.commit()
+        return _memo_json(row)
+
+    @app.get("/api/matters/{matter_id}/memo/{memo_id}/export.md")
+    def export_memo(session: DB, matter_id: str, memo_id: str) -> Response:
+        row = session.get(MemoRow, memo_id)
+        if row is None or row.matter_id != matter_id:
+            raise HTTPException(404, "memo not found")
+        if row.status != "approved":
+            raise HTTPException(409, "only an attorney-approved memo can be exported")
+        footer = (
+            f"\n\n---\nApproved by {row.approved_by} on "
+            f"{row.approved_at.isoformat() if row.approved_at else ''}. Synthetic records.\n"
+        )
+        return Response(
+            row.markdown + footer,
+            media_type="text/markdown",
+            headers={"Content-Disposition": f'attachment; filename="{matter_id}-memo.md"'},
         )
 
     _mount_ui(app)
@@ -294,6 +360,44 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
 
 
 CURRENT_USER = "local-reviewer"
+
+
+class IssueTriage(BaseModel):
+    status: Literal["pending", "pursue", "expert", "dismiss"]
+    note: str = ""
+
+
+class MemoRequest(BaseModel):
+    provider: Literal["anthropic", "replay", "oracle"] = "anthropic"
+    budget_usd: float | None = None
+
+
+def _issue_json(r: IssueRow) -> dict[str, Any]:
+    return {
+        "issue_id": r.issue_id,
+        "category": r.category,
+        "description": r.description,
+        "event_ids": r.event_ids,
+        "citations": r.citations,
+        "severity_hint": r.severity_hint,
+        "verdict": r.verdict,
+        "verdict_reason": r.verdict_reason,
+        "triage_status": r.triage_status,
+        "triage_note": r.triage_note,
+        "triaged_by": r.triaged_by,
+    }
+
+
+def _memo_json(r: MemoRow) -> dict[str, Any]:
+    return {
+        "memo_id": r.memo_id,
+        "status": r.status,
+        "markdown": r.markdown,
+        "claims": r.claims,
+        "created_at": r.created_at.isoformat() if r.created_at else None,
+        "approved_by": r.approved_by,
+        "approved_at": r.approved_at.isoformat() if r.approved_at else None,
+    }
 
 
 class EventReview(BaseModel):
@@ -333,6 +437,7 @@ def _job_json(j: Job) -> dict[str, Any]:
         "matter_id": j.matter_id,
         "status": j.status,
         "provider": j.provider,
+        "kind": j.kind,
         "error": j.error,
         "summary": j.summary,
         "created_at": j.created_at.isoformat() if j.created_at else None,

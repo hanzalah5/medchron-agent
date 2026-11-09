@@ -65,8 +65,10 @@ class Citation(BaseModel):
     cited_text: str
     document_index: int
     document_title: str | None = None
-    start_page: int | None = None
+    start_page: int | None = None  # page_location (PDF documents)
     end_page: int | None = None
+    start_char: int | None = None  # char_location (plain-text documents)
+    end_char: int | None = None
 
 
 class TextPart(BaseModel):

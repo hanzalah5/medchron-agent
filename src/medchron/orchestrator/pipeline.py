@@ -29,16 +29,26 @@ from typing import TypeVar
 
 from pydantic import BaseModel, Field
 
+from medchron.agents.analyst import analyze
 from medchron.agents.classifier import PageLabel, classify_pages, segment
 from medchron.agents.extractor import ExtractionResult, extract_document
+from medchron.agents.verifier import verify_issues
 from medchron.chronology.builder import build_chronology
-from medchron.chronology.export import to_csv, to_markdown
-from medchron.chronology.models import CaseFlag, Chronology, DocumentSegment, ExtractedEvent
+from medchron.chronology.export import issues_markdown, to_csv, to_markdown
+from medchron.chronology.models import (
+    CaseFlag,
+    Chronology,
+    DocumentSegment,
+    ExtractedEvent,
+    Issue,
+)
 from medchron.ingestion import IngestedCase, ingest_pdf
 from medchron.llm.config import effort_for, model_for
 from medchron.llm.prompts import load_prompt
 from medchron.llm.providers import CallRecord, LLMProvider, MeteredProvider
 from medchron.llm.types import BudgetExceededError, LLMError
+from medchron.retrieval.embeddings import get_embedder
+from medchron.retrieval.search import MemorySearch
 
 log = logging.getLogger(__name__)
 M = TypeVar("M", bound=BaseModel)
@@ -55,6 +65,11 @@ class _Labels(BaseModel):
     labels: list[PageLabel]
 
 
+class _Issues(BaseModel):
+    issues: list[Issue]
+    rejected: int
+
+
 class RunSummary(BaseModel):
     case_id: str
     status: str  # completed | completed_with_errors | budget_exceeded
@@ -67,6 +82,8 @@ class RunSummary(BaseModel):
     output_tokens: int
     cache_read_input_tokens: int
     rejected_events: int
+    issues: int = 0
+    rejected_issues: int = 0
     seconds: float
 
 
@@ -76,6 +93,7 @@ class RunConfig:
     budget_usd: float | None = None
     concurrency: int = 4
     ocr: bool = True
+    analyze: bool = True  # run the issue analyst and verifier after the chronology
 
 
 @dataclass
@@ -83,6 +101,7 @@ class RunResult:
     chronology: Chronology
     summary: RunSummary
     case: IngestedCase
+    issues: list[Issue] = field(default_factory=list)
     calls: list[CallRecord] = field(default_factory=list)
 
 
@@ -210,6 +229,41 @@ def run_case(
     flags += [f for d in documents if d.doc_id in results for f in results[d.doc_id].flags]
     chron = build_chronology(case_id, documents, events, flags)
 
+    # 6. Issue analyst (agent loop) -> 7. verifier (independent support check)
+    issues: list[Issue] = []
+    rejected_issues = 0
+    if config.analyze and status != "budget_exceeded":
+        an_key = cp.key(
+            ingest_key,
+            chron.model_dump_json(),
+            _settings("analyze", "system_base", "analyze_issues"),
+            _settings("verify", "system_base", "verify_claims"),
+        )
+        cached = cp.load("analyze", an_key, _Issues)
+        if cached is None:
+            try:
+                say("analyze: investigating the chronology for issues")
+                found, rejected_issues = analyze(
+                    metered, case, chron, MemorySearch(case, get_embedder())
+                )
+                say(f"verify: checking {len(found)} issues against their evidence")
+                cached = _Issues(
+                    issues=verify_issues(metered, case, found), rejected=rejected_issues
+                )
+                cp.save("analyze", an_key, cached)
+            except BudgetExceededError:
+                status = "budget_exceeded"
+            except (LLMError, LookupError) as e:
+                log.warning("issue analysis failed: %s", e)
+                status = "completed_with_errors"
+                chron.flags.append(
+                    CaseFlag(
+                        kind="analysis_failed", note=f"Issue analysis failed: {type(e).__name__}"
+                    )
+                )
+        if cached is not None:
+            issues, rejected_issues = cached.issues, cached.rejected
+
     usage = metered.usage
     summary = RunSummary(
         case_id=case_id,
@@ -223,19 +277,31 @@ def run_case(
         output_tokens=usage.output_tokens,
         cache_read_input_tokens=usage.cache_read_input_tokens,
         rejected_events=sum(r.rejected for r in results.values()),
+        issues=len(issues),
+        rejected_issues=rejected_issues,
         seconds=round(time.perf_counter() - start, 2),
     )
-    _write_outputs(config.out_dir, chron, summary, metered.records)
-    say(f"done: {summary.events} events, status={summary.status}, cost=${summary.cost_usd:.4f}")
-    return RunResult(chronology=chron, summary=summary, case=case, calls=list(metered.records))
+    _write_outputs(config.out_dir, chron, issues, summary, metered.records)
+    say(
+        f"done: {summary.events} events, {summary.issues} issues, status={summary.status}, "
+        f"cost=${summary.cost_usd:.4f}"
+    )
+    return RunResult(
+        chronology=chron, summary=summary, case=case, issues=issues, calls=list(metered.records)
+    )
 
 
 def _write_outputs(
-    out: Path, chron: Chronology, summary: RunSummary, calls: list[CallRecord]
+    out: Path, chron: Chronology, issues: list[Issue], summary: RunSummary, calls: list[CallRecord]
 ) -> None:
     out.mkdir(parents=True, exist_ok=True)
     (out / "chronology.json").write_text(chron.model_dump_json(indent=2), encoding="utf-8")
-    (out / "chronology.md").write_text(to_markdown(chron), encoding="utf-8")
+    (out / "issues.json").write_text(
+        json.dumps([i.model_dump(mode="json") for i in issues], indent=2), encoding="utf-8"
+    )
+    (out / "chronology.md").write_text(
+        issues_markdown(to_markdown(chron), issues), encoding="utf-8"
+    )
     (out / "chronology.csv").write_text(to_csv(chron), encoding="utf-8")
     (out / "run.json").write_text(summary.model_dump_json(indent=2), encoding="utf-8")
     with (out / "calls.jsonl").open("w", encoding="utf-8") as fh:

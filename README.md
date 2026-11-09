@@ -16,6 +16,12 @@
 
 *Reviewer UI, running on a synthetic case: clicking a citation (`p8`) opens the source page with the quoted text highlighted from stored word boxes. Each event can be accepted, edited or rejected, and rejections require a reason.*
 
+<details><summary>Issue triage and the cited memo (checkpoints 3 and 4)</summary>
+
+![Questions for expert review with verifier verdicts and triage](docs/images/issues-memo.png)
+
+</details>
+
 ## The problem
 
 Firms handling medical malpractice and personal-injury matters receive record productions that run to hundreds or thousands of pages: scanned, duplicated, out of order and spread across many providers. Paralegals and nurse consultants build a **medical chronology** by hand. Generic "chat with your PDF" tools are not trustworthy here, because they paraphrase without verifiable citations and can invent dates.
@@ -71,7 +77,7 @@ medchron synth --cases 30 --start-seed 100 --out data/generated   # a larger dat
 | 0 | Repo foundations, synthetic benchmark generator with gold labels | ✅ Done |
 | 1 | Grounded extraction MVP and eval harness v1 (`v0.1`) | ✅ Done (live scorecard pending an API-key run) |
 | 2 | Reviewer UI with click-to-source, human-in-the-loop queues (`v0.2`) | ✅ Done |
-| 3 | Issue analyst, verifier and cited memo drafting (`v0.3`) | ⏳ |
+| 3 | Issue analyst, verifier and cited memo drafting (`v0.3`) | ✅ Done (live scorecard pending an API-key run) |
 | 4 | Production hardening: auth, RBAC, audit, observability, cost controls (`v0.4`) | ⏳ |
 | 5 | Infrastructure as code and deployment, hosted replay demo (`v0.5`) | ⏳ |
 | 6 | Architecture decision records (ADRs), eval report, demo video (`v1.0`) | ⏳ |
@@ -121,6 +127,10 @@ curl -F file=@data/synthetic/case_0003.pdf -F provider=oracle http://127.0.0.1:8
 | Retrieval | `src/medchron/retrieval/` | Hybrid search: Postgres full-text ranking and pgvector cosine distance, fused with reciprocal rank fusion (RRF) in SQL, plus an in-memory BM25 version for offline runs |
 | API and jobs | `src/medchron/api/`, `src/medchron/jobs.py` | FastAPI: upload a production, track the job (progress over SSE), and read the chronology, page text with word boxes, page images and search. A Postgres `SKIP LOCKED` job queue serves any number of workers. A failed job records its error and doesn't stop the worker |
 | Reviewer UI | `ui/` | React and TypeScript. Click-to-source page viewer that highlights exact word boxes (OCR pages included), chronology review (accept / edit / reject with reason), "for review" signals, document-index confirmation (human checkpoint 1), live job progress and Markdown export with reviewer decisions applied. A Playwright test covers the whole flow in CI |
+| Issue analyst | `src/medchron/agents/analyst.py` | An investigation loop over the read-only tools, with a turn limit and the budget. `record_issue` rejects conclusory wording ("negligent", "met the standard of care"), quotes it can't find and unknown event IDs, and the model corrects itself |
+| Verifier | `src/medchron/agents/verifier.py` | An independent LLM judge that sees each issue with only its cited evidence and rates it supported, partial or unsupported. Unsupported issues are shown, not hidden |
+| Memo drafter | `src/medchron/agents/drafter.py` | Uses Claude's **Citations** feature on per-page text documents. Every citation's character range is checked against the page and can be clicked to its highlight. It drafts only from reviewed events and triaged issues |
+| Human checkpoints | API and UI | 1: confirm the document index. 2: accept, edit or reject events. 3: triage issues (pursue, ask an expert, or dismiss with a reason). 4: approve the memo, which is the only way to export it. Memo drafting is blocked until checkpoints 1 and 3 are complete |
 | Prompts | `src/medchron/prompts/` | Versioned files (`name/vN.md`). Each call records `name@vN+sha` |
 | Embeddings | `src/medchron/retrieval/` | Local `bge-small` (optional extra) or a deterministic hashing embedder for tests and CI, so record text is never sent out to be embedded |
 

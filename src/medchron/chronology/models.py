@@ -76,3 +76,45 @@ class Chronology(BaseModel):
     conflicts: list[Conflict] = Field(default_factory=list)
     gaps: list[Gap] = Field(default_factory=list)
     flags: list[CaseFlag] = Field(default_factory=list)
+
+
+class Citation(BaseModel):
+    """A verified pointer into the record: span, page and exact character range."""
+
+    span_id: str
+    page_no: int
+    quote: str
+    char_start: int
+    char_end: int
+
+
+class Issue(BaseModel):
+    """A question for expert review raised by the issue analyst."""
+
+    issue_id: str
+    category: str  # an IssueKind value
+    description: str
+    event_ids: list[str] = Field(default_factory=list)
+    citations: list[Citation] = Field(min_length=1)
+    severity_hint: str = "medium"
+    verdict: str = "unverified"  # supported | partial | unsupported | unverified
+    verdict_reason: str = ""
+
+
+class MemoClaim(BaseModel):
+    text: str
+    citations: list[Citation] = Field(default_factory=list)
+    citation_valid: bool = True
+
+
+class Memo(BaseModel):
+    case_id: str
+    markdown: str
+    claims: list[MemoClaim]
+
+    @property
+    def cited_ratio(self) -> float:
+        substantive = [c for c in self.claims if len(c.text.strip()) > 40]
+        if not substantive:
+            return 1.0
+        return sum(bool(c.citations) for c in substantive) / len(substantive)

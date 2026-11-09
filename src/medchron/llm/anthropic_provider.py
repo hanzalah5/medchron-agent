@@ -94,6 +94,8 @@ def parse_message(message: Any) -> LLMResponse:
                     document_title=getattr(c, "document_title", None),
                     start_page=getattr(c, "start_page_number", None),
                     end_page=getattr(c, "end_page_number", None),
+                    start_char=getattr(c, "start_char_index", None),
+                    end_char=getattr(c, "end_char_index", None),
                 )
                 for c in (block.citations or [])
             ]

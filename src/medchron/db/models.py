@@ -58,6 +58,7 @@ class Job(Base):
     matter_id: Mapped[str] = mapped_column(ForeignKey("matters.matter_id", ondelete="CASCADE"))
     status: Mapped[str] = mapped_column(String(24), default="queued")  # queued|running|...
     provider: Mapped[str] = mapped_column(String(24))
+    kind: Mapped[str] = mapped_column(String(16), default="pipeline", server_default="pipeline")
     budget_usd: Mapped[float | None] = mapped_column(Float)
     error: Mapped[str | None] = mapped_column(Text)
     summary: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
@@ -182,3 +183,44 @@ class SpanRow(Base):
     )
     embedding: Mapped[list[float]] = mapped_column(Vector(DIM))
     embedder: Mapped[str] = mapped_column(String(64))
+
+
+class IssueRow(Base):
+    """An analyst issue plus its attorney triage (human checkpoint 3)."""
+
+    __tablename__ = "issues"
+
+    matter_id: Mapped[str] = mapped_column(
+        ForeignKey("matters.matter_id", ondelete="CASCADE"), primary_key=True
+    )
+    issue_id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    category: Mapped[str] = mapped_column(String(32))
+    description: Mapped[str] = mapped_column(Text)
+    event_ids: Mapped[list[str]] = mapped_column(JSONB)
+    citations: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    severity_hint: Mapped[str] = mapped_column(String(8))
+    verdict: Mapped[str] = mapped_column(String(16))
+    verdict_reason: Mapped[str] = mapped_column(Text, default="")
+    triage_status: Mapped[str] = mapped_column(String(16), default="pending")
+    triage_note: Mapped[str] = mapped_column(Text, default="")
+    triaged_by: Mapped[str | None] = mapped_column(String(128))
+    triaged_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class MemoRow(Base):
+    """Drafted memos. A memo cannot leave the system until approved (checkpoint 4)."""
+
+    __tablename__ = "memos"
+
+    memo_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    matter_id: Mapped[str] = mapped_column(
+        ForeignKey("matters.matter_id", ondelete="CASCADE"), index=True
+    )
+    markdown: Mapped[str] = mapped_column(Text)
+    claims: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    status: Mapped[str] = mapped_column(String(16), default="draft")  # draft | approved
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    approved_by: Mapped[str | None] = mapped_column(String(128))
+    approved_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))

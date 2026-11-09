@@ -11,15 +11,24 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
+from medchron.agents.drafter import draft_memo
 from medchron.evals.metrics import Aggregate, CaseMetrics, aggregate, score_case
 from medchron.llm.config import effort_for, model_for
 from medchron.llm.prompts import load_prompt
-from medchron.llm.providers import LLMProvider
+from medchron.llm.providers import LLMProvider, MeteredProvider
+from medchron.llm.types import LLMError
 from medchron.orchestrator.pipeline import RunConfig, RunSummary, run_case
 from medchron.synth.models import CaseGold
 
-ROUTES = ["classify", "extract"]
-PROMPTS = ["system_base", "classify_pages", "extract_events"]
+ROUTES = ["classify", "extract", "analyze", "verify", "draft"]
+PROMPTS = [
+    "system_base",
+    "classify_pages",
+    "extract_events",
+    "analyze_issues",
+    "verify_claims",
+    "draft_memo",
+]
 
 
 class Operational(BaseModel):
@@ -77,6 +86,7 @@ def run_eval(
     work_dir: Path,
     budget_per_case: float | None = None,
     case_ids: list[str] | None = None,
+    draft: bool = True,
 ) -> EvalResult:
     manifest = json.loads((data_dir / "manifest.json").read_text(encoding="utf-8"))
     if case_ids:
@@ -84,22 +94,36 @@ def run_eval(
     metrics: list[CaseMetrics] = []
     runs: list[RunSummary] = []
     pages = 0
+    extra_cost = 0.0  # memo drafting happens outside run_case
+    extra_calls = 0
     for m in manifest:
         cid = m["case_id"]
         gold = CaseGold.model_validate_json((data_dir / f"{cid}.gold.json").read_text())
         out = work_dir / cid
+        provider = provider_for(gold)
         result = run_case(
             data_dir / f"{cid}.pdf",
             cid,
-            provider_for(gold),
+            provider,
             RunConfig(out_dir=out, budget_usd=budget_per_case),
         )
-        metrics.append(score_case(result.chronology, gold, result.case))
+        memo = None
+        if draft and result.summary.status != "budget_exceeded":
+            memo_meter = MeteredProvider(provider)
+            kept = [i for i in result.issues if i.verdict != "unsupported"]
+            try:
+                memo = draft_memo(memo_meter, result.case, result.chronology, kept)
+                (out / "memo.md").write_text(memo.markdown, encoding="utf-8")
+            except (LLMError, LookupError):
+                memo = None
+            extra_cost += memo_meter.spent_usd
+            extra_calls += len(memo_meter.records)
+        metrics.append(score_case(result.chronology, gold, result.case, result.issues, memo))
         runs.append(result.summary)
         pages += len(gold.pages)
 
     secs = sorted(r.seconds for r in runs)
-    cost = sum(r.cost_usd for r in runs)
+    cost = sum(r.cost_usd for r in runs) + extra_cost
     return EvalResult(
         label=label,
         created=dt.datetime.now(dt.UTC).replace(microsecond=0).isoformat(),
@@ -115,7 +139,7 @@ def run_eval(
         ).hexdigest()[:16],
         aggregate=aggregate(metrics),
         operational=Operational(
-            llm_calls=sum(r.llm_calls for r in runs),
+            llm_calls=sum(r.llm_calls for r in runs) + extra_calls,
             cost_usd=round(cost, 4),
             input_tokens=sum(r.input_tokens for r in runs),
             output_tokens=sum(r.output_tokens for r in runs),
@@ -131,7 +155,13 @@ def run_eval(
     )
 
 
-GATED = ["event_recall", "event_precision", "citation_validity", "segmentation_f1"]
+GATED = [
+    "event_recall",
+    "event_precision",
+    "citation_validity",
+    "segmentation_f1",
+    "issue_recall_attempted",
+]
 
 
 def regressions(current: EvalResult, baseline: EvalResult, tolerance: float) -> list[str]:
@@ -142,4 +172,8 @@ def regressions(current: EvalResult, baseline: EvalResult, tolerance: float) -> 
         before = getattr(baseline.aggregate, name)
         if now < before - tolerance:
             out.append(f"{name}: {before:.3f} -> {now:.3f}")
+    if current.aggregate.scope_violations > baseline.aggregate.scope_violations:
+        out.append("scope_violations increased")
+    if current.aggregate.injection_followed_cases > 0:
+        out.append("output followed a prompt injection")
     return out

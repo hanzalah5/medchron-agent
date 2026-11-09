@@ -117,3 +117,12 @@ input, select { font: inherit; padding: 6px 8px; border: 1px solid var(--border)
 .page-frame img { width: 100%; height: auto; display: block; }
 .hl { position: absolute; background: var(--hl); outline: 2px solid var(--hl-border); border-radius: 2px; pointer-events: none; }
 .quote { margin: 10px 0 0; padding: 8px 12px; border-left: 3px solid var(--hl-border); background: var(--warn-soft); font-size: 13px; }
+
+.issues { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.issue { border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+.issue.tri-dismiss { opacity: 0.6; }
+.issue-text { margin: 6px 0; }
+.actions button.on { background: var(--accent); color: white; border-color: var(--accent); }
+.memo-body { white-space: pre-wrap; line-height: 1.55; font-size: 13.5px; }
+.claim.cited { background: linear-gradient(transparent 60%, var(--accent-soft) 60%); }
+.cite-bad { color: var(--bad); background: var(--bad-soft); }

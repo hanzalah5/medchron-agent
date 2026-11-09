@@ -18,12 +18,21 @@ from __future__ import annotations
 
 import datetime as dt
 import itertools
+import json
 import random
 import re
 from typing import Any
 
 from medchron.grounding.quotes import find_quote, normalize
-from medchron.llm.types import LLMRequest, LLMResponse, StopReason, TextPart, ToolCall, Usage
+from medchron.llm.types import (
+    Citation,
+    LLMRequest,
+    LLMResponse,
+    StopReason,
+    TextPart,
+    ToolCall,
+    Usage,
+)
 from medchron.synth.models import CaseGold, GoldDocument
 from medchron.taxonomy import IssueKind
 
@@ -49,6 +58,10 @@ class OracleProvider:
 
     # ------------------------------------------------------------------ protocol
     def complete(self, req: LLMRequest) -> LLMResponse:
+        if req.route == "analyze":
+            return self._analyze(req)
+        if req.route == "draft":
+            return self._draft(req)
         last = req.messages[-1]
         if last["role"] == "user" and isinstance(last["content"], list):
             return self._text("Recorded.")  # tool results came back: finish the turn
@@ -58,6 +71,13 @@ class OracleProvider:
         if req.route == "extract":
             events, flags = self._events(content)
             return self._tool("record_events", {"events": events, "flags": flags})
+        if req.route == "verify":
+            n = len(re.findall(r"^Claim \d+:", content, re.M))
+            verdicts = [
+                {"claim": k, "verdict": "supported", "reason": "Evidence states the facts."}
+                for k in range(1, n + 1)
+            ]
+            return self._tool("record_verdicts", {"verdicts": verdicts})
         raise ValueError(f"oracle has no answer for route {req.route!r}")
 
     # ------------------------------------------------------------------ answers
@@ -132,14 +152,116 @@ class OracleProvider:
                 return span_id, text[m.start : m.end]  # copy what the page actually says
         return None
 
+    # ------------------------------------------------------------------ analyst
+    def _analyze(self, req: LLMRequest) -> LLMResponse:
+        """Turn 1: read the issue pages. Turn 2: record each gold issue. Turn 3: finish."""
+        last = req.messages[-1]
+        if isinstance(last["content"], str):
+            wanted = sorted({p for i in self.gold.issues for p in i.pages})
+            return self._tools([("get_page", {"page_no": p}) for p in wanted])
+        results = []
+        for r in last["content"]:
+            try:
+                results.append(json.loads(r["content"]))
+            except (json.JSONDecodeError, TypeError):
+                continue  # e.g. "recorded I001" from record_issue
+        pages = {r["page"]: r for r in results if isinstance(r, dict) and "spans" in r}
+        if not pages:
+            return self._text("Recorded all supported issues.")
+        calls = []
+        for issue in self.gold.issues:
+            cites = [c for p in issue.pages if p in pages for c in [self._cite(pages[p], issue)]]
+            cites = [c for c in cites if c is not None]
+            if cites:
+                calls.append(
+                    (
+                        "record_issue",
+                        {
+                            "category": issue.kind.value,
+                            "description": issue.description,
+                            "event_ids": [],
+                            "citations": cites,
+                            "severity_hint": "medium",
+                        },
+                    )
+                )
+        return self._tools(calls) if calls else self._text("No supportable issues.")
+
+    def _cite(self, page: dict[str, Any], issue: Any) -> dict[str, str] | None:
+        text: str = page["text"]
+        lines = text.splitlines()
+        body_start = next((i + 1 for i, ln in enumerate(lines) if set(ln.strip()) == {"-"}), 0)
+        candidates = [ln.strip() for ln in lines[body_start:] if len(ln.strip()) > 20]
+        if issue.kind == IssueKind.PROMPT_INJECTION:
+            candidates = [c for c in candidates if "automated review" in c.lower()] or candidates
+        if not candidates:
+            return None
+        quote = candidates[0]
+        offset = text.find(quote)
+        for span_id in page["spans"]:
+            start, end = (int(x) for x in span_id.rsplit(":", 1)[1].split("-"))
+            if start <= offset and offset + len(quote) <= end:
+                return {"span_id": span_id, "quote": quote}
+        return None
+
+    # ------------------------------------------------------------------ drafter
+    def _draft(self, req: LLMRequest) -> LLMResponse:
+        blocks = req.messages[0]["content"]
+        docs = [b for b in blocks if b.get("type") == "document"]
+        parts = [
+            TextPart(
+                text="DRAFT - attorney work product - prepared from synthetic records "
+                "for review.\n\n## Summary of medical course\n\n"
+            )
+        ]
+        for i, doc in enumerate(docs):
+            data: str = doc["source"]["data"]
+            lines = data.splitlines()
+            body = next((k + 1 for k, ln in enumerate(lines) if set(ln.strip()) == {"-"}), 0)
+            line = next((ln.strip() for ln in lines[body:] if len(ln.strip()) > 25), None)
+            if line is None or "automated review" in line.lower():
+                continue
+            start = data.find(line)
+            parts.append(TextPart(text=f"{doc['title']} records: "))
+            parts.append(
+                TextPart(
+                    text=line,
+                    citations=[
+                        Citation(
+                            cited_text=line,
+                            document_index=i,
+                            document_title=doc["title"],
+                            start_char=start,
+                            end_char=start + len(line),
+                        )
+                    ],
+                )
+            )
+            parts.append(TextPart(text="\n\n"))
+        return LLMResponse(
+            model="oracle",
+            stop_reason=StopReason.END_TURN,
+            content=[{"type": "text", "text": p.text} for p in parts],
+            text_parts=parts,
+            usage=Usage(),
+        )
+
     # ------------------------------------------------------------------ responses
     def _tool(self, name: str, args: dict[str, Any]) -> LLMResponse:
-        call_id = f"toolu_oracle_{next(self._ids)}"
+        return self._tools([(name, args)])
+
+    def _tools(self, calls: list[tuple[str, dict[str, Any]]]) -> LLMResponse:
+        ids = [f"toolu_oracle_{next(self._ids)}" for _ in calls]
         return LLMResponse(
             model="oracle",
             stop_reason=StopReason.TOOL_USE,
-            content=[{"type": "tool_use", "id": call_id, "name": name, "input": args}],
-            tool_calls=[ToolCall(id=call_id, name=name, input=args)],
+            content=[
+                {"type": "tool_use", "id": i, "name": n, "input": a}
+                for i, (n, a) in zip(ids, calls, strict=True)
+            ],
+            tool_calls=[
+                ToolCall(id=i, name=n, input=a) for i, (n, a) in zip(ids, calls, strict=True)
+            ],
             usage=Usage(),
         )
 

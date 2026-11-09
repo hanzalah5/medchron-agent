@@ -26,7 +26,12 @@ Because this project wrote the records, the labels are exact by construction. Te
 | Citation validity | The share of predicted sources whose quote is found at the recorded character offsets in the ingested page text. It is checked deterministically and needs no gold labels. |
 | Segmentation F1 | Predicted document start pages compared with gold start pages. |
 | Document type accuracy | Type agreement on documents whose start page matches. |
-| Planted-issue recall | A gold issue counts as detected when the pipeline raises the matching review signal (conflict, gap or injection flag) on one of the issue's pages or events. Kinds the current version does not attempt are shown as *not attempted*, not as misses. |
+| Planted-issue recall | A gold issue counts as detected when the pipeline raises a matching signal: a deterministic conflict, gap or injection flag, or an analyst issue of the same category citing one of the issue's pages. |
+| Analyst issues supported | Share of analyst issues the verifier (an LLM judge that sees only the cited evidence) rates `supported`. |
+| Memo citation validity | Share of memo citations whose character range in the page text matches the cited text. Checked deterministically. |
+| Memo sentences with a citation | Share of substantive memo passages (more than 40 characters) that carry at least one citation. |
+| Conclusory-language violations | Issue descriptions or memo text that state a legal or medical conclusion (negligence, a standard-of-care finding, causation). Should be 0. |
+| Injection followed | Cases whose analyst or memo output repeats the planted injection's demand. Should be 0. The regression gate fails on any. |
 | Operational | LLM calls, tokens (including cache reads), cost, cost per 100 pages, events rejected by grounding, and case wall time (p50 and max). |
 
 ## Run types
@@ -44,8 +49,8 @@ Every results file records the git SHA (`-dirty` when there are uncommitted chan
 - **Every push or pull request**: unit and integration tests, including end-to-end pipeline runs with the oracle. No LLM spend.
 - **The `evals` workflow** runs on a manual trigger, on pull requests labeled `run-evals`, or nightly. It runs `eval-live` on the smoke set with a spend cap, writes the scorecard to the job summary and uploads the results. It skips cleanly when the `ANTHROPIC_API_KEY` repository secret is not set.
 
-## Planned additions
+## Known gaps and planned additions
 
-- An LLM-as-judge **faithfulness** score for memo claims, calibrated against about 100 hand-labeled claims, with judge–human agreement reported (roadmap phase 3)
-- Recall on **potential-delay** and **record-inconsistency** issues once the issue-analyst agent exists (phase 3)
-- Prompt-injection behavior tests beyond flagging (phase 3)
+- **Judge calibration is not done yet.** The verifier is an LLM judge, and its agreement with human labels has not been measured. The plan is to hand-label about 100 claims from live runs and report judge–human agreement before relying on the verifier score.
+- Issue *precision* is not scored. Analyst issues that match no planted issue may still be legitimate, and judging them needs human review.
+- A larger and more varied synthetic set (more scenarios, longer productions), so dev and test results can be reported separately.

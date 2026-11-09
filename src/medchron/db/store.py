@@ -12,12 +12,22 @@ from medchron.chronology.builder import find_conflicts, find_followup_gaps
 from medchron.chronology.models import (
     CaseFlag,
     Chronology,
+    Citation,
     Confidence,
     DocumentSegment,
     EventSource,
     ExtractedEvent,
+    Issue,
 )
-from medchron.db.models import CaseFlagRow, DocumentRow, EventRow, Matter, PageRow, SpanRow
+from medchron.db.models import (
+    CaseFlagRow,
+    DocumentRow,
+    EventRow,
+    IssueRow,
+    Matter,
+    PageRow,
+    SpanRow,
+)
 from medchron.ingestion.models import IngestedCase, Page, Span
 from medchron.retrieval.embeddings import Embedder
 from medchron.taxonomy import DocType, EventType
@@ -202,4 +212,59 @@ def load_chronology(session: Session, matter_id: str) -> Chronology:
     # Conflicts and gaps are derived signals, so recompute them instead of storing them.
     chron.conflicts = find_conflicts(chron.events)
     chron.gaps = find_followup_gaps(chron.events)
+    return chron
+
+
+def save_issues(session: Session, matter_id: str, issues: list[Issue]) -> None:
+    """Replace the analyst's issues for a matter (triage starts again from pending)."""
+    session.execute(delete(IssueRow).where(IssueRow.matter_id == matter_id))
+    session.add_all(
+        IssueRow(
+            matter_id=matter_id,
+            issue_id=i.issue_id,
+            category=i.category,
+            description=i.description,
+            event_ids=i.event_ids,
+            citations=[c.model_dump() for c in i.citations],
+            severity_hint=i.severity_hint,
+            verdict=i.verdict,
+            verdict_reason=i.verdict_reason,
+        )
+        for i in issues
+    )
+    session.flush()
+
+
+def issue_from_row(r: IssueRow) -> Issue:
+    return Issue(
+        issue_id=r.issue_id,
+        category=r.category,
+        description=r.description,
+        event_ids=list(r.event_ids),
+        citations=[Citation.model_validate(c) for c in r.citations],
+        severity_hint=r.severity_hint,
+        verdict=r.verdict,
+        verdict_reason=r.verdict_reason,
+    )
+
+
+def reviewed_chronology(session: Session, matter_id: str) -> Chronology:
+    """The chronology as the reviewer left it: edits applied, rejected events removed."""
+    chron = load_chronology(session, matter_id)
+    reviews = {
+        r.event_id: r
+        for r in session.scalars(select(EventRow).where(EventRow.matter_id == matter_id))
+    }
+    kept = []
+    for e in chron.events:
+        r = reviews.get(e.event_id)
+        if r is None or r.review_status == "rejected":
+            continue
+        update: dict[str, object] = {"flags": [*e.flags, f"review:{r.review_status}"]}
+        if r.edited_summary:
+            update["summary"] = r.edited_summary
+        if r.edited_date:
+            update["date"] = r.edited_date
+        kept.append(e.model_copy(update=update))
+    chron.events = kept
     return chron

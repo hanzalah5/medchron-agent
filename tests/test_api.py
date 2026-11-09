@@ -173,3 +173,47 @@ def test_review_workflow(client: TestClient, processed: dict[str, str]) -> None:
     assert "Corrected summary" in text_md and "2024-01-02" in text_md
     assert "review:accepted" in text_md
     assert "review:rejected" not in text_md  # rejected events are excluded
+
+
+def test_issue_triage_and_memo_signoff(
+    client: TestClient, processed: dict[str, str], engine: Engine
+) -> None:
+    base = "/api/matters/demo-0003"
+    issues = client.get(f"{base}/issues").json()
+    kinds = {i["category"] for i in issues}
+    assert {"potential_delay", "missing_record", "prompt_injection"} <= kinds
+    assert all(i["citations"] and i["triage_status"] == "pending" for i in issues)
+
+    # Checkpoint 4 is gated on checkpoints 1 and 3.
+    client.post(f"{base}/index/confirm")
+    assert client.post(f"{base}/memo", json={"provider": "oracle"}).status_code == 409
+
+    first = issues[0]["issue_id"]
+    assert client.patch(f"{base}/issues/{first}", json={"status": "dismiss"}).status_code == 422
+    for i in issues:
+        status = "dismiss" if i["category"] == "prompt_injection" else "expert"
+        r = client.patch(
+            f"{base}/issues/{i['issue_id']}",
+            json={"status": status, "note": "Injection text, flagged for the file."},
+        )
+        assert r.status_code == 200 and r.json()["triaged_by"]
+
+    assert client.get(f"{base}/memo").status_code == 404
+    r = client.post(f"{base}/memo", json={"provider": "oracle"})
+    assert r.status_code == 202
+    assert work(engine, once=True) == 1
+    job = client.get(f"/api/jobs/{r.json()['job_id']}").json()
+    assert job["status"] == "completed" and job["kind"] == "memo", job["error"]
+    assert job["summary"]["invalid_citations"] == 0
+
+    memo = client.get(f"{base}/memo").json()
+    assert memo["status"] == "draft" and memo["markdown"].startswith("DRAFT")
+    assert any(c["citations"] for c in memo["claims"])
+    assert "automated review" not in memo["markdown"].lower()  # injection text kept out
+
+    url = f"{base}/memo/{memo['memo_id']}"
+    assert client.get(f"{url}/export.md").status_code == 409  # not approved yet
+    approved = client.post(f"{url}/approve").json()
+    assert approved["status"] == "approved" and approved["approved_by"]
+    exported = client.get(f"{url}/export.md")
+    assert exported.status_code == 200 and "Approved by" in exported.text

@@ -16,6 +16,7 @@ import os
 import tempfile
 import time
 import uuid
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -23,9 +24,17 @@ from sqlalchemy import select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
-from medchron.db.models import Job, JobEvent, Matter
-from medchron.db.store import save_chronology, save_ingested
-from medchron.llm.providers import LLMProvider
+from medchron.agents.drafter import draft_memo
+from medchron.db.models import IssueRow, Job, JobEvent, Matter, MemoRow
+from medchron.db.store import (
+    issue_from_row,
+    load_ingested,
+    reviewed_chronology,
+    save_chronology,
+    save_ingested,
+    save_issues,
+)
+from medchron.llm.providers import LLMProvider, MeteredProvider
 from medchron.orchestrator.pipeline import RunConfig, run_case
 from medchron.retrieval.embeddings import get_embedder
 from medchron.storage import LocalStorage
@@ -35,11 +44,23 @@ log = logging.getLogger(__name__)
 PROVIDERS = {"anthropic", "replay", "oracle"}
 
 
-def enqueue(session: Session, matter_id: str, provider: str, budget_usd: float | None) -> Job:
+def enqueue(
+    session: Session,
+    matter_id: str,
+    provider: str,
+    budget_usd: float | None,
+    kind: str = "pipeline",
+) -> Job:
     if provider not in PROVIDERS:
         raise ValueError(f"provider must be one of {sorted(PROVIDERS)}")
+    if kind not in ("pipeline", "memo"):
+        raise ValueError("kind must be pipeline or memo")
     job = Job(
-        job_id=str(uuid.uuid4()), matter_id=matter_id, provider=provider, budget_usd=budget_usd
+        job_id=str(uuid.uuid4()),
+        matter_id=matter_id,
+        provider=provider,
+        budget_usd=budget_usd,
+        kind=kind,
     )
     session.add(job)
     session.flush()
@@ -96,24 +117,18 @@ def process(engine: Engine, job_id: str, storage: LocalStorage | None = None) ->
         assert job is not None
         matter = s.get(Matter, job.matter_id)
         assert matter is not None
-        provider_name, budget = job.provider, job.budget_usd
+        provider_name, budget, kind = job.provider, job.budget_usd, job.kind
         matter_id, key, sha = matter.matter_id, matter.source_path, matter.source_sha256
 
     summary: dict[str, Any] | None = None
     try:
         provider = _provider(provider_name, sha)
-        with tempfile.TemporaryDirectory() as tmp:
-            pdf = Path(tmp) / "production.pdf"
-            pdf.write_bytes(storage.get(key))
-            out = Path(os.environ.get("MEDCHRON_RUNS_DIR", "runs")) / matter_id
-            result = run_case(
-                pdf, matter_id, provider, RunConfig(out_dir=out, budget_usd=budget), progress=note
-            )
-        with Session(engine) as s, s.begin():
-            save_ingested(s, result.case, get_embedder())
-            save_chronology(s, result.chronology)
-        summary = result.summary.model_dump(mode="json")
-        status, error = result.summary.status, None
+        if kind == "memo":
+            summary = _draft(engine, matter_id, provider, budget, note)
+            status, error = "completed", None
+        else:
+            summary = _pipeline(engine, storage, matter_id, key, provider, budget, note)
+            status, error = str(summary["status"]), None
     except Exception as e:  # the job records the failure; the worker keeps running
         log.exception("job %s failed", job_id)
         status, error = "failed", f"{type(e).__name__}: {e}"[:2000]
@@ -124,6 +139,69 @@ def process(engine: Engine, job_id: str, storage: LocalStorage | None = None) ->
         job.status, job.error, job.summary = status, error, summary
         job.finished_at = dt.datetime.now(dt.UTC)
         s.add(JobEvent(job_id=job_id, message=f"finished: {status}"))
+
+
+def _pipeline(
+    engine: Engine,
+    storage: LocalStorage,
+    matter_id: str,
+    key: str,
+    provider: LLMProvider,
+    budget: float | None,
+    note: Callable[[str], None],
+) -> dict[str, Any]:
+    with tempfile.TemporaryDirectory() as tmp:
+        pdf = Path(tmp) / "production.pdf"
+        pdf.write_bytes(storage.get(key))
+        out = Path(os.environ.get("MEDCHRON_RUNS_DIR", "runs")) / matter_id
+        result = run_case(
+            pdf, matter_id, provider, RunConfig(out_dir=out, budget_usd=budget), progress=note
+        )
+    with Session(engine) as s, s.begin():
+        save_ingested(s, result.case, get_embedder())
+        save_chronology(s, result.chronology)
+        save_issues(s, matter_id, result.issues)
+    return result.summary.model_dump(mode="json")
+
+
+def _draft(
+    engine: Engine,
+    matter_id: str,
+    provider: LLMProvider,
+    budget: float | None,
+    note: Callable[[str], None],
+) -> dict[str, Any]:
+    """Draft a memo from the *reviewed* chronology and the issues the attorney kept."""
+    with Session(engine) as s:
+        case = load_ingested(s, matter_id)
+        chron = reviewed_chronology(s, matter_id)
+        rows = s.scalars(
+            select(IssueRow).where(
+                IssueRow.matter_id == matter_id,
+                IssueRow.triage_status.in_(["pursue", "expert"]),
+            )
+        ).all()
+        issues = [issue_from_row(r) for r in rows]
+    note(f"draft: writing memo from {len(chron.events)} events and {len(issues)} issues")
+    metered = MeteredProvider(provider, budget_usd=budget)
+    memo = draft_memo(metered, case, chron, issues)
+    memo_id = str(uuid.uuid4())
+    with Session(engine) as s, s.begin():
+        s.add(
+            MemoRow(
+                memo_id=memo_id,
+                matter_id=matter_id,
+                markdown=memo.markdown,
+                claims=[c.model_dump() for c in memo.claims],
+            )
+        )
+    return {
+        "memo_id": memo_id,
+        "claims": len(memo.claims),
+        "cited_ratio": round(memo.cited_ratio, 3),
+        "invalid_citations": sum(not c.citation_valid for c in memo.claims),
+        "cost_usd": round(metered.spent_usd, 6),
+    }
 
 
 def work(engine: Engine, *, once: bool = False, poll_seconds: float = 1.0) -> int:

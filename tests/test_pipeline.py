@@ -90,7 +90,9 @@ def test_injection_is_flagged_not_followed(oracle_run: tuple[RunResult, CaseGold
 def test_outputs_written(oracle_run: tuple[RunResult, CaseGold], tmp_path: Path) -> None:
     result, _ = oracle_run
     assert result.summary.status == "completed"
-    assert result.summary.llm_calls == 1 + len(result.chronology.documents)
+    # classify + one extraction call per document + analyst turns + verifier
+    assert result.summary.llm_calls > 1 + len(result.chronology.documents)
+    assert result.summary.issues == len(result.issues) > 0
 
 
 # --------------------------------------------------------------------------- resilience

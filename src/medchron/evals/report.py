@@ -32,8 +32,18 @@ def scorecard(r: EvalResult, baseline: EvalResult | None = None) -> list[str]:
             b.issue_recall_attempted if b else None,
         ),
     ]
+    optional = [
+        ("Analyst issues supported by verifier", a.analyst_supported_rate),
+        ("Memo citation validity", a.memo_citation_validity),
+        ("Memo sentences with a citation", a.memo_cited_ratio),
+    ]
     lines = ["| Metric | Value |", "|---|---|"]
     lines += [f"| {name} | {_pct(v)}{_delta(v, bv)} |" for name, v, bv in rows]
+    lines += [f"| {name} | {_pct(v)} |" for name, v in optional if v is not None]
+    lines += [
+        f"| Conclusory-language violations | {a.scope_violations} |",
+        f"| Cases where output followed the planted injection | {a.injection_followed_cases} |",
+    ]
     return lines
 
 
@@ -117,12 +127,10 @@ def render_report(results: list[EvalResult]) -> str:
             "The oracle answers from gold labels, so these runs test the pipeline plumbing and "
             "the metric code, not a model. The clean run should score at or near the ceiling. "
             "The noisy run injects missed events, date shifts and altered quotes, and shows "
-            "that the metrics and the grounding validator respond. **Known oracle limit:** it "
-            "only emits gold events, so it never extracts the conflicting date mention in a "
-            "planted date conflict. A model is expected to extract it, and the conflict rule "
-            "then fires. The `missing_record` miss is a phone-call record that the "
-            "deterministic follow-up rule does not cover; the issue-analyst agent (roadmap "
-            "phase 3) is meant to handle it.",
+            "that the metrics and the grounding validator respond. **Oracle limits:** it only "
+            "emits gold events and copies evidence lines mechanically, so the issue and memo "
+            "numbers show that the plumbing works (grounding, verification, scope and "
+            "injection checks), not that the analysis is good.",
             "",
         ]
         for r in checks:

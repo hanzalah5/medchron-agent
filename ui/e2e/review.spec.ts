@@ -41,6 +41,34 @@ test("upload → pipeline → click citation → highlighted source → review",
   await page.getByTestId("confirm-index").click();
   await expect(page.getByTestId("doc-index")).toContainText("confirmed by");
 
+  // Checkpoint 3: triage every issue (dismissals need a reason, entered in a dialog).
+  page.on("dialog", (d) => d.accept("Injection text, noted for the file."));
+  const issues = page.getByTestId("issue");
+  await expect(issues.first()).toBeVisible();
+  const n = await issues.count();
+  expect(n).toBeGreaterThan(2);
+  await expect(page.getByTestId("draft-memo")).toBeDisabled();
+  for (let k = 0; k < n; k++) {
+    const issue = issues.nth(k);
+    const isInjection = (await issue.textContent())?.includes("prompt injection");
+    await issue.getByRole("button", { name: isInjection ? "Dismiss" : "Ask expert" }).click();
+    await expect(issue).toContainText("triage:");
+  }
+
+  // Checkpoint 4: draft the cited memo, check a citation, approve it.
+  await page.getByTestId("draft-memo").click();
+  const memoBody = page.getByTestId("memo-body");
+  await expect(memoBody).toContainText("DRAFT", { timeout: 60_000 });
+  await memoBody.locator(".cite").first().click();
+  await expect(page.getByTestId("highlight").first()).toBeVisible();
+  if (SHOTS) {
+    await page.getByTestId("issues").scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${SHOTS}/issues-memo.png` });
+  }
+  await page.getByTestId("approve-memo").click();
+  await expect(page.getByTestId("memo")).toContainText("Approved by");
+  await expect(page.getByTestId("memo").getByRole("link", { name: "Export (.md)" })).toBeVisible();
+
   // The review state survives a reload.
   await page.reload();
   await expect(page.getByTestId("event-row").filter({ hasText: "perforated appendicitis" }).first()).toContainText(
