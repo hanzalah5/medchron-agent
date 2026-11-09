@@ -1,0 +1,429 @@
+{
+  "case_id": "case_0005",
+  "seed": 5,
+  "scenario": "wrist_fracture_overread",
+  "generator_version": "0.1.0",
+  "synthetic": true,
+  "patient": {
+    "name": "Parker Fauxley",
+    "dob": "1991-01-06",
+    "sex": "F"
+  },
+  "documents": [
+    {
+      "doc_id": "F001",
+      "doc_type": "fax_cover",
+      "title": "Facsimile Transmittal - Release of Information",
+      "date": "2022-09-10",
+      "facility": "Keystone Bone & Joint",
+      "provider": "Health Information Management",
+      "start_page": 1,
+      "end_page": 1
+    },
+    {
+      "doc_id": "D005",
+      "doc_type": "office_visit",
+      "title": "Hand Surgery Consultation",
+      "date": "2022-07-07",
+      "facility": "Keystone Bone & Joint",
+      "provider": "A. Delacroix, MD",
+      "start_page": 2,
+      "end_page": 2
+    },
+    {
+      "doc_id": "D006",
+      "doc_type": "operative_report",
+      "title": "Operative Report",
+      "date": "2022-07-12",
+      "facility": "Keystone Bone & Joint",
+      "provider": "A. Delacroix, MD",
+      "start_page": 3,
+      "end_page": 3
+    },
+    {
+      "doc_id": "D007",
+      "doc_type": "office_visit",
+      "title": "Post-operative Visit",
+      "date": "2022-07-24",
+      "facility": "Keystone Bone & Joint",
+      "provider": "A. Delacroix, MD",
+      "start_page": 4,
+      "end_page": 4
+    },
+    {
+      "doc_id": "F005",
+      "doc_type": "fax_cover",
+      "title": "Facsimile Transmittal - Release of Information",
+      "date": "2022-11-06",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "Health Information Management",
+      "start_page": 6,
+      "end_page": 6
+    },
+    {
+      "doc_id": "D001",
+      "doc_type": "office_visit",
+      "title": "Urgent Care Visit",
+      "date": "2022-06-16",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "C. Ramanathan, PA-C",
+      "start_page": 7,
+      "end_page": 7
+    },
+    {
+      "doc_id": "D002",
+      "doc_type": "radiology_report",
+      "title": "Radiology Report - Wrist 3 Views",
+      "date": "2022-06-17",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "R. Ramanathan, MD",
+      "start_page": 8,
+      "end_page": 8
+    },
+    {
+      "doc_id": "D004",
+      "doc_type": "telephone_note",
+      "title": "Telephone Encounter",
+      "date": "2022-07-03",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "C. Ramanathan, PA-C",
+      "start_page": 9,
+      "end_page": 9
+    },
+    {
+      "doc_id": "F009",
+      "doc_type": "fax_cover",
+      "title": "Facsimile Transmittal - Release of Information",
+      "date": "2022-08-31",
+      "facility": "Maple Street Family Medicine",
+      "provider": "Health Information Management",
+      "start_page": 11,
+      "end_page": 11
+    },
+    {
+      "doc_id": "D003",
+      "doc_type": "office_visit",
+      "title": "Office Visit",
+      "date": "2022-06-25",
+      "facility": "Maple Street Family Medicine",
+      "provider": "E. Okafor, MD",
+      "start_page": 12,
+      "end_page": 12
+    }
+  ],
+  "events": [
+    {
+      "event_id": "E001",
+      "date": "2022-06-16",
+      "type": "encounter",
+      "summary": "Urgent care visit after fall",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "C. Ramanathan, PA-C",
+      "sources": [
+        {
+          "doc_id": "D001",
+          "page": 7,
+          "quote": "Seen on 06-16-22 after a fall on an outstretched hand."
+        }
+      ]
+    },
+    {
+      "event_id": "E002",
+      "date": "2022-06-16",
+      "type": "complaint",
+      "summary": "Right wrist pain after fall",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "C. Ramanathan, PA-C",
+      "sources": [
+        {
+          "doc_id": "D001",
+          "page": 7,
+          "quote": "Complains of right wrist pain, worse with gripping."
+        }
+      ]
+    },
+    {
+      "event_id": "E003",
+      "date": "2022-06-16",
+      "type": "imaging",
+      "summary": "Wrist x-ray, preliminary read negative",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "C. Ramanathan, PA-C",
+      "sources": [
+        {
+          "doc_id": "D001",
+          "page": 7,
+          "quote": "Wrist x-ray preliminary read by provider: no acute fracture identified."
+        }
+      ]
+    },
+    {
+      "event_id": "E004",
+      "date": "2022-06-16",
+      "type": "diagnosis",
+      "summary": "Wrist sprain diagnosed",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "C. Ramanathan, PA-C",
+      "sources": [
+        {
+          "doc_id": "D001",
+          "page": 7,
+          "quote": "Assessment: right wrist sprain. Placed in a wrist splint."
+        }
+      ]
+    },
+    {
+      "event_id": "E005",
+      "date": "2022-06-16",
+      "type": "instruction",
+      "summary": "Follow up with primary care in one week",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "C. Ramanathan, PA-C",
+      "sources": [
+        {
+          "doc_id": "D001",
+          "page": 7,
+          "quote": "Follow up with primary care in 1 week if not improving."
+        }
+      ]
+    },
+    {
+      "event_id": "E006",
+      "date": "2022-06-17",
+      "type": "imaging",
+      "summary": "Final radiology read: nondisplaced scaphoid waist fracture",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "R. Ramanathan, MD",
+      "sources": [
+        {
+          "doc_id": "D002",
+          "page": 8,
+          "quote": "FINAL REPORT: Nondisplaced fracture of the scaphoid waist. Recommend clinical correlation and follow-up imaging."
+        }
+      ]
+    },
+    {
+      "event_id": "E007",
+      "date": "2022-06-25",
+      "type": "encounter",
+      "summary": "Primary care visit for persistent wrist pain",
+      "facility": "Maple Street Family Medicine",
+      "provider": "E. Okafor, MD",
+      "sources": [
+        {
+          "doc_id": "D003",
+          "page": 12,
+          "quote": "Visit date: 2022-06-25. Persistent wrist pain since a fall."
+        }
+      ]
+    },
+    {
+      "event_id": "E008",
+      "date": "2022-07-03",
+      "type": "communication",
+      "summary": "Patient notified of final radiology result",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "C. Ramanathan, PA-C",
+      "sources": [
+        {
+          "doc_id": "D004",
+          "page": 9,
+          "quote": "Patient notified by phone of final radiology read showing scaphoid fracture."
+        }
+      ]
+    },
+    {
+      "event_id": "E009",
+      "date": "2022-07-03",
+      "type": "referral",
+      "summary": "Referred to orthopedics",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "C. Ramanathan, PA-C",
+      "sources": [
+        {
+          "doc_id": "D004",
+          "page": 9,
+          "quote": "Referral placed to orthopedic hand surgery."
+        }
+      ]
+    },
+    {
+      "event_id": "E010",
+      "date": "2022-07-07",
+      "type": "imaging",
+      "summary": "Repeat x-ray shows displacement of scaphoid fracture",
+      "facility": "Keystone Bone & Joint",
+      "provider": "A. Delacroix, MD",
+      "sources": [
+        {
+          "doc_id": "D005",
+          "page": 2,
+          "quote": "Repeat radiographs today show interval displacement of the scaphoid waist fracture."
+        }
+      ]
+    },
+    {
+      "event_id": "E011",
+      "date": "2022-07-07",
+      "type": "referral",
+      "summary": "Plan open reduction internal fixation",
+      "facility": "Keystone Bone & Joint",
+      "provider": "A. Delacroix, MD",
+      "sources": [
+        {
+          "doc_id": "D005",
+          "page": 2,
+          "quote": "Plan: open reduction and internal fixation of the scaphoid."
+        }
+      ]
+    },
+    {
+      "event_id": "E012",
+      "date": "2022-07-12",
+      "type": "procedure",
+      "summary": "ORIF scaphoid with headless compression screw",
+      "facility": "Keystone Bone & Joint",
+      "provider": "A. Delacroix, MD",
+      "sources": [
+        {
+          "doc_id": "D006",
+          "page": 3,
+          "quote": "Procedure: open reduction internal fixation of scaphoid with headless compression screw."
+        },
+        {
+          "doc_id": "D007",
+          "page": 4,
+          "quote": "Status post scaphoid ORIF on July 12, 2022."
+        }
+      ]
+    },
+    {
+      "event_id": "E013",
+      "date": "2022-07-24",
+      "type": "encounter",
+      "summary": "Post-operative hand surgery visit",
+      "facility": "Keystone Bone & Joint",
+      "provider": "A. Delacroix, MD",
+      "sources": [
+        {
+          "doc_id": "D007",
+          "page": 4,
+          "quote": "Post-operative visit July 24, 2022. Incision healing well, sutures removed."
+        }
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "issue_id": "I001",
+      "kind": "potential_delay",
+      "description": "The final radiology report on 2022-06-17 identified a scaphoid fracture. Patient notification is documented on 2022-07-03. Is there earlier documentation of result follow-up?",
+      "event_ids": [
+        "E006",
+        "E008"
+      ],
+      "pages": [
+        8,
+        9
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "page": 1,
+      "doc_id": "F001",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 09/10/2022 10:48 FROM HIM DEPT    P.001\nKEYSTONE BONE & JOINT\nFacsimile Transmittal - Release of Information\nPatient: Parker Fauxley   DOB: January 06, 1991   MRN: F7533673\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Health Information Management\n------------------------------------------------------------------------------------------\nTo: Records Requester, Synthetic Law Office (fictional).\n\nFrom: Keystone Bone & Joint, Health Information Management Department.\n\nRe: Medical records for Parker Fauxley. Pages: 4 including cover.\n\nDate sent: September 10, 2022.\n\nCONFIDENTIALITY NOTICE: This transmission contains confidential health information. If you\nreceived it in error, notify the sender and destroy all copies.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 2,
+      "doc_id": "D005",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 09/10/2022 10:48 FROM HIM DEPT    P.002\nKEYSTONE BONE & JOINT\nHand Surgery Consultation\nPatient: Parker Fauxley   DOB: January 06, 1991   MRN: F7533673\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: A. Delacroix, MD\n------------------------------------------------------------------------------------------\nRepeat radiographs today show interval displacement of the scaphoid waist fracture.\n\nPlan: open reduction and internal fixation of the scaphoid.\n\nPMH: mild intermittent asthma, GERD. PSH: none reported. Allergies: no known drug\nallergies. Social: former smoker, quit over ten years ago. Lives with family.\n\nDiscussed risks, benefits and alternatives of the plan of care. Patient verbalized\nunderstanding. Printed after-visit summary provided.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 3,
+      "doc_id": "D006",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 09/10/2022 10:48 FROM HIM DEPT    P.003\nKEYSTONE BONE & JOINT\nOperative Report\nPatient: Parker Fauxley   DOB: January 06, 1991   MRN: F7533673\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: A. Delacroix, MD\n------------------------------------------------------------------------------------------\nDate: July 12, 2022. Procedure: open reduction internal fixation of scaphoid with headless\ncompression screw.\n\nFluoroscopy confirmed screw position. No intraoperative complications.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 4,
+      "doc_id": "D007",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 09/10/2022 10:48 FROM HIM DEPT    P.004\nKEYSTONE BONE & JOINT\nPost-operative Visit\nPatient: Parker Fauxley   DOB: January 06, 1991   MRN: F7533673\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: A. Delacroix, MD\n------------------------------------------------------------------------------------------\nPost-operative visit July 24, 2022. Incision healing well, sutures removed.\n\nStatus post scaphoid ORIF on July 12, 2022.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 5,
+      "doc_id": "D006",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": 3,
+      "text": "FAX 09/10/2022 10:48 FROM HIM DEPT    P.005\nKEYSTONE BONE & JOINT\nOperative Report\nPatient: Parker Fauxley   DOB: January 06, 1991   MRN: F7533673\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: A. Delacroix, MD\n------------------------------------------------------------------------------------------\nDate: July 12, 2022. Procedure: open reduction internal fixation of scaphoid with headless\ncompression screw.\n\nFluoroscopy confirmed screw position. No intraoperative complications.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 6,
+      "doc_id": "F005",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "QUICKCARE URGENT CARE - ELM PLAZA\nFacsimile Transmittal - Release of Information\nPatient: Parker Fauxley   DOB: 01-06-91   MRN: R2710846\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Health Information Management\n------------------------------------------------------------------------------------------\nTo: Records Requester, Synthetic Law Office (fictional).\n\nFrom: QuickCare Urgent Care - Elm Plaza, Health Information Management Department.\n\nRe: Medical records for Parker Fauxley. Pages: 4 including cover.\n\nDate sent: 11-06-22.\n\nCONFIDENTIALITY NOTICE: This transmission contains confidential health information. If you\nreceived it in error, notify the sender and destroy all copies.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 7,
+      "doc_id": "D001",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "QUICKCARE URGENT CARE - ELM PLAZA\nUrgent Care Visit\nPatient: Parker Fauxley   DOB: 01-06-91   MRN: R2710846\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: C. Ramanathan, PA-C\n------------------------------------------------------------------------------------------\nSeen on 06-16-22 after a fall on an outstretched hand.\n\nComplains of right wrist pain, worse with gripping.\n\nWrist x-ray preliminary read by provider: no acute fracture identified.\n\nAssessment: right wrist sprain. Placed in a wrist splint.\n\nFollow up with primary care in 1 week if not improving.\n\nVitals: BP 128/82, HR 84, RR 16, SpO2 98% on room air, Temp 36.8 C.\n\nI personally evaluated the patient and reviewed the available records. Documentation\ncompleted with the assistance of templated text and reviewed for accuracy.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 8,
+      "doc_id": "D002",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "QUICKCARE URGENT CARE - ELM PLAZA\nRadiology Report - Wrist 3 Views\nPatient: Parker Fauxley   DOB: 01-06-91   MRN: R2710846\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: R. Ramanathan, MD\n------------------------------------------------------------------------------------------\nReport finalized 06-17-22. FINAL REPORT: Nondisplaced fracture of the scaphoid waist.\nRecommend clinical correlation and follow-up imaging.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 9,
+      "doc_id": "D004",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "QUICKCARE URGENT CARE - ELM PLAZA\nTelephone Encounter\nPatient: Parker Fauxley   DOB: 01-06-91   MRN: R2710846\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: C. Ramanathan, PA-C\n------------------------------------------------------------------------------------------\n07-03-22: Patient notified by phone of final radiology read showing scaphoid fracture.\n\nReferral placed to orthopedic hand surgery.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 10,
+      "doc_id": "D004",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": 9,
+      "text": "QUICKCARE URGENT CARE - ELM PLAZA\nTelephone Encounter\nPatient: Parker Fauxley   DOB: 01-06-91   MRN: R2710846\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: C. Ramanathan, PA-C\n------------------------------------------------------------------------------------------\n07-03-22: Patient notified by phone of final radiology read showing scaphoid fracture.\n\nReferral placed to orthopedic hand surgery.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 11,
+      "doc_id": "F009",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 08/31/2022 10:29 FROM HIM DEPT    P.001\nMAPLE STREET FAMILY MEDICINE\nFacsimile Transmittal - Release of Information\nPatient: Parker Fauxley   DOB: 1991-01-06   MRN: A4636122\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Health Information Management\n------------------------------------------------------------------------------------------\nTo: Records Requester, Synthetic Law Office (fictional).\n\nFrom: Maple Street Family Medicine, Health Information Management Department.\n\nRe: Medical records for Parker Fauxley. Pages: 2 including cover.\n\nDate sent: 2022-08-31.\n\nCONFIDENTIALITY NOTICE: This transmission contains confidential health information. If you\nreceived it in error, notify the sender and destroy all copies.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 12,
+      "doc_id": "D003",
+      "doc_page": 1,
+      "text_layer": false,
+      "duplicate_of": null,
+      "text": "FAX 08/31/2022 10:29 FROM HIM DEPT    P.002\nMAPLE STREET FAMILY MEDICINE\nOffice Visit\nPatient: Parker Fauxley   DOB: 1991-01-06   MRN: A4636122\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: E. Okafor, MD\n------------------------------------------------------------------------------------------\nVisit date: 2022-06-25. Persistent wrist pain since a fall.\n\nTenderness in the anatomic snuffbox noted. Urgent care records not available today.\n\nROS: 10-point review of systems performed and negative except as documented in the history\nof present illness. Patient denies headache, vision change, chest pain, shortness of\nbreath at rest, urinary symptoms, or new rash.\n\nVitals: BP 128/82, HR 84, RR 16, SpO2 98% on room air, Temp 36.8 C.\n\nMedication reconciliation completed and reviewed with the patient. Patient given\nopportunity to ask questions; all questions answered. Patient agrees with plan.\n\n\nPage 1 of 1"
+    }
+  ]
+}

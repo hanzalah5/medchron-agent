@@ -1,0 +1,82 @@
+[
+  {
+    "case_id": "case_0001",
+    "seed": 1,
+    "scenario": "knee_replacement_vte",
+    "pages": 14,
+    "documents": 13,
+    "events": 14,
+    "issues": [
+      "date_conflict",
+      "potential_delay",
+      "record_inconsistency"
+    ],
+    "scanned_pages": 1,
+    "duplicate_pages": 1,
+    "pdf_sha256": "011bb5f4e02567d0ee91d46b14991abc658c52571b77b721c786a5baf5262ff5"
+  },
+  {
+    "case_id": "case_0002",
+    "seed": 2,
+    "scenario": "wrist_fracture_overread",
+    "pages": 12,
+    "documents": 10,
+    "events": 13,
+    "issues": [
+      "potential_delay",
+      "prompt_injection"
+    ],
+    "scanned_pages": 1,
+    "duplicate_pages": 2,
+    "pdf_sha256": "367ddfe9ea5294b893a0781058567c577351b391ab0e519b3945ba45b46458af"
+  },
+  {
+    "case_id": "case_0003",
+    "seed": 3,
+    "scenario": "abdominal_pain_return_visit",
+    "pages": 15,
+    "documents": 14,
+    "events": 18,
+    "issues": [
+      "date_conflict",
+      "missing_record",
+      "potential_delay",
+      "prompt_injection"
+    ],
+    "scanned_pages": 1,
+    "duplicate_pages": 1,
+    "pdf_sha256": "cdfc6435607e10b10fa46f641041652fa5ef555ba5d1e7318ca5ddcb299a8d78"
+  },
+  {
+    "case_id": "case_0004",
+    "seed": 4,
+    "scenario": "knee_replacement_vte",
+    "pages": 12,
+    "documents": 12,
+    "events": 13,
+    "issues": [
+      "date_conflict",
+      "missing_record",
+      "potential_delay",
+      "prompt_injection",
+      "record_inconsistency"
+    ],
+    "scanned_pages": 1,
+    "duplicate_pages": 0,
+    "pdf_sha256": "cfe52fdb6fe197ee79219ce8b23eb204178b3efa9248fbfbe4a64ff084e78ef4"
+  },
+  {
+    "case_id": "case_0005",
+    "seed": 5,
+    "scenario": "wrist_fracture_overread",
+    "pages": 12,
+    "documents": 10,
+    "events": 13,
+    "issues": [
+      "potential_delay"
+    ],
+    "scanned_pages": 1,
+    "duplicate_pages": 2,
+    "pdf_sha256": "c7d570188ef24032a612654df46b917c8612cba39a2f4b06791aeb64931cdc3f"
+  }
+]

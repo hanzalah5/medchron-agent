@@ -1,0 +1,510 @@
+{
+  "case_id": "case_0001",
+  "seed": 1,
+  "scenario": "knee_replacement_vte",
+  "generator_version": "0.1.0",
+  "synthetic": true,
+  "patient": {
+    "name": "Casey Trialton",
+    "dob": "1978-08-21",
+    "sex": "M"
+  },
+  "documents": [
+    {
+      "doc_id": "F001",
+      "doc_type": "fax_cover",
+      "title": "Facsimile Transmittal - Release of Information",
+      "date": "2023-07-20",
+      "facility": "Harborview Home Health Services",
+      "provider": "Health Information Management",
+      "start_page": 1,
+      "end_page": 1
+    },
+    {
+      "doc_id": "D005",
+      "doc_type": "therapy_note",
+      "title": "Home Physical Therapy Visit",
+      "date": "2023-04-11",
+      "facility": "Harborview Home Health Services",
+      "provider": "N. Mbeki, PT, DPT",
+      "start_page": 2,
+      "end_page": 2
+    },
+    {
+      "doc_id": "F003",
+      "doc_type": "fax_cover",
+      "title": "Facsimile Transmittal - Release of Information",
+      "date": "2023-07-10",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "Health Information Management",
+      "start_page": 3,
+      "end_page": 3
+    },
+    {
+      "doc_id": "D002",
+      "doc_type": "operative_report",
+      "title": "Operative Report",
+      "date": "2023-04-04",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "A. Mbeki, MD",
+      "start_page": 4,
+      "end_page": 4
+    },
+    {
+      "doc_id": "D003",
+      "doc_type": "progress_note",
+      "title": "Hospitalist Progress Note",
+      "date": "2023-04-05",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "W. Okafor, DO",
+      "start_page": 5,
+      "end_page": 5
+    },
+    {
+      "doc_id": "D004",
+      "doc_type": "discharge_summary",
+      "title": "Discharge Summary",
+      "date": "2023-04-06",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "W. Okafor, DO",
+      "start_page": 6,
+      "end_page": 6
+    },
+    {
+      "doc_id": "D006",
+      "doc_type": "ed_note",
+      "title": "Emergency Department Provider Note",
+      "date": "2023-04-14",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "G. Nakamura, MD",
+      "start_page": 7,
+      "end_page": 7
+    },
+    {
+      "doc_id": "D007",
+      "doc_type": "radiology_report",
+      "title": "Venous Doppler Ultrasound",
+      "date": "2023-04-14",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "A. Kowalczyk, MD",
+      "start_page": 8,
+      "end_page": 8
+    },
+    {
+      "doc_id": "D008",
+      "doc_type": "radiology_report",
+      "title": "CT Angiogram Chest",
+      "date": "2023-04-14",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "A. Kowalczyk, MD",
+      "start_page": 9,
+      "end_page": 9
+    },
+    {
+      "doc_id": "D009",
+      "doc_type": "discharge_summary",
+      "title": "Discharge Summary",
+      "date": "2023-04-17",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "W. Okafor, DO",
+      "start_page": 10,
+      "end_page": 10
+    },
+    {
+      "doc_id": "F011",
+      "doc_type": "fax_cover",
+      "title": "Facsimile Transmittal - Release of Information",
+      "date": "2023-07-31",
+      "facility": "Summit Orthopedic Group",
+      "provider": "Health Information Management",
+      "start_page": 12,
+      "end_page": 12
+    },
+    {
+      "doc_id": "D001",
+      "doc_type": "office_visit",
+      "title": "Orthopedic Consultation",
+      "date": "2023-02-09",
+      "facility": "Summit Orthopedic Group",
+      "provider": "A. Mbeki, MD",
+      "start_page": 13,
+      "end_page": 13
+    },
+    {
+      "doc_id": "D010",
+      "doc_type": "telephone_note",
+      "title": "Telephone Encounter",
+      "date": "2023-04-11",
+      "facility": "Summit Orthopedic Group",
+      "provider": "A. Mbeki, MD",
+      "start_page": 14,
+      "end_page": 14
+    }
+  ],
+  "events": [
+    {
+      "event_id": "E001",
+      "date": "2023-02-09",
+      "type": "diagnosis",
+      "summary": "Severe osteoarthritis of the right knee",
+      "facility": "Summit Orthopedic Group",
+      "provider": "A. Mbeki, MD",
+      "sources": [
+        {
+          "doc_id": "D001",
+          "page": 13,
+          "quote": "Assessment: severe tricompartmental osteoarthritis of the right knee."
+        }
+      ]
+    },
+    {
+      "event_id": "E002",
+      "date": "2023-02-09",
+      "type": "referral",
+      "summary": "Plan for right total knee arthroplasty",
+      "facility": "Summit Orthopedic Group",
+      "provider": "A. Mbeki, MD",
+      "sources": [
+        {
+          "doc_id": "D001",
+          "page": 13,
+          "quote": "Plan: right total knee arthroplasty after medical clearance."
+        }
+      ]
+    },
+    {
+      "event_id": "E003",
+      "date": "2023-04-04",
+      "type": "procedure",
+      "summary": "Right total knee arthroplasty",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "A. Mbeki, MD",
+      "sources": [
+        {
+          "doc_id": "D002",
+          "page": 4,
+          "quote": "Procedure performed: right total knee arthroplasty, cemented."
+        }
+      ]
+    },
+    {
+      "event_id": "E004",
+      "date": "2023-04-05",
+      "type": "medication",
+      "summary": "Enoxaparin 40 mg daily for VTE prophylaxis",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "W. Okafor, DO",
+      "sources": [
+        {
+          "doc_id": "D003",
+          "page": 5,
+          "quote": "VTE prophylaxis: enoxaparin 40 mg subcutaneously daily, planned for 14 days."
+        }
+      ]
+    },
+    {
+      "event_id": "E005",
+      "date": "2023-04-06",
+      "type": "encounter",
+      "summary": "Discharged home after knee replacement",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "W. Okafor, DO",
+      "sources": [
+        {
+          "doc_id": "D004",
+          "page": 6,
+          "quote": "Discharge date: 2023-04-06. Discharged home with home health services."
+        }
+      ]
+    },
+    {
+      "event_id": "E006",
+      "date": "2023-04-06",
+      "type": "medication",
+      "summary": "Aspirin 81 mg twice daily at discharge",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "W. Okafor, DO",
+      "sources": [
+        {
+          "doc_id": "D004",
+          "page": 6,
+          "quote": "Discharge medications: aspirin 81 mg twice daily. Enoxaparin discontinued."
+        }
+      ]
+    },
+    {
+      "event_id": "E007",
+      "date": "2023-04-11",
+      "type": "complaint",
+      "summary": "Right calf pain and swelling reported to therapist",
+      "facility": "Harborview Home Health Services",
+      "provider": "N. Mbeki, PT, DPT",
+      "sources": [
+        {
+          "doc_id": "D005",
+          "page": 2,
+          "quote": "Patient reports new right calf pain and swelling since yesterday."
+        }
+      ]
+    },
+    {
+      "event_id": "E008",
+      "date": "2023-04-11",
+      "type": "instruction",
+      "summary": "Therapist advised contacting surgeon's office",
+      "facility": "Harborview Home Health Services",
+      "provider": "N. Mbeki, PT, DPT",
+      "sources": [
+        {
+          "doc_id": "D005",
+          "page": 2,
+          "quote": "Therapist advised patient to contact the surgeon's office today; message left with the orthopedic office by therapist."
+        }
+      ]
+    },
+    {
+      "event_id": "E009",
+      "date": "2023-04-11",
+      "type": "communication",
+      "summary": "Orthopedic office telephone encounter about calf swelling",
+      "facility": "Summit Orthopedic Group",
+      "provider": "A. Mbeki, MD",
+      "sources": [
+        {
+          "doc_id": "D010",
+          "page": 14,
+          "quote": "Telephone message received from home therapist regarding calf swelling; patient advised to go to the emergency department."
+        }
+      ]
+    },
+    {
+      "event_id": "E010",
+      "date": "2023-04-14",
+      "type": "encounter",
+      "summary": "Emergency department visit for dyspnea and leg swelling",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "G. Nakamura, MD",
+      "sources": [
+        {
+          "doc_id": "D006",
+          "page": 7,
+          "quote": "Date of service: 2023-04-14. Presents with shortness of breath and leg swelling."
+        }
+      ]
+    },
+    {
+      "event_id": "E011",
+      "date": "2023-04-14",
+      "type": "medication",
+      "summary": "Heparin infusion started",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "G. Nakamura, MD",
+      "sources": [
+        {
+          "doc_id": "D006",
+          "page": 7,
+          "quote": "Heparin infusion started per weight-based protocol."
+        }
+      ]
+    },
+    {
+      "event_id": "E012",
+      "date": "2023-04-14",
+      "type": "imaging",
+      "summary": "Doppler: acute DVT of right popliteal vein",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "A. Kowalczyk, MD",
+      "sources": [
+        {
+          "doc_id": "D007",
+          "page": 8,
+          "quote": "IMPRESSION: Acute deep vein thrombosis of the right popliteal vein."
+        }
+      ]
+    },
+    {
+      "event_id": "E013",
+      "date": "2023-04-14",
+      "type": "imaging",
+      "summary": "CT angiogram: segmental pulmonary emboli",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "A. Kowalczyk, MD",
+      "sources": [
+        {
+          "doc_id": "D008",
+          "page": 9,
+          "quote": "IMPRESSION: Acute segmental pulmonary emboli in the right lower lobe."
+        }
+      ]
+    },
+    {
+      "event_id": "E014",
+      "date": "2023-04-17",
+      "type": "medication",
+      "summary": "Apixaban started for DVT/PE",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "W. Okafor, DO",
+      "sources": [
+        {
+          "doc_id": "D009",
+          "page": 10,
+          "quote": "Transitioned to apixaban 10 mg twice daily for 7 days, then 5 mg twice daily."
+        }
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "issue_id": "I001",
+      "kind": "date_conflict",
+      "description": "The discharge summary gives a different surgery date than the operative report. Which date is correct?",
+      "event_ids": [
+        "E003"
+      ],
+      "pages": [
+        4,
+        6
+      ]
+    },
+    {
+      "issue_id": "I002",
+      "kind": "record_inconsistency",
+      "description": "A 14-day enoxaparin course was planned, but the discharge medication list stops enoxaparin and lists aspirin. Is the reason for the change documented?",
+      "event_ids": [
+        "E004",
+        "E006"
+      ],
+      "pages": [
+        5,
+        6
+      ]
+    },
+    {
+      "issue_id": "I003",
+      "kind": "potential_delay",
+      "description": "Calf swelling was reported to the therapist on 2023-04-11, and emergency evaluation took place on 2023-04-14. What happened in between?",
+      "event_ids": [
+        "E007",
+        "E010"
+      ],
+      "pages": [
+        2,
+        7
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "page": 1,
+      "doc_id": "F001",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "HARBORVIEW HOME HEALTH SERVICES\nFacsimile Transmittal - Release of Information\nPatient: Casey Trialton   DOB: 08/21/1978   MRN: N1513214\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Health Information Management\n------------------------------------------------------------------------------------------\nTo: Records Requester, Synthetic Law Office (fictional).\n\nFrom: Harborview Home Health Services, Health Information Management Department.\n\nRe: Medical records for Casey Trialton. Pages: 2 including cover.\n\nDate sent: 07/20/2023.\n\nCONFIDENTIALITY NOTICE: This transmission contains confidential health information. If you\nreceived it in error, notify the sender and destroy all copies.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 2,
+      "doc_id": "D005",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "HARBORVIEW HOME HEALTH SERVICES\nHome Physical Therapy Visit\nPatient: Casey Trialton   DOB: 08/21/1978   MRN: N1513214\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: N. Mbeki, PT, DPT\n------------------------------------------------------------------------------------------\nVisit date 04/11/2023. Patient reports new right calf pain and swelling since yesterday.\n\nTherapist advised patient to contact the surgeon's office today; message left with the\northopedic office by therapist.\n\nKnee flexion 85 degrees, extension -5 degrees. Gait with rolling walker.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 3,
+      "doc_id": "F003",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 07/10/2023 10:28 FROM HIM DEPT    P.001\nNORTHBROOK REGIONAL MEDICAL CENTER\nFacsimile Transmittal - Release of Information\nPatient: Casey Trialton   DOB: 1978-08-21   MRN: A7539906\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Health Information Management\n------------------------------------------------------------------------------------------\nTo: Records Requester, Synthetic Law Office (fictional).\n\nFrom: Northbrook Regional Medical Center, Health Information Management Department.\n\nRe: Medical records for Casey Trialton. Pages: 8 including cover.\n\nDate sent: 2023-07-10.\n\nCONFIDENTIALITY NOTICE: This transmission contains confidential health information. If you\nreceived it in error, notify the sender and destroy all copies.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 4,
+      "doc_id": "D002",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 07/10/2023 10:28 FROM HIM DEPT    P.002\nNORTHBROOK REGIONAL MEDICAL CENTER\nOperative Report\nPatient: Casey Trialton   DOB: 1978-08-21   MRN: A7539906\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: A. Mbeki, MD\n------------------------------------------------------------------------------------------\nDate of surgery: 2023-04-04. Procedure performed: right total knee arthroplasty, cemented.\n\nTourniquet time 62 minutes. Estimated blood loss 150 mL. No complications.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 5,
+      "doc_id": "D003",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 07/10/2023 10:28 FROM HIM DEPT    P.003\nNORTHBROOK REGIONAL MEDICAL CENTER\nHospitalist Progress Note\nPatient: Casey Trialton   DOB: 1978-08-21   MRN: A7539906\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: W. Okafor, DO\n------------------------------------------------------------------------------------------\nVTE prophylaxis: enoxaparin 40 mg subcutaneously daily, planned for 14 days.\n\nVitals: BP 134/86, HR 78, RR 14, SpO2 97% on room air, Temp 37.0 C.\n\nNursing: Patient resting in bed, call light within reach. Fall precautions in place. IV\nsite clean, dry and intact. Tolerating diet. Ambulated in hallway with assistance. Pain\nreassessed after medication per protocol.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 6,
+      "doc_id": "D004",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 07/10/2023 10:28 FROM HIM DEPT    P.004\nNORTHBROOK REGIONAL MEDICAL CENTER\nDischarge Summary\nPatient: Casey Trialton   DOB: 1978-08-21   MRN: A7539906\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: W. Okafor, DO\n------------------------------------------------------------------------------------------\nDischarge date: 2023-04-06. Discharged home with home health services.\n\nUnderwent right total knee arthroplasty on 2023-04-05.\n\nDischarge medications: aspirin 81 mg twice daily. Enoxaparin discontinued.\n\nDiscussed risks, benefits and alternatives of the plan of care. Patient verbalized\nunderstanding. Printed after-visit summary provided.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 7,
+      "doc_id": "D006",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 07/10/2023 10:28 FROM HIM DEPT    P.005\nNORTHBROOK REGIONAL MEDICAL CENTER\nEmergency Department Provider Note\nPatient: Casey Trialton   DOB: 1978-08-21   MRN: A7539906\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: G. Nakamura, MD\n------------------------------------------------------------------------------------------\nDate of service: 2023-04-14. Presents with shortness of breath and leg swelling.\n\nVitals: BP 122/76, HR 90, RR 18, SpO2 98% on room air, Temp 36.9 C.\n\nReview of systems: Constitutional negative for weight change. HEENT negative.\nCardiovascular negative for chest pain or palpitations. Respiratory negative for cough.\nGenitourinary negative for dysuria. Skin negative for rash. Neurologic negative for focal\nweakness. All other systems reviewed and negative except as noted.\n\nHeparin infusion started per weight-based protocol.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 8,
+      "doc_id": "D007",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 07/10/2023 10:28 FROM HIM DEPT    P.006\nNORTHBROOK REGIONAL MEDICAL CENTER\nVenous Doppler Ultrasound\nPatient: Casey Trialton   DOB: 1978-08-21   MRN: A7539906\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: A. Kowalczyk, MD\n------------------------------------------------------------------------------------------\nIMPRESSION: Acute deep vein thrombosis of the right popliteal vein.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 9,
+      "doc_id": "D008",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 07/10/2023 10:28 FROM HIM DEPT    P.007\nNORTHBROOK REGIONAL MEDICAL CENTER\nCT Angiogram Chest\nPatient: Casey Trialton   DOB: 1978-08-21   MRN: A7539906\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: A. Kowalczyk, MD\n------------------------------------------------------------------------------------------\nIMPRESSION: Acute segmental pulmonary emboli in the right lower lobe.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 10,
+      "doc_id": "D009",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 07/10/2023 10:28 FROM HIM DEPT    P.008\nNORTHBROOK REGIONAL MEDICAL CENTER\nDischarge Summary\nPatient: Casey Trialton   DOB: 1978-08-21   MRN: A7539906\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: W. Okafor, DO\n------------------------------------------------------------------------------------------\nTransitioned to apixaban 10 mg twice daily for 7 days, then 5 mg twice daily.\n\nDiscussed risks, benefits and alternatives of the plan of care. Patient verbalized\nunderstanding. Printed after-visit summary provided.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 11,
+      "doc_id": "D008",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": 9,
+      "text": "FAX 07/10/2023 10:28 FROM HIM DEPT    P.009\nNORTHBROOK REGIONAL MEDICAL CENTER\nCT Angiogram Chest\nPatient: Casey Trialton   DOB: 1978-08-21   MRN: A7539906\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: A. Kowalczyk, MD\n------------------------------------------------------------------------------------------\nIMPRESSION: Acute segmental pulmonary emboli in the right lower lobe.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 12,
+      "doc_id": "F011",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "SUMMIT ORTHOPEDIC GROUP\nFacsimile Transmittal - Release of Information\nPatient: Casey Trialton   DOB: August 21, 1978   MRN: T5468285\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Health Information Management\n------------------------------------------------------------------------------------------\nTo: Records Requester, Synthetic Law Office (fictional).\n\nFrom: Summit Orthopedic Group, Health Information Management Department.\n\nRe: Medical records for Casey Trialton. Pages: 3 including cover.\n\nDate sent: July 31, 2023.\n\nCONFIDENTIALITY NOTICE: This transmission contains confidential health information. If you\nreceived it in error, notify the sender and destroy all copies.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 13,
+      "doc_id": "D001",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "SUMMIT ORTHOPEDIC GROUP\nOrthopedic Consultation\nPatient: Casey Trialton   DOB: August 21, 1978   MRN: T5468285\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: A. Mbeki, MD\n------------------------------------------------------------------------------------------\nAssessment: severe tricompartmental osteoarthritis of the right knee.\n\nPMH: mild intermittent asthma, GERD. PSH: none reported. Allergies: no known drug\nallergies. Social: former smoker, quit over ten years ago. Lives with family.\n\nExam: Vitals reviewed. Well-appearing. Cardiopulmonary exam unremarkable. Abdomen soft.\nExtremities without gross deformity. Mental status at baseline per patient.\n\nPlan: right total knee arthroplasty after medical clearance.\n\nMedication reconciliation completed and reviewed with the patient. Patient given\nopportunity to ask questions; all questions answered. Patient agrees with plan.\n\n\nPage 1 of 1"
+    },
+    {
+      "page": 14,
+      "doc_id": "D010",
+      "doc_page": 1,
+      "text_layer": false,
+      "duplicate_of": null,
+      "text": "SUMMIT ORTHOPEDIC GROUP\nTelephone Encounter\nPatient: Casey Trialton   DOB: August 21, 1978   MRN: T5468285\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: A. Mbeki, MD\n------------------------------------------------------------------------------------------\nTelephone message received from home therapist regarding calf swelling; patient advised to\ngo to the emergency department.\n\n\nPage 1 of 1"
+    }
+  ]
+}

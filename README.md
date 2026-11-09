@@ -42,14 +42,20 @@ Control flow belongs to a **code-orchestrated DAG**. Agents get autonomy only in
 
 The project ships its own **synthetic benchmark**: generated patient histories, rendered as messy PDFs, with exact gold labels and deliberately planted issues. Planned metrics are event precision, recall and F1, citation validity, faithfulness (an LLM judge calibrated against human labels), planted-issue recall, prompt-injection resistance, and cost and latency per case.
 
+The generator is deterministic, and five smoke cases are committed in [`data/synthetic/`](data/synthetic/). Each is a messy multi-provider PDF with scanned pages, duplicates and fax covers, plus gold labels.
+
+```bash
+medchron synth --cases 5 --start-seed 1 --out data/generated
+```
+
 *Scorecard pending the first live evaluation run. No numbers are published until they have been measured.*
 
 ## Roadmap
 
 | Phase | Milestone | Status |
 |---|---|---|
-| 0 | Repo foundations, synthetic benchmark generator with gold labels | 🚧 In progress |
-| 1 | Grounded extraction MVP and eval harness v1 (`v0.1`) | ⏳ |
+| 0 | Repo foundations, synthetic benchmark generator with gold labels | ✅ Done |
+| 1 | Grounded extraction MVP and eval harness v1 (`v0.1`) | 🚧 In progress |
 | 2 | Reviewer UI with click-to-source, human-in-the-loop queues (`v0.2`) | ⏳ |
 | 3 | Issue analyst, verifier and cited memo drafting (`v0.3`) | ⏳ |
 | 4 | Production hardening: auth, RBAC, audit, observability, cost controls (`v0.4`) | ⏳ |
