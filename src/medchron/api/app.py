@@ -21,6 +21,7 @@ from __future__ import annotations
 import asyncio
 import datetime as dt
 import hashlib
+import hmac
 import json
 import os
 import re
@@ -55,13 +56,13 @@ from medchron.db.models import (
 )
 from medchron.db.store import load_chronology, make_engine, reviewed_chronology
 from medchron.ingestion.models import Page
-from medchron.jobs import PROVIDERS, enqueue
+from medchron.jobs import PROVIDERS, enqueue, notify_worker
 from medchron.observability import setup_tracing
 from medchron.retrieval.embeddings import get_embedder
 from medchron.retrieval.search import PostgresSearch, SearchHit
 from medchron.security import audit
 from medchron.security.auth import Principal, Role, authenticate, require
-from medchron.storage import LocalStorage
+from medchron.storage import Storage, get_storage
 
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 MATTER_ID = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
@@ -104,7 +105,7 @@ def log(session: Session, action: str, matter_id: str | None = None, **kw: Any) 
     audit.record(session, who(session).user_id, action, matter_id=matter_id, **kw)
 
 
-def create_app(engine: Engine | None = None, storage: LocalStorage | None = None) -> FastAPI:
+def create_app(engine: Engine | None = None, storage: Storage | None = None) -> FastAPI:
     setup_tracing("medchron-api")
     app = FastAPI(
         title="MedChron API",
@@ -112,7 +113,8 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
         description="Grounded medical-record review (synthetic data only).",
     )
     app.state.engine = engine or make_engine()
-    app.state.storage = storage or LocalStorage()
+    app.state.storage = storage or get_storage()
+    _STORAGES[str(app.state.storage.root)] = app.state.storage
 
     @app.get("/healthz")
     def healthz() -> dict[str, str]:
@@ -131,6 +133,7 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
         title: Annotated[str, Form()] = "",
         provider: Annotated[str, Form()] = "anthropic",
         budget_usd: Annotated[float | None, Form()] = None,
+        access_code: Annotated[str | None, Form()] = None,
     ) -> dict[str, str]:
         user = who(session)
         require(user, "matter.create")
@@ -141,6 +144,7 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
             raise HTTPException(415, "only PDF uploads are accepted")
         if provider not in PROVIDERS:
             raise HTTPException(422, f"provider must be one of {sorted(PROVIDERS)}")
+        budget_usd = demo_policy(provider, budget_usd, access_code)
         mid = matter_id or f"m-{uuid.uuid4().hex[:10]}"
         if not MATTER_ID.match(mid):
             raise HTTPException(422, "matter_id may contain letters, digits, '.', '_' and '-'")
@@ -167,6 +171,7 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
         log(session, "matter.create", mid, object_type="file", object_id=sha,
             details={"bytes": len(data), "provider": provider})  # fmt: skip
         session.commit()
+        notify_worker()
         return {"matter_id": mid, "job_id": job.job_id}
 
     @app.get("/api/matters")
@@ -429,9 +434,11 @@ def create_app(engine: Engine | None = None, storage: LocalStorage | None = None
         )
         if pending:
             raise HTTPException(409, f"{pending} issue(s) still need triage")
-        job = enqueue(session, matter_id, body.provider, body.budget_usd, kind="memo")
+        budget = demo_policy(body.provider, body.budget_usd, body.access_code)
+        job = enqueue(session, matter_id, body.provider, budget, kind="memo")
         log(session, "memo.request", matter_id, object_type="job", object_id=job.job_id)
         session.commit()
+        notify_worker()
         return {"job_id": job.job_id}
 
     @app.get("/api/matters/{matter_id}/memo")
@@ -528,6 +535,18 @@ class IssueTriage(BaseModel):
 class MemoRequest(BaseModel):
     provider: Literal["anthropic", "replay", "oracle"] = "anthropic"
     budget_usd: float | None = None
+    access_code: str | None = None
+
+
+def demo_policy(provider: str, budget_usd: float | None, access_code: str | None) -> float | None:
+    """On the public demo, live model runs need an access code and get a hard budget cap."""
+    if os.environ.get("MEDCHRON_ENV") != "demo" or provider != "anthropic":
+        return budget_usd
+    expected = os.environ.get("MEDCHRON_DEMO_ACCESS_CODE", "")
+    if not expected or not hmac.compare_digest(expected, access_code or ""):
+        raise HTTPException(403, "live model runs on the demo need an access code")
+    cap = float(os.environ.get("MEDCHRON_DEMO_MAX_BUDGET_USD", "1.00"))
+    return min(budget_usd or cap, cap)
 
 
 class EventReview(BaseModel):
@@ -584,8 +603,8 @@ def _mount_ui(app: FastAPI) -> None:
         app.mount("/", StaticFiles(directory=dist, html=True), name="ui")
 
 
-def request_storage(app: FastAPI) -> LocalStorage:
-    storage: LocalStorage = app.state.storage
+def request_storage(app: FastAPI) -> Storage:
+    storage: Storage = app.state.storage
     return storage
 
 
@@ -607,9 +626,12 @@ def _sse(payload: dict[str, Any]) -> str:
     return f"data: {json.dumps(payload)}\n\n"
 
 
+_STORAGES: dict[str, Storage] = {}
+
+
 @lru_cache(maxsize=256)
 def _render_cached(root: str, key: str, page_no: int, dpi: int) -> bytes | None:
-    data = LocalStorage(Path(root)).get(key)
+    data = _STORAGES[root].get(key)
     with pymupdf.open(stream=data, filetype="pdf") as doc:
         if not 1 <= page_no <= doc.page_count:
             return None
@@ -618,6 +640,6 @@ def _render_cached(root: str, key: str, page_no: int, dpi: int) -> bytes | None:
         return png
 
 
-def _render_page(storage: LocalStorage, key: str, page_no: int, dpi: int) -> bytes | None:
+def _render_page(storage: Storage, key: str, page_no: int, dpi: int) -> bytes | None:
     # Content-addressed keys never change, so caching by key is safe.
     return _render_cached(str(storage.root), key, page_no, dpi)

@@ -15,5 +15,39 @@ services:
       interval: 5s
       retries: 10
 
+  # Full stack: docker compose --profile app up --build
+  migrate:
+    profiles: ["app"]
+    build: .
+    command: ["alembic", "upgrade", "head"]
+    environment: &app-env
+      DATABASE_URL: postgresql+psycopg://medchron:medchron@db:5432/medchron
+      MEDCHRON_ENV: development
+      MEDCHRON_AUTH_MODE: dev
+      MEDCHRON_STORAGE: /data/storage
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    volumes: [storage:/data/storage]
+    depends_on:
+      db: { condition: service_healthy }
+
+  api:
+    profiles: ["app"]
+    build: .
+    environment: *app-env
+    ports: ["8080:8080"]
+    volumes: [storage:/data/storage]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  worker:
+    profiles: ["app"]
+    build: .
+    command: ["medchron", "worker"]
+    environment: *app-env
+    volumes: [storage:/data/storage]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
 volumes:
   pgdata:
+  storage:

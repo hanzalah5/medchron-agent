@@ -79,10 +79,18 @@ medchron synth --cases 30 --start-seed 100 --out data/generated   # a larger dat
 | 2 | Reviewer UI with click-to-source, human-in-the-loop queues (`v0.2`) | ✅ Done |
 | 3 | Issue analyst, verifier and cited memo drafting (`v0.3`) | ✅ Done (live scorecard pending an API-key run) |
 | 4 | Production hardening: auth, RBAC, audit, observability, cost controls (`v0.4`) | ✅ Done (batch-mode extraction deferred) |
-| 5 | Infrastructure as code and deployment, hosted replay demo (`v0.5`) | ⏳ |
+| 5 | Infrastructure as code and deployment, hosted demo (`v0.5`) | ✅ Built and validated in CI (`terraform apply` needs a GCP project) |
 | 6 | Architecture decision records (ADRs), eval report, demo video (`v1.0`) | ⏳ |
 
 ## Quickstart (developers)
+
+The fastest way to try it is the full stack in Docker:
+
+```bash
+docker compose --profile app up --build     # http://localhost:8080  (Postgres, migrations, API + UI, worker)
+```
+
+Or run the pieces natively:
 
 Requirements: Python 3.12+, [uv](https://docs.astral.sh/uv/), Docker (for Postgres + pgvector) and, optionally, [Tesseract](https://github.com/tesseract-ocr/tesseract) for OCR of scanned pages.
 
@@ -134,6 +142,7 @@ curl -H "X-Dev-User: me" -H "X-Dev-Roles: attorney" \
 | Human checkpoints | API and UI | 1: confirm the document index. 2: accept, edit or reject events. 3: triage issues (pursue, ask an expert, or dismiss with a reason). 4: approve the memo, which is the only way to export it. Memo drafting is blocked until checkpoints 1 and 3 are complete |
 | Security | `src/medchron/security/`, migration `0005` | OIDC (JWT and JWKS) or local dev sign-in, RBAC, matter membership checked in the API **and** enforced by Postgres row-level security, hash-chained append-only audit log with a verify endpoint, PHI-safe structured logging. See [docs/security.md](docs/security.md) for the threat model |
 | Reliability and observability | `jobs.py`, `observability.py` | Worker heartbeats, stale-job recovery that resumes from checkpoints with an attempt limit, OpenTelemetry spans for cases and LLM calls (no content), with OTLP export to any backend |
+| Deployment | `Dockerfile`, `infra/terraform/`, `.github/workflows/deploy.yml` | One non-root image (UI, API and worker). Terraform for Cloud Run (API service plus a scale-to-zero worker job), GCS, Secret Manager, Artifact Registry and GitHub OIDC with Workload Identity Federation (no keys). CI builds and scans the image and validates the Terraform; deploys are gated by an environment. See [docs/deployment.md](docs/deployment.md) |
 | Prompts | `src/medchron/prompts/` | Versioned files (`name/vN.md`). Each call records `name@vN+sha` |
 | Embeddings | `src/medchron/retrieval/` | Local `bge-small` (optional extra) or a deterministic hashing embedder for tests and CI, so record text is never sent out to be embedded |
 

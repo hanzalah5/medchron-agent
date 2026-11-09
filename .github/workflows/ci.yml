@@ -92,3 +92,41 @@ jobs:
       - name: End-to-end test (upload -> pipeline -> click-to-source -> review)
         working-directory: ui
         run: npm run e2e
+
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t medchron:ci .
+      - name: Smoke test image (healthz, CLI, OCR binary)
+        run: |
+          docker run --rm medchron:ci medchron --version
+          docker run --rm medchron:ci tesseract --version | head -1
+          docker run -d --name api -p 8080:8080 -e MEDCHRON_ENV=test medchron:ci
+          for i in $(seq 1 30); do curl -fsS localhost:8080/healthz && break; sleep 1; done
+          curl -fsS localhost:8080/ | grep -q "MedChron Reviewer"
+          docker rm -f api
+      - name: Vulnerability scan (fail on fixable critical)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: medchron:ci
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+      - name: Format
+        run: terraform fmt -check -recursive infra/terraform
+      - name: Validate environments
+        run: |
+          for env in dev prod-demo; do
+            terraform -chdir=infra/terraform/envs/$env init -backend=false -input=false
+            terraform -chdir=infra/terraform/envs/$env validate
+          done

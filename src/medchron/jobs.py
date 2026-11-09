@@ -39,7 +39,7 @@ from medchron.observability import setup_tracing
 from medchron.orchestrator.pipeline import RunConfig, run_case
 from medchron.retrieval.embeddings import get_embedder
 from medchron.security import audit
-from medchron.storage import LocalStorage
+from medchron.storage import Storage, get_storage
 
 log = logging.getLogger(__name__)
 
@@ -71,6 +71,39 @@ def enqueue(
     session.flush()
     session.add(JobEvent(job_id=job.job_id, message="queued"))
     return job
+
+
+def notify_worker() -> None:
+    """Wake a worker after enqueueing.
+
+    Locally a long-running ``medchron worker`` polls the queue. On Cloud Run
+    the worker is a *job* that scales to zero: the API starts an execution
+    (``MEDCHRON_WORKER_JOB`` = projects/P/locations/L/jobs/J) and the job
+    drains the queue, then exits. Failures are logged, not raised: the queued
+    job stays safe in Postgres and the next trigger or schedule picks it up.
+    """
+    name = os.environ.get("MEDCHRON_WORKER_JOB")
+    if not name:
+        return
+    try:
+        import urllib.request
+
+        token_req = urllib.request.Request(
+            "http://metadata.google.internal/computeMetadata/v1/instance/"
+            "service-accounts/default/token",
+            headers={"Metadata-Flavor": "Google"},
+        )
+        with urllib.request.urlopen(token_req, timeout=3) as r:
+            token = json.loads(r.read())["access_token"]
+        run_req = urllib.request.Request(
+            f"https://run.googleapis.com/v2/{name}:run",
+            data=b"{}",
+            method="POST",
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        )
+        urllib.request.urlopen(run_req, timeout=10).close()
+    except Exception:  # pragma: no cover - deployed environment only
+        log.warning("could not trigger worker job; the queued job will wait for the next run")
 
 
 def claim_next(session: Session) -> Job | None:
@@ -110,9 +143,9 @@ def _provider(name: str, pdf_sha256: str) -> LLMProvider:
     return OracleProvider(gold)
 
 
-def process(engine: Engine, job_id: str, storage: LocalStorage | None = None) -> None:
+def process(engine: Engine, job_id: str, storage: Storage | None = None) -> None:
     """Run the pipeline for a claimed job and persist the results."""
-    storage = storage or LocalStorage()
+    storage = storage or get_storage()
 
     def note(message: str) -> None:
         with Session(engine) as s, s.begin():
@@ -161,7 +194,7 @@ def process(engine: Engine, job_id: str, storage: LocalStorage | None = None) ->
 
 def _pipeline(
     engine: Engine,
-    storage: LocalStorage,
+    storage: Storage,
     matter_id: str,
     key: str,
     provider: LLMProvider,

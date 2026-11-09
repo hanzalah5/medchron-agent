@@ -1,0 +1,9 @@
+project_id      = "your-gcp-project"
+project_number  = "123456789012"
+region          = "us-central1"
+# Public synthetic demo: dev sign-in, live model runs gated by an access code.
+app_env         = "demo"
+auth_mode       = "dev"
+public          = true
+case_budget_usd = 1
+# billing_account  = "XXXXXX-XXXXXX-XXXXXX"   # enables the monthly budget alert

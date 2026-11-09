@@ -145,6 +145,18 @@ def _cmd_worker(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_migrate(args: argparse.Namespace) -> int:
+    from alembic import command
+    from alembic.config import Config
+
+    root = Path(args.root)
+    cfg = Config(str(root / "alembic.ini"))
+    cfg.set_main_option("script_location", str(root / "migrations"))
+    command.upgrade(cfg, "head")
+    print("database migrated to head")
+    return 0
+
+
 def _cmd_report(args: argparse.Namespace) -> int:
     from medchron.evals.report import render_report
     from medchron.evals.runner import EvalResult
@@ -226,6 +238,10 @@ def build_parser() -> argparse.ArgumentParser:
     worker = sub.add_parser("worker", help="Process queued pipeline jobs")
     worker.add_argument("--once", action="store_true", help="drain the queue, then exit")
     worker.set_defaults(func=_cmd_worker)
+
+    mig = sub.add_parser("migrate", help="Apply database migrations (DATABASE_URL)")
+    mig.add_argument("--root", default=".", help="directory containing alembic.ini")
+    mig.set_defaults(func=_cmd_migrate)
     return parser
 
 

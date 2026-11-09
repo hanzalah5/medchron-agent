@@ -1,0 +1,82 @@
+name: Deploy
+
+# Builds the image, pushes it to Artifact Registry and deploys it to Cloud Run.
+# Authenticates with GitHub OIDC -> GCP Workload Identity Federation (no long-lived keys).
+#
+# Inactive until you configure the repository variables
+#   GCP_PROJECT_ID, GCP_REGION, GCP_WIF_PROVIDER, GCP_DEPLOYER_SA
+# from `terraform output` (see docs/deployment.md). Without them every job skips.
+#
+# dev:       deployed automatically after CI passes on main
+# prod-demo: manual run with environment protection (add required reviewers in
+#            Settings -> Environments -> prod-demo)
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [dev, prod-demo]
+        default: dev
+
+permissions:
+  contents: read
+  id-token: write # GitHub OIDC token for Workload Identity Federation
+
+concurrency:
+  group: deploy-${{ inputs.environment || 'dev' }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >
+      vars.GCP_PROJECT_ID != '' &&
+      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'dev' }}
+    env:
+      ENV_NAME: ${{ inputs.environment || 'dev' }}
+      REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+      PROJECT: ${{ vars.GCP_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build and push image
+        id: image
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/medchron/medchron:${GITHUB_SHA::12}"
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Update worker job and run migrations
+        run: |
+          JOB="medchron-${ENV_NAME}-worker"
+          gcloud run jobs update "$JOB" --region "$REGION" --image "${{ steps.image.outputs.image }}"
+          gcloud run jobs execute "$JOB" --region "$REGION" --args=migrate --wait
+
+      - name: Deploy API
+        run: |
+          gcloud run services update "medchron-${ENV_NAME}-api" --region "$REGION" \
+            --image "${{ steps.image.outputs.image }}"
+
+      - name: Smoke test
+        run: |
+          URL=$(gcloud run services describe "medchron-${ENV_NAME}-api" --region "$REGION" --format='value(status.url)')
+          curl -fsS "$URL/healthz"
+          echo "Deployed ${{ steps.image.outputs.image }} to $URL" >> "$GITHUB_STEP_SUMMARY"

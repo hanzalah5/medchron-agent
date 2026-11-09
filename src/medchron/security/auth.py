@@ -59,6 +59,10 @@ class Principal:
 
 SYSTEM = Principal(user_id="__system__", roles=frozenset())
 
+# "demo" is the public synthetic-data demo: self-chosen identities, no real data,
+# and live LLM runs gated by an access code (see api.app.create_matter).
+DEV_AUTH_ENVS = ("development", "test", "demo")
+
 
 class AuthError(HTTPException):
     def __init__(self, status: int, detail: str) -> None:
