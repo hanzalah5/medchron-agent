@@ -22,7 +22,9 @@ RUN uv venv /opt/venv && VIRTUAL_ENV=/opt/venv uv pip install --no-cache ".[gcp]
 
 # ---- Runtime ----------------------------------------------------------------
 FROM python:3.12.7-slim-bookworm AS runtime
+# Upgrade OS packages so security fixes land even when the base tag is older.
 RUN apt-get update \
+ && apt-get upgrade -y --no-install-recommends \
  && apt-get install -y --no-install-recommends tesseract-ocr \
  && rm -rf /var/lib/apt/lists/* \
  && useradd --create-home --uid 10001 medchron \
