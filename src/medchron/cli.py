@@ -129,6 +129,22 @@ def _cmd_eval(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_serve(args: argparse.Namespace) -> int:
+    import uvicorn
+
+    uvicorn.run("medchron.api.app:create_app", factory=True, host=args.host, port=args.port)
+    return 0
+
+
+def _cmd_worker(args: argparse.Namespace) -> int:
+    from medchron.db.store import make_engine
+    from medchron.jobs import work
+
+    n = work(make_engine(), once=args.once)
+    print(f"processed {n} job(s)")
+    return 0
+
+
 def _cmd_report(args: argparse.Namespace) -> int:
     from medchron.evals.report import render_report
     from medchron.evals.runner import EvalResult
@@ -201,6 +217,15 @@ def build_parser() -> argparse.ArgumentParser:
     rep.add_argument("results", nargs="+", help="results JSON files, newest first")
     rep.add_argument("--out", default="evals/REPORT.md")
     rep.set_defaults(func=_cmd_report)
+
+    serve = sub.add_parser("serve", help="Run the HTTP API (localhost, synthetic data only)")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8000)
+    serve.set_defaults(func=_cmd_serve)
+
+    worker = sub.add_parser("worker", help="Process queued pipeline jobs")
+    worker.add_argument("--once", action="store_true", help="drain the queue, then exit")
+    worker.set_defaults(func=_cmd_worker)
     return parser
 
 

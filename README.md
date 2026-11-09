@@ -89,6 +89,11 @@ make db-up            # Postgres + pgvector via docker compose, then migrations
 # Run the agent pipeline with Claude (needs ANTHROPIC_API_KEY); outputs in runs/case_0003/
 .venv/bin/medchron run data/synthetic/case_0003.pdf --matter case_0003 --budget 2.00
 
+# API + worker (localhost only until auth lands in the hardening phase)
+.venv/bin/medchron serve &            # http://127.0.0.1:8000/docs
+.venv/bin/medchron worker &
+curl -F file=@data/synthetic/case_0003.pdf -F provider=oracle http://127.0.0.1:8000/api/matters
+
 # ...or with no API key, using the gold-label oracle test double (plumbing check only)
 .venv/bin/medchron run data/synthetic/case_0003.pdf --matter case_0003 \
     --provider oracle --gold data/synthetic/case_0003.gold.json
@@ -107,6 +112,9 @@ make db-up            # Postgres + pgvector via docker compose, then migrations
 | Chronology | `src/medchron/chronology/` | Merges mentions across documents with all sources kept, orders events, flags *candidate* date conflicts and missing follow-up records for review, and exports Markdown, CSV and JSON |
 | Orchestrator | `src/medchron/orchestrator/` | Code-owned DAG, checkpointed idempotent steps (resume after a crash), bounded parallel fan-out, failed documents become review flags, per-case budget stop |
 | Oracle | `src/medchron/evals/oracle.py` | A **test double** that answers from gold labels, used to test the whole pipeline without an API key. Its runs are never reported as model results |
+| Agent tools | `src/medchron/tools/` | Read-only, matter-scoped tools: `search_records` (hybrid search), `get_page`, `query_timeline` and `find_gaps`. Every result carries span IDs or page numbers, and no tool can write, send or fetch, so an injected document has nothing to exfiltrate through |
+| Retrieval | `src/medchron/retrieval/` | Hybrid search: Postgres full-text ranking and pgvector cosine distance, fused with reciprocal rank fusion (RRF) in SQL, plus an in-memory BM25 version for offline runs |
+| API and jobs | `src/medchron/api/`, `src/medchron/jobs.py` | FastAPI: upload a production, track the job (progress over SSE), and read the chronology, page text with word boxes, page images and search. A Postgres `SKIP LOCKED` job queue serves any number of workers. A failed job records its error and doesn't stop the worker |
 | Prompts | `src/medchron/prompts/` | Versioned files (`name/vN.md`). Each call records `name@vN+sha` |
 | Embeddings | `src/medchron/retrieval/` | Local `bge-small` (optional extra) or a deterministic hashing embedder for tests and CI, so record text is never sent out to be embedded |
 

@@ -36,3 +36,6 @@ ui/dist/
 .DS_Store
 .idea/
 .vscode/
+
+# Local blob storage (uploaded PDFs)
+var/

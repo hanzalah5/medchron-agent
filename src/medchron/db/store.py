@@ -1,4 +1,4 @@
-"""Persistence helpers for ingested matters."""
+"""Persistence helpers: ingested pages and spans, and chronology results."""
 
 from __future__ import annotations
 
@@ -8,9 +8,19 @@ from sqlalchemy import create_engine, delete, select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
-from medchron.db.models import Matter, PageRow, SpanRow
+from medchron.chronology.builder import find_conflicts, find_followup_gaps
+from medchron.chronology.models import (
+    CaseFlag,
+    Chronology,
+    Confidence,
+    DocumentSegment,
+    EventSource,
+    ExtractedEvent,
+)
+from medchron.db.models import CaseFlagRow, DocumentRow, EventRow, Matter, PageRow, SpanRow
 from medchron.ingestion.models import IngestedCase, Page, Span
 from medchron.retrieval.embeddings import Embedder
+from medchron.taxonomy import DocType, EventType
 
 DEFAULT_URL = "postgresql+psycopg://medchron:medchron@localhost:5432/medchron"
 
@@ -22,10 +32,18 @@ def make_engine(url: str | None = None) -> Engine:
 def save_ingested(
     session: Session, case: IngestedCase, embedder: Embedder, *, title: str = ""
 ) -> None:
-    """Insert or replace a matter's pages and spans. Idempotent per matter."""
-    session.execute(delete(Matter).where(Matter.matter_id == case.case_id))
-    session.flush()
-    session.add(Matter(matter_id=case.case_id, title=title, source_sha256=case.file_sha256))
+    """Insert or replace a matter's pages and spans. Idempotent per matter.
+
+    The matter row itself is upserted, not deleted, so jobs and other rows that
+    reference it survive a re-ingest.
+    """
+    matter = session.get(Matter, case.case_id)
+    if matter is None:
+        session.add(Matter(matter_id=case.case_id, title=title, source_sha256=case.file_sha256))
+    else:
+        matter.source_sha256 = case.file_sha256
+        matter.title = title or matter.title
+        session.execute(delete(PageRow).where(PageRow.matter_id == case.case_id))
     session.flush()
     session.add_all(
         PageRow(
@@ -103,3 +121,85 @@ def load_ingested(session: Session, matter_id: str) -> IngestedCase:
             for s in spans
         ],
     )
+
+
+def save_chronology(session: Session, chron: Chronology) -> None:
+    """Replace a matter's documents, events and flags with a new pipeline result."""
+    m = chron.case_id
+    for table in (DocumentRow, EventRow, CaseFlagRow):
+        session.execute(delete(table).where(table.matter_id == m))
+    session.add_all(
+        DocumentRow(matter_id=m, **d.model_dump(mode="python")) for d in chron.documents
+    )
+    session.add_all(
+        EventRow(
+            matter_id=m,
+            event_id=e.event_id,
+            date=e.date,
+            date_text=e.date_text,
+            type=e.type.value,
+            summary=e.summary,
+            facility=e.facility,
+            provider=e.provider,
+            doc_id=e.doc_id,
+            confidence=e.confidence.value,
+            flags=e.flags,
+            sources=[s.model_dump() for s in e.sources],
+        )
+        for e in chron.events
+    )
+    session.add_all(CaseFlagRow(matter_id=m, **f.model_dump()) for f in chron.flags)
+    session.flush()
+
+
+def load_chronology(session: Session, matter_id: str) -> Chronology:
+    docs = session.scalars(
+        select(DocumentRow)
+        .where(DocumentRow.matter_id == matter_id)
+        .order_by(DocumentRow.start_page)
+    ).all()
+    events = session.scalars(
+        select(EventRow)
+        .where(EventRow.matter_id == matter_id)
+        .order_by(EventRow.date, EventRow.event_id)
+    ).all()
+    flags = session.scalars(select(CaseFlagRow).where(CaseFlagRow.matter_id == matter_id)).all()
+    chron = Chronology(
+        case_id=matter_id,
+        documents=[
+            DocumentSegment(
+                doc_id=d.doc_id,
+                doc_type=DocType(d.doc_type),
+                title=d.title,
+                date=d.date,
+                facility=d.facility,
+                provider=d.provider,
+                start_page=d.start_page,
+                end_page=d.end_page,
+            )
+            for d in docs
+        ],
+        events=[
+            ExtractedEvent(
+                event_id=e.event_id,
+                date=e.date,
+                date_text=e.date_text,
+                type=EventType(e.type),
+                summary=e.summary,
+                facility=e.facility,
+                provider=e.provider,
+                doc_id=e.doc_id,
+                sources=[EventSource.model_validate(s) for s in e.sources],
+                confidence=Confidence(e.confidence),
+                flags=list(e.flags),
+            )
+            for e in events
+        ],
+        flags=[
+            CaseFlag(kind=f.kind, page_no=f.page_no, span_id=f.span_id, note=f.note) for f in flags
+        ],
+    )
+    # Conflicts and gaps are derived signals, so recompute them instead of storing them.
+    chron.conflicts = find_conflicts(chron.events)
+    chron.gaps = find_followup_gaps(chron.events)
+    return chron

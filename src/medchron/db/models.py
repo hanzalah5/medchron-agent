@@ -1,9 +1,8 @@
 """Relational schema (Postgres + pgvector).
 
-The schema is kept deliberately small at this step. Later steps add events,
-issues, reviews, workflow runs and the audit log. A *matter* is the unit of
-access control, so every row carries ``matter_id``. Row-level security is
-added in the hardening step.
+A *matter* is the unit of access control, so every row carries
+``matter_id``. Row-level security and the audit log are added in the
+hardening step.
 """
 
 from __future__ import annotations
@@ -14,6 +13,7 @@ from typing import Any
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Computed,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -40,9 +40,96 @@ class Matter(Base):
     matter_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     title: Mapped[str] = mapped_column(String(255), default="")
     source_sha256: Mapped[str] = mapped_column(String(64))
+    source_path: Mapped[str] = mapped_column(String(512), default="", server_default="")
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+
+class Job(Base):
+    """A pipeline run for a matter. Workers claim queued jobs with SKIP LOCKED."""
+
+    __tablename__ = "jobs"
+    __table_args__ = (Index("ix_jobs_status_created", "status", "created_at"),)
+
+    job_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    matter_id: Mapped[str] = mapped_column(ForeignKey("matters.matter_id", ondelete="CASCADE"))
+    status: Mapped[str] = mapped_column(String(24), default="queued")  # queued|running|...
+    provider: Mapped[str] = mapped_column(String(24))
+    budget_usd: Mapped[float | None] = mapped_column(Float)
+    error: Mapped[str | None] = mapped_column(Text)
+    summary: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    started_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class JobEvent(Base):
+    """Progress messages streamed to the UI over server-sent events."""
+
+    __tablename__ = "job_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    job_id: Mapped[str] = mapped_column(ForeignKey("jobs.job_id", ondelete="CASCADE"), index=True)
+    at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    message: Mapped[str] = mapped_column(Text)
+
+
+class DocumentRow(Base):
+    __tablename__ = "documents"
+
+    matter_id: Mapped[str] = mapped_column(
+        ForeignKey("matters.matter_id", ondelete="CASCADE"), primary_key=True
+    )
+    doc_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    doc_type: Mapped[str] = mapped_column(String(32))
+    title: Mapped[str] = mapped_column(String(255))
+    date: Mapped[dt.date | None] = mapped_column(Date)
+    facility: Mapped[str] = mapped_column(String(255))
+    provider: Mapped[str] = mapped_column(String(255))
+    start_page: Mapped[int] = mapped_column(Integer)
+    end_page: Mapped[int] = mapped_column(Integer)
+
+
+class EventRow(Base):
+    """A chronology event plus its human review state (HITL-2)."""
+
+    __tablename__ = "events"
+    __table_args__ = (Index("ix_events_matter_date", "matter_id", "date"),)
+
+    matter_id: Mapped[str] = mapped_column(
+        ForeignKey("matters.matter_id", ondelete="CASCADE"), primary_key=True
+    )
+    event_id: Mapped[str] = mapped_column(String(48), primary_key=True)
+    date: Mapped[dt.date | None] = mapped_column(Date)
+    date_text: Mapped[str] = mapped_column(String(64))
+    type: Mapped[str] = mapped_column(String(32))
+    summary: Mapped[str] = mapped_column(Text)
+    facility: Mapped[str] = mapped_column(String(255))
+    provider: Mapped[str] = mapped_column(String(255))
+    doc_id: Mapped[str] = mapped_column(String(32))
+    confidence: Mapped[str] = mapped_column(String(8))
+    flags: Mapped[list[str]] = mapped_column(JSONB)
+    sources: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    review_status: Mapped[str] = mapped_column(String(16), default="pending")
+    reviewer_note: Mapped[str] = mapped_column(Text, default="")
+    reviewed_by: Mapped[str | None] = mapped_column(String(128))
+    reviewed_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class CaseFlagRow(Base):
+    __tablename__ = "case_flags"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    matter_id: Mapped[str] = mapped_column(
+        ForeignKey("matters.matter_id", ondelete="CASCADE"), index=True
+    )
+    kind: Mapped[str] = mapped_column(String(48))
+    page_no: Mapped[int | None] = mapped_column(Integer)
+    span_id: Mapped[str | None] = mapped_column(String(128))
+    note: Mapped[str] = mapped_column(Text)
 
 
 class PageRow(Base):
