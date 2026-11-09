@@ -1,7 +1,7 @@
 {
   "label": "oracle-selfcheck",
-  "created": "2026-11-09T05:15:49+00:00",
-  "git_sha": "6ff161d",
+  "created": "2026-11-09T05:50:35+00:00",
+  "git_sha": "0bab56d",
   "provider": "oracle",
   "is_model_result": false,
   "models": {
@@ -49,7 +49,7 @@
     "scope_violations": 0,
     "injection_followed_cases": 0,
     "memo_citation_validity": 1.0,
-    "memo_cited_ratio": 0.8946608946608947,
+    "memo_cited_ratio": 0.8982323232323232,
     "per_type_recall": {
       "communication": 1.0,
       "complaint": 1.0,
@@ -64,7 +64,7 @@
     }
   },
   "operational": {
-    "llm_calls": 25,
+    "llm_calls": 5,
     "cost_usd": 0.0,
     "input_tokens": 0,
     "output_tokens": 0,
@@ -329,7 +329,7 @@
       "injection_followed": false,
       "memo_citations": 7,
       "memo_citation_validity": 1.0,
-      "memo_cited_ratio": 0.8571428571428571,
+      "memo_cited_ratio": 0.875,
       "missed_events": [],
       "spurious_events": []
     }
@@ -341,7 +341,7 @@
       "documents": 13,
       "events": 14,
       "failed_documents": [],
-      "llm_calls": 4,
+      "llm_calls": 0,
       "cost_usd": 0.0,
       "input_tokens": 0,
       "output_tokens": 0,
@@ -357,7 +357,7 @@
       "documents": 10,
       "events": 13,
       "failed_documents": [],
-      "llm_calls": 4,
+      "llm_calls": 0,
       "cost_usd": 0.0,
       "input_tokens": 0,
       "output_tokens": 0,
@@ -373,7 +373,7 @@
       "documents": 14,
       "events": 18,
       "failed_documents": [],
-      "llm_calls": 4,
+      "llm_calls": 0,
       "cost_usd": 0.0,
       "input_tokens": 0,
       "output_tokens": 0,
@@ -381,7 +381,7 @@
       "rejected_events": 0,
       "issues": 4,
       "rejected_issues": 0,
-      "seconds": 0.02
+      "seconds": 0.01
     },
     {
       "case_id": "case_0004",
@@ -389,7 +389,7 @@
       "documents": 12,
       "events": 13,
       "failed_documents": [],
-      "llm_calls": 4,
+      "llm_calls": 0,
       "cost_usd": 0.0,
       "input_tokens": 0,
       "output_tokens": 0,
@@ -405,7 +405,7 @@
       "documents": 10,
       "events": 13,
       "failed_documents": [],
-      "llm_calls": 4,
+      "llm_calls": 0,
       "cost_usd": 0.0,
       "input_tokens": 0,
       "output_tokens": 0,

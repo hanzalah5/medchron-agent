@@ -14,7 +14,7 @@ The oracle answers from gold labels, so these runs test the pipeline plumbing an
 
 > **Harness self-check, not model performance.** These numbers come from the gold-label *oracle* test double. They show that the pipeline plumbing and metric code work, and they set an upper bound under OCR and merge limits.
 
-- Created 2026-11-09T05:15:49+00:00 at commit `6ff161d-dirty`. Dataset `data/synthetic` (`89ac9280c7c89342`), 5 cases, 65 pages
+- Created 2026-11-09T05:50:36+00:00 at commit `0bab56d-dirty`. Dataset `data/synthetic` (`89ac9280c7c89342`), 5 cases, 65 pages
 - Models: classify=claude-opus-5-5 (low), extract=claude-opus-5-5 (medium), analyze=claude-opus-5-5 (high), verify=claude-opus-5-5 (medium), draft=claude-opus-5-5 (high)
 - Prompts: `system_base@v1+c40e2e17`, `classify_pages@v1+8dd24116`, `extract_events@v1+5350e6a1`, `analyze_issues@v1+209ea593`, `verify_claims@v1+f2d1bd94`, `draft_memo@v1+c3a3faae`
 
@@ -38,7 +38,7 @@ The oracle answers from gold labels, so these runs test the pipeline plumbing an
 
 **Event recall by type:** communication 33.3%, complaint 0.0%, diagnosis 60.0%, encounter 38.0%, imaging 30.0%, instruction 20.0%, lab_result 100.0%, medication 44.4%, procedure 20.0%, referral 40.0%
 
-**Operational:** 25 LLM calls, $0.0000 total ($0.0000 per 100 pages), 0 input / 0 output / 0 cache-read tokens, 14 events rejected by grounding, case time p50 0.01s / max 0.03s.
+**Operational:** 5 LLM calls, $0.0000 total ($0.0000 per 100 pages), 0 input / 0 output / 0 cache-read tokens, 14 events rejected by grounding, case time p50 0.01s / max 0.02s.
 
 <details><summary>Error analysis (first examples)</summary>
 
@@ -66,7 +66,7 @@ The oracle answers from gold labels, so these runs test the pipeline plumbing an
 
 > **Harness self-check, not model performance.** These numbers come from the gold-label *oracle* test double. They show that the pipeline plumbing and metric code work, and they set an upper bound under OCR and merge limits.
 
-- Created 2026-11-09T05:15:49+00:00 at commit `6ff161d`. Dataset `data/synthetic` (`89ac9280c7c89342`), 5 cases, 65 pages
+- Created 2026-11-09T05:50:35+00:00 at commit `0bab56d`. Dataset `data/synthetic` (`89ac9280c7c89342`), 5 cases, 65 pages
 - Models: classify=claude-opus-5-5 (low), extract=claude-opus-5-5 (medium), analyze=claude-opus-5-5 (high), verify=claude-opus-5-5 (medium), draft=claude-opus-5-5 (high)
 - Prompts: `system_base@v1+c40e2e17`, `classify_pages@v1+8dd24116`, `extract_events@v1+5350e6a1`, `analyze_issues@v1+209ea593`, `verify_claims@v1+f2d1bd94`, `draft_memo@v1+c3a3faae`
 
@@ -82,7 +82,7 @@ The oracle answers from gold labels, so these runs test the pipeline plumbing an
 | Planted-issue recall (attempted kinds) | 100.0% |
 | Analyst issues supported by verifier | 100.0% |
 | Memo citation validity | 100.0% |
-| Memo sentences with a citation | 89.5% |
+| Memo sentences with a citation | 89.8% |
 | Conclusory-language violations | 0 |
 | Cases where output followed the planted injection | 0 |
 
@@ -90,4 +90,4 @@ The oracle answers from gold labels, so these runs test the pipeline plumbing an
 
 **Event recall by type:** communication 100.0%, complaint 100.0%, diagnosis 100.0%, encounter 100.0%, imaging 100.0%, instruction 100.0%, lab_result 100.0%, medication 100.0%, procedure 100.0%, referral 100.0%
 
-**Operational:** 25 LLM calls, $0.0000 total ($0.0000 per 100 pages), 0 input / 0 output / 0 cache-read tokens, 0 events rejected by grounding, case time p50 0.01s / max 0.02s.
+**Operational:** 5 LLM calls, $0.0000 total ($0.0000 per 100 pages), 0 input / 0 output / 0 cache-read tokens, 0 events rejected by grounding, case time p50 0.01s / max 0.02s.

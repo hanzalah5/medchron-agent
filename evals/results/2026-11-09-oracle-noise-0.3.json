@@ -1,7 +1,7 @@
 {
   "label": "oracle-noise-0.3",
-  "created": "2026-11-09T05:15:49+00:00",
-  "git_sha": "6ff161d-dirty",
+  "created": "2026-11-09T05:50:36+00:00",
+  "git_sha": "0bab56d-dirty",
   "provider": "oracle",
   "is_model_result": false,
   "models": {
@@ -64,14 +64,14 @@
     }
   },
   "operational": {
-    "llm_calls": 25,
+    "llm_calls": 5,
     "cost_usd": 0.0,
     "input_tokens": 0,
     "output_tokens": 0,
     "cache_read_input_tokens": 0,
     "rejected_events": 14,
     "seconds_p50": 0.01,
-    "seconds_max": 0.03,
+    "seconds_max": 0.02,
     "pages": 65,
     "cost_per_100_pages_usd": 0.0
   },
@@ -408,7 +408,7 @@
       "documents": 13,
       "events": 10,
       "failed_documents": [],
-      "llm_calls": 4,
+      "llm_calls": 0,
       "cost_usd": 0.0,
       "input_tokens": 0,
       "output_tokens": 0,
@@ -416,7 +416,7 @@
       "rejected_events": 1,
       "issues": 3,
       "rejected_issues": 0,
-      "seconds": 0.01
+      "seconds": 0.02
     },
     {
       "case_id": "case_0002",
@@ -424,7 +424,7 @@
       "documents": 10,
       "events": 9,
       "failed_documents": [],
-      "llm_calls": 4,
+      "llm_calls": 0,
       "cost_usd": 0.0,
       "input_tokens": 0,
       "output_tokens": 0,
@@ -440,7 +440,7 @@
       "documents": 14,
       "events": 10,
       "failed_documents": [],
-      "llm_calls": 4,
+      "llm_calls": 0,
       "cost_usd": 0.0,
       "input_tokens": 0,
       "output_tokens": 0,
@@ -448,7 +448,7 @@
       "rejected_events": 4,
       "issues": 4,
       "rejected_issues": 0,
-      "seconds": 0.03
+      "seconds": 0.02
     },
     {
       "case_id": "case_0004",
@@ -456,7 +456,7 @@
       "documents": 12,
       "events": 4,
       "failed_documents": [],
-      "llm_calls": 4,
+      "llm_calls": 0,
       "cost_usd": 0.0,
       "input_tokens": 0,
       "output_tokens": 0,
@@ -472,7 +472,7 @@
       "documents": 10,
       "events": 5,
       "failed_documents": [],
-      "llm_calls": 4,
+      "llm_calls": 0,
       "cost_usd": 0.0,
       "input_tokens": 0,
       "output_tokens": 0,
