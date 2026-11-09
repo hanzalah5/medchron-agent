@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import threading
 import time
 from collections.abc import Callable, Iterable
 from pathlib import Path
@@ -108,7 +109,12 @@ class CallRecord(BaseModel):
 
 
 class MeteredProvider:
-    """Wraps a provider with cost tracking, a hard budget and structured call logs."""
+    """Wraps a provider with cost tracking, a hard budget and structured call logs.
+
+    Thread-safe: parallel workers share one budget. The budget check happens
+    before each call, so concurrent in-flight calls can overshoot it by at most
+    the cost of those calls.
+    """
 
     name = "metered"
 
@@ -116,6 +122,7 @@ class MeteredProvider:
         self._inner = inner
         self.budget_usd = budget_usd
         self.records: list[CallRecord] = []
+        self._lock = threading.Lock()
 
     @property
     def spent_usd(self) -> float:
@@ -129,10 +136,11 @@ class MeteredProvider:
         return total
 
     def complete(self, req: LLMRequest) -> LLMResponse:
-        if self.budget_usd is not None and self.spent_usd >= self.budget_usd:
-            raise BudgetExceededError(
-                f"case budget ${self.budget_usd:.2f} spent (${self.spent_usd:.4f})"
-            )
+        with self._lock:
+            if self.budget_usd is not None and self.spent_usd >= self.budget_usd:
+                raise BudgetExceededError(
+                    f"case budget ${self.budget_usd:.2f} spent (${self.spent_usd:.4f})"
+                )
         start = time.perf_counter()
         resp = self._inner.complete(req)
         latency = int((time.perf_counter() - start) * 1000)
@@ -152,6 +160,7 @@ class MeteredProvider:
             request_id=resp.request_id,
             served_by_fallback=resp.served_by_fallback,
         )
-        self.records.append(record)
+        with self._lock:
+            self.records.append(record)
         log.info("llm_call", extra={"llm": record.model_dump(mode="json")})
         return resp

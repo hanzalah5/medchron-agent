@@ -9,45 +9,25 @@ because line wrapping changes whitespace.
 from __future__ import annotations
 
 import datetime as dt
-from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
+from medchron.taxonomy import DocType, EventType, IssueKind
+
+__all__ = [
+    "CaseGold",
+    "DocType",
+    "EventType",
+    "GoldDocument",
+    "GoldEvent",
+    "GoldPage",
+    "IssueKind",
+    "PlantedIssue",
+    "SourceRef",
+    "SyntheticPatient",
+]
+
 GENERATOR_VERSION = "0.1.0"
-
-
-class DocType(StrEnum):
-    FAX_COVER = "fax_cover"
-    OFFICE_VISIT = "office_visit"
-    ED_NOTE = "ed_note"
-    LAB_REPORT = "lab_report"
-    RADIOLOGY_REPORT = "radiology_report"
-    OPERATIVE_REPORT = "operative_report"
-    PROGRESS_NOTE = "progress_note"
-    DISCHARGE_SUMMARY = "discharge_summary"
-    THERAPY_NOTE = "therapy_note"
-    TELEPHONE_NOTE = "telephone_note"
-
-
-class EventType(StrEnum):
-    ENCOUNTER = "encounter"
-    COMPLAINT = "complaint"
-    DIAGNOSIS = "diagnosis"
-    PROCEDURE = "procedure"
-    MEDICATION = "medication"
-    LAB_RESULT = "lab_result"
-    IMAGING = "imaging"
-    REFERRAL = "referral"
-    INSTRUCTION = "instruction"
-    COMMUNICATION = "communication"
-
-
-class IssueKind(StrEnum):
-    MISSING_RECORD = "missing_record"
-    DATE_CONFLICT = "date_conflict"
-    RECORD_INCONSISTENCY = "record_inconsistency"
-    POTENTIAL_DELAY = "potential_delay"
-    PROMPT_INJECTION = "prompt_injection"
 
 
 class SourceRef(BaseModel):

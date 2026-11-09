@@ -58,7 +58,12 @@ def run_tool_loop(
     tools: dict[str, ToolFn],
     *,
     max_turns: int = 8,
+    done: Callable[[], bool] | None = None,
 ) -> LoopResult:
+    """Run the loop. ``done`` lets the caller end it as soon as the tool results
+    show the work is complete (all submissions accepted). That skips a final
+    model turn whose only job would be to say "finished", roughly halving the
+    calls for single-shot extraction steps."""
     messages = list(request.messages)
     calls: list[ToolCall] = []
     for turn in range(1, max_turns + 1):
@@ -95,4 +100,6 @@ def run_tool_loop(
                 result["is_error"] = True
             results.append(result)
         messages.append({"role": "user", "content": results})
+        if done is not None and not any(r.get("is_error") for r in results) and done():
+            return LoopResult(final=resp, turns=turn, tool_calls=calls)
     return LoopResult(final=resp, turns=max_turns, tool_calls=calls, hit_turn_limit=True)

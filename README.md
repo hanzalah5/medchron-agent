@@ -75,6 +75,13 @@ make db-up            # Postgres + pgvector via docker compose, then migrations
 
 # Ingest a synthetic production: text layer + OCR, duplicate detection, page-anchored spans
 .venv/bin/medchron ingest data/synthetic/case_0003.pdf --matter case_0003 --save
+
+# Run the agent pipeline with Claude (needs ANTHROPIC_API_KEY); outputs in runs/case_0003/
+.venv/bin/medchron run data/synthetic/case_0003.pdf --matter case_0003 --budget 2.00
+
+# ...or with no API key, using the gold-label oracle test double (plumbing check only)
+.venv/bin/medchron run data/synthetic/case_0003.pdf --matter case_0003 \
+    --provider oracle --gold data/synthetic/case_0003.gold.json
 ```
 
 ## What's built so far
@@ -85,6 +92,11 @@ make db-up            # Postgres + pgvector via docker compose, then migrations
 | Ingestion | `src/medchron/ingestion/` | PyMuPDF text with word bounding boxes, Tesseract OCR fallback with confidence, duplicate-page detection that ignores fax headers, page-bounded chunks with resolvable span IDs (`case:p12:340-918`) |
 | Storage | `src/medchron/db/`, `migrations/` | Postgres + pgvector: matters, pages, spans with generated `tsvector` (GIN) and HNSW cosine index; Alembic migrations |
 | LLM layer | `src/medchron/llm/` | A provider-neutral interface and a Claude implementation: per-route model and effort settings, strict tool schemas, prompt-cache breakpoints, server-side refusal fallback, typed error classes, every stop reason handled, a bounded tool loop, a per-case budget, PHI-safe call logs (hashes only) and record/replay fixtures for offline runs |
+| Agents | `src/medchron/agents/` | **Classifier**: labels pages through a strict tool, then code segments them into documents. **Extractor**: one bounded tool loop per document. Its `record_events` tool validates every event as it records (the cited span must exist, the quote must be found in it, the date must parse and match) and returns rejections, so the model corrects itself |
+| Grounding | `src/medchron/grounding/` | Quote location that tolerates OCR errors but rejects fabricated text, with page-level character offsets for highlighting. Deterministic date parsing across formats |
+| Chronology | `src/medchron/chronology/` | Merges mentions across documents with all sources kept, orders events, flags *candidate* date conflicts and missing follow-up records for review, and exports Markdown, CSV and JSON |
+| Orchestrator | `src/medchron/orchestrator/` | Code-owned DAG, checkpointed idempotent steps (resume after a crash), bounded parallel fan-out, failed documents become review flags, per-case budget stop |
+| Oracle | `src/medchron/evals/oracle.py` | A **test double** that answers from gold labels, used to test the whole pipeline without an API key. Its runs are never reported as model results |
 | Prompts | `src/medchron/prompts/` | Versioned files (`name/vN.md`). Each call records `name@vN+sha` |
 | Embeddings | `src/medchron/retrieval/` | Local `bge-small` (optional extra) or a deterministic hashing embedder for tests and CI, so record text is never sent out to be embedded |
 
