@@ -1,4 +1,4 @@
-.PHONY: install lint format typecheck test check synth smoke-data db-up migrate
+.PHONY: install lint format typecheck test check synth smoke-data db-up migrate eval-selfcheck eval-live eval-report
 
 install:  ## Create .venv and install the package with dev extras
 	uv venv --python 3.12 --allow-existing .venv || uv venv --allow-existing .venv
@@ -32,3 +32,13 @@ db-up:  ## Start Postgres + pgvector and apply migrations
 
 migrate:
 	.venv/bin/alembic upgrade head
+
+eval-selfcheck:  ## Harness self-check with the gold-label oracle (no API key, not model results)
+	.venv/bin/medchron eval --label oracle-selfcheck --provider oracle
+	.venv/bin/medchron eval --label oracle-noise-0.3 --provider oracle --oracle-noise 0.3
+
+eval-live:  ## Live evaluation with Claude on the smoke set (needs ANTHROPIC_API_KEY; capped per case)
+	.venv/bin/medchron eval --label live-$(or $(LABEL),smoke) --provider anthropic --budget-per-case $(or $(BUDGET),1.00)
+
+eval-report:  ## Regenerate evals/REPORT.md from all results (newest first)
+	.venv/bin/medchron eval-report $(shell ls -t evals/results/*.json)

@@ -82,6 +82,7 @@ class RunConfig:
 class RunResult:
     chronology: Chronology
     summary: RunSummary
+    case: IngestedCase
     calls: list[CallRecord] = field(default_factory=list)
 
 
@@ -226,7 +227,7 @@ def run_case(
     )
     _write_outputs(config.out_dir, chron, summary, metered.records)
     say(f"done: {summary.events} events, status={summary.status}, cost=${summary.cost_usd:.4f}")
-    return RunResult(chronology=chron, summary=summary, calls=list(metered.records))
+    return RunResult(chronology=chron, summary=summary, case=case, calls=list(metered.records))
 
 
 def _write_outputs(

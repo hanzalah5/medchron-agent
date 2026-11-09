@@ -40,22 +40,32 @@ Control flow belongs to a **code-orchestrated DAG**. Agents get autonomy only in
 
 ## Evaluation
 
-The project ships its own **synthetic benchmark**: generated patient histories, rendered as messy PDFs, with exact gold labels and deliberately planted issues. Planned metrics are event precision, recall and F1, citation validity, faithfulness (an LLM judge calibrated against human labels), planted-issue recall, prompt-injection resistance, and cost and latency per case.
+The project ships its own **synthetic benchmark**: generated patient histories, rendered as messy PDFs, with exact gold labels and deliberately planted issues. Five smoke cases are committed in [`data/synthetic/`](data/synthetic/). Each is a multi-provider PDF with scanned pages, duplicates and fax covers.
 
-The generator is deterministic, and five smoke cases are committed in [`data/synthetic/`](data/synthetic/). Each is a messy multi-provider PDF with scanned pages, duplicates and fax covers, plus gold labels.
+The harness ([`src/medchron/evals/`](src/medchron/evals/), [methodology](docs/eval-methodology.md)) measures:
+- event precision, recall and F1, strict and with ±1-day dates
+- citation validity
+- document segmentation and document type accuracy
+- planted-issue recall
+- cost, tokens and latency per case
+
+Each result records the git SHA, the models and the exact prompt versions. A regression gate fails a run that drops more than a set tolerance against a baseline.
+
+**Live model scorecard: pending.** No live evaluation has been run yet, and no model numbers are published until they have been measured. The [evaluation report](evals/REPORT.md) currently shows only **harness self-checks**: runs with a gold-label oracle (a test double, not a model) that confirm the metrics work. For example, injecting 30% noise drops strict recall from 100% to about 37%, while grounding rejects every altered quote.
 
 ```bash
-medchron synth --cases 5 --start-seed 1 --out data/generated
+make eval-selfcheck                 # oracle self-check, no API key
+make eval-live BUDGET=1.00          # live Claude run on the smoke set (needs ANTHROPIC_API_KEY)
+make eval-report                    # regenerate evals/REPORT.md
+medchron synth --cases 30 --start-seed 100 --out data/generated   # a larger dataset
 ```
-
-*Scorecard pending the first live evaluation run. No numbers are published until they have been measured.*
 
 ## Roadmap
 
 | Phase | Milestone | Status |
 |---|---|---|
 | 0 | Repo foundations, synthetic benchmark generator with gold labels | ✅ Done |
-| 1 | Grounded extraction MVP and eval harness v1 (`v0.1`) | 🚧 In progress |
+| 1 | Grounded extraction MVP and eval harness v1 (`v0.1`) | ✅ Done (live scorecard pending an API-key run) |
 | 2 | Reviewer UI with click-to-source, human-in-the-loop queues (`v0.2`) | ⏳ |
 | 3 | Issue analyst, verifier and cited memo drafting (`v0.3`) | ⏳ |
 | 4 | Production hardening: auth, RBAC, audit, observability, cost controls (`v0.4`) | ⏳ |

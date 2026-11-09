@@ -1,0 +1,71 @@
+name: Evals (live model)
+
+# Runs the agent pipeline with Claude on the synthetic smoke set.
+# Costs real money, so it only runs on demand, on PRs labeled `run-evals`, or nightly.
+# Skips cleanly when the ANTHROPIC_API_KEY repository secret is not configured.
+
+on:
+  workflow_dispatch:
+    inputs:
+      budget_per_case:
+        description: "Max USD per case"
+        default: "1.00"
+  pull_request:
+    types: [labeled, synchronize]
+  schedule:
+    - cron: "17 6 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evals-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  live-eval:
+    if: >
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'run-evals')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - name: Check for API key
+        id: key
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "ANTHROPIC_API_KEY secret not set - skipping live evaluation." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.present == 'true'
+      - name: Install Tesseract OCR
+        if: steps.key.outputs.present == 'true'
+        run: sudo apt-get update -q && sudo apt-get install -y -q tesseract-ocr
+      - uses: astral-sh/setup-uv@v6
+        if: steps.key.outputs.present == 'true'
+        with:
+          python-version: "3.12"
+      - name: Install
+        if: steps.key.outputs.present == 'true'
+        run: make install
+      - name: Live evaluation
+        if: steps.key.outputs.present == 'true'
+        run: |
+          BASELINE=$(ls -t evals/results/*live*.json 2>/dev/null | head -1 || true)
+          .venv/bin/medchron eval --label "ci-${GITHUB_RUN_ID}" --provider anthropic \
+            --budget-per-case "${{ inputs.budget_per_case || '1.00' }}" \
+            ${BASELINE:+--baseline "$BASELINE"} | tee eval-output.md
+          cat eval-output.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.key.outputs.present == 'true'
+        with:
+          name: eval-results
+          path: |
+            evals/results/
+            runs/evals/*/*/run.json
+            runs/evals/*/*/chronology.md
