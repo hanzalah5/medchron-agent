@@ -1,0 +1,45 @@
+{
+ "model": "oracle",
+ "stop_reason": "tool_use",
+ "content": [
+  {
+   "type": "tool_use",
+   "id": "toolu_oracle_15",
+   "name": "record_verdicts",
+   "input": {
+    "verdicts": [
+     {
+      "claim": 1,
+      "verdict": "supported",
+      "reason": "Evidence states the facts."
+     }
+    ]
+   }
+  }
+ ],
+ "text_parts": [],
+ "tool_calls": [
+  {
+   "id": "toolu_oracle_15",
+   "name": "record_verdicts",
+   "input": {
+    "verdicts": [
+     {
+      "claim": 1,
+      "verdict": "supported",
+      "reason": "Evidence states the facts."
+     }
+    ]
+   }
+  }
+ ],
+ "usage": {
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation_input_tokens": 0
+ },
+ "request_id": null,
+ "refusal_category": null,
+ "served_by_fallback": false
+}

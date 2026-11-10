@@ -1,4 +1,4 @@
-.PHONY: install lint format typecheck test check synth smoke-data db-up migrate eval-selfcheck eval-live eval-report calib-seed calib-selfcheck
+.PHONY: install lint format typecheck test check synth smoke-data db-up migrate eval-selfcheck eval-live eval-report calib-seed calib-selfcheck fixtures
 
 install:  ## Create .venv and install the package with dev extras
 	uv venv --python 3.12 --allow-existing .venv || uv venv --allow-existing .venv
@@ -51,3 +51,8 @@ calib-seed:  ## Rebuild the gold-derived verifier calibration seed set (labels b
 calib-selfcheck:  ## Score the oracle judge on the seed set (tooling self-check, not calibration)
 	.venv/bin/medchron calib judge evals/calibration/gold-seed.jsonl --provider oracle --out runs/calib/oracle-judged.jsonl
 	.venv/bin/medchron calib score runs/calib/oracle-judged.jsonl --out evals/calibration/selfcheck.md
+
+fixtures:  ## Re-record replay fixtures from the oracle (needed after a prompt or request change)
+	rm -rf tests/fixtures/llm runs/fixtures
+	.venv/bin/medchron run data/synthetic/dev/case_0005.pdf --matter case_0005 --out runs/fixtures \
+		--provider oracle --gold data/synthetic/dev/case_0005.gold.json --record --fixtures tests/fixtures/llm

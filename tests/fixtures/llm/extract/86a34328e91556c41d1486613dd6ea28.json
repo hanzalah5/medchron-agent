@@ -1,0 +1,127 @@
+{
+ "model": "oracle",
+ "stop_reason": "tool_use",
+ "content": [
+  {
+   "type": "tool_use",
+   "id": "toolu_oracle_9",
+   "name": "record_events",
+   "input": {
+    "events": [
+     {
+      "date_text": "2022-06-16",
+      "date_iso": "2022-06-16",
+      "type": "encounter",
+      "summary": "Urgent care visit after fall",
+      "source_span_id": "case_0005:p7:0-802",
+      "quote": "Seen on 06-16-22 after a fall on an outstretched hand.",
+      "confidence": "high"
+     },
+     {
+      "date_text": "2022-06-16",
+      "date_iso": "2022-06-16",
+      "type": "complaint",
+      "summary": "Right wrist pain after fall",
+      "source_span_id": "case_0005:p7:0-802",
+      "quote": "Complains of right wrist pain, worse with gripping.",
+      "confidence": "high"
+     },
+     {
+      "date_text": "2022-06-16",
+      "date_iso": "2022-06-16",
+      "type": "imaging",
+      "summary": "Wrist x-ray, preliminary read negative",
+      "source_span_id": "case_0005:p7:0-802",
+      "quote": "Wrist x-ray preliminary read by provider: no acute fracture identified.",
+      "confidence": "high"
+     },
+     {
+      "date_text": "2022-06-16",
+      "date_iso": "2022-06-16",
+      "type": "diagnosis",
+      "summary": "Wrist sprain diagnosed",
+      "source_span_id": "case_0005:p7:0-802",
+      "quote": "Assessment: right wrist sprain. Placed in a wrist splint.",
+      "confidence": "high"
+     },
+     {
+      "date_text": "2022-06-16",
+      "date_iso": "2022-06-16",
+      "type": "instruction",
+      "summary": "Follow up with primary care in one week",
+      "source_span_id": "case_0005:p7:0-802",
+      "quote": "Follow up with primary care in 1 week if not improving.",
+      "confidence": "high"
+     }
+    ],
+    "flags": []
+   }
+  }
+ ],
+ "text_parts": [],
+ "tool_calls": [
+  {
+   "id": "toolu_oracle_9",
+   "name": "record_events",
+   "input": {
+    "events": [
+     {
+      "date_text": "2022-06-16",
+      "date_iso": "2022-06-16",
+      "type": "encounter",
+      "summary": "Urgent care visit after fall",
+      "source_span_id": "case_0005:p7:0-802",
+      "quote": "Seen on 06-16-22 after a fall on an outstretched hand.",
+      "confidence": "high"
+     },
+     {
+      "date_text": "2022-06-16",
+      "date_iso": "2022-06-16",
+      "type": "complaint",
+      "summary": "Right wrist pain after fall",
+      "source_span_id": "case_0005:p7:0-802",
+      "quote": "Complains of right wrist pain, worse with gripping.",
+      "confidence": "high"
+     },
+     {
+      "date_text": "2022-06-16",
+      "date_iso": "2022-06-16",
+      "type": "imaging",
+      "summary": "Wrist x-ray, preliminary read negative",
+      "source_span_id": "case_0005:p7:0-802",
+      "quote": "Wrist x-ray preliminary read by provider: no acute fracture identified.",
+      "confidence": "high"
+     },
+     {
+      "date_text": "2022-06-16",
+      "date_iso": "2022-06-16",
+      "type": "diagnosis",
+      "summary": "Wrist sprain diagnosed",
+      "source_span_id": "case_0005:p7:0-802",
+      "quote": "Assessment: right wrist sprain. Placed in a wrist splint.",
+      "confidence": "high"
+     },
+     {
+      "date_text": "2022-06-16",
+      "date_iso": "2022-06-16",
+      "type": "instruction",
+      "summary": "Follow up with primary care in one week",
+      "source_span_id": "case_0005:p7:0-802",
+      "quote": "Follow up with primary care in 1 week if not improving.",
+      "confidence": "high"
+     }
+    ],
+    "flags": []
+   }
+  }
+ ],
+ "usage": {
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation_input_tokens": 0
+ },
+ "request_id": null,
+ "refusal_category": null,
+ "served_by_fallback": false
+}

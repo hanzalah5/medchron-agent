@@ -1,0 +1,48 @@
+{
+ "model": "oracle",
+ "stop_reason": "tool_use",
+ "content": [
+  {
+   "type": "tool_use",
+   "id": "toolu_oracle_12",
+   "name": "get_page",
+   "input": {
+    "page_no": 8
+   }
+  },
+  {
+   "type": "tool_use",
+   "id": "toolu_oracle_13",
+   "name": "get_page",
+   "input": {
+    "page_no": 9
+   }
+  }
+ ],
+ "text_parts": [],
+ "tool_calls": [
+  {
+   "id": "toolu_oracle_12",
+   "name": "get_page",
+   "input": {
+    "page_no": 8
+   }
+  },
+  {
+   "id": "toolu_oracle_13",
+   "name": "get_page",
+   "input": {
+    "page_no": 9
+   }
+  }
+ ],
+ "usage": {
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation_input_tokens": 0
+ },
+ "request_id": null,
+ "refusal_category": null,
+ "served_by_fallback": false
+}

@@ -1,0 +1,55 @@
+{
+ "model": "oracle",
+ "stop_reason": "tool_use",
+ "content": [
+  {
+   "type": "tool_use",
+   "id": "toolu_oracle_8",
+   "name": "record_events",
+   "input": {
+    "events": [
+     {
+      "date_text": "2022-06-17",
+      "date_iso": "2022-06-17",
+      "type": "imaging",
+      "summary": "Final radiology read: nondisplaced scaphoid waist fracture",
+      "source_span_id": "case_0005:p8:0-434",
+      "quote": "FINAL REPORT: Nondisplaced fracture of the scaphoid waist.\nRecommend clinical correlation and follow-up imaging.",
+      "confidence": "high"
+     }
+    ],
+    "flags": []
+   }
+  }
+ ],
+ "text_parts": [],
+ "tool_calls": [
+  {
+   "id": "toolu_oracle_8",
+   "name": "record_events",
+   "input": {
+    "events": [
+     {
+      "date_text": "2022-06-17",
+      "date_iso": "2022-06-17",
+      "type": "imaging",
+      "summary": "Final radiology read: nondisplaced scaphoid waist fracture",
+      "source_span_id": "case_0005:p8:0-434",
+      "quote": "FINAL REPORT: Nondisplaced fracture of the scaphoid waist.\nRecommend clinical correlation and follow-up imaging.",
+      "confidence": "high"
+     }
+    ],
+    "flags": []
+   }
+  }
+ ],
+ "usage": {
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation_input_tokens": 0
+ },
+ "request_id": null,
+ "refusal_category": null,
+ "served_by_fallback": false
+}

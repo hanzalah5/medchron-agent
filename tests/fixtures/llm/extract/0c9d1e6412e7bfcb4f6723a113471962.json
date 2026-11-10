@@ -1,0 +1,73 @@
+{
+ "model": "oracle",
+ "stop_reason": "tool_use",
+ "content": [
+  {
+   "type": "tool_use",
+   "id": "toolu_oracle_4",
+   "name": "record_events",
+   "input": {
+    "events": [
+     {
+      "date_text": "2022-07-12",
+      "date_iso": "2022-07-12",
+      "type": "procedure",
+      "summary": "ORIF scaphoid with headless compression screw",
+      "source_span_id": "case_0005:p4:0-438",
+      "quote": "Status post scaphoid ORIF on July 12, 2022.",
+      "confidence": "high"
+     },
+     {
+      "date_text": "2022-07-24",
+      "date_iso": "2022-07-24",
+      "type": "encounter",
+      "summary": "Post-operative hand surgery visit",
+      "source_span_id": "case_0005:p4:0-438",
+      "quote": "Post-operative visit July 24, 2022. Incision healing well, sutures removed.",
+      "confidence": "high"
+     }
+    ],
+    "flags": []
+   }
+  }
+ ],
+ "text_parts": [],
+ "tool_calls": [
+  {
+   "id": "toolu_oracle_4",
+   "name": "record_events",
+   "input": {
+    "events": [
+     {
+      "date_text": "2022-07-12",
+      "date_iso": "2022-07-12",
+      "type": "procedure",
+      "summary": "ORIF scaphoid with headless compression screw",
+      "source_span_id": "case_0005:p4:0-438",
+      "quote": "Status post scaphoid ORIF on July 12, 2022.",
+      "confidence": "high"
+     },
+     {
+      "date_text": "2022-07-24",
+      "date_iso": "2022-07-24",
+      "type": "encounter",
+      "summary": "Post-operative hand surgery visit",
+      "source_span_id": "case_0005:p4:0-438",
+      "quote": "Post-operative visit July 24, 2022. Incision healing well, sutures removed.",
+      "confidence": "high"
+     }
+    ],
+    "flags": []
+   }
+  }
+ ],
+ "usage": {
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation_input_tokens": 0
+ },
+ "request_id": null,
+ "refusal_category": null,
+ "served_by_fallback": false
+}

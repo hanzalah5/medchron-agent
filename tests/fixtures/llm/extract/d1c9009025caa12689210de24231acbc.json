@@ -1,0 +1,73 @@
+{
+ "model": "oracle",
+ "stop_reason": "tool_use",
+ "content": [
+  {
+   "type": "tool_use",
+   "id": "toolu_oracle_2",
+   "name": "record_events",
+   "input": {
+    "events": [
+     {
+      "date_text": "2022-07-07",
+      "date_iso": "2022-07-07",
+      "type": "imaging",
+      "summary": "Repeat x-ray shows displacement of scaphoid fracture",
+      "source_span_id": "case_0005:p2:0-763",
+      "quote": "Repeat radiographs today show interval displacement of the scaphoid waist fracture.",
+      "confidence": "high"
+     },
+     {
+      "date_text": "2022-07-07",
+      "date_iso": "2022-07-07",
+      "type": "referral",
+      "summary": "Plan open reduction internal fixation",
+      "source_span_id": "case_0005:p2:0-763",
+      "quote": "Plan: open reduction and internal fixation of the scaphoid.",
+      "confidence": "high"
+     }
+    ],
+    "flags": []
+   }
+  }
+ ],
+ "text_parts": [],
+ "tool_calls": [
+  {
+   "id": "toolu_oracle_2",
+   "name": "record_events",
+   "input": {
+    "events": [
+     {
+      "date_text": "2022-07-07",
+      "date_iso": "2022-07-07",
+      "type": "imaging",
+      "summary": "Repeat x-ray shows displacement of scaphoid fracture",
+      "source_span_id": "case_0005:p2:0-763",
+      "quote": "Repeat radiographs today show interval displacement of the scaphoid waist fracture.",
+      "confidence": "high"
+     },
+     {
+      "date_text": "2022-07-07",
+      "date_iso": "2022-07-07",
+      "type": "referral",
+      "summary": "Plan open reduction internal fixation",
+      "source_span_id": "case_0005:p2:0-763",
+      "quote": "Plan: open reduction and internal fixation of the scaphoid.",
+      "confidence": "high"
+     }
+    ],
+    "flags": []
+   }
+  }
+ ],
+ "usage": {
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation_input_tokens": 0
+ },
+ "request_id": null,
+ "refusal_category": null,
+ "served_by_fallback": false
+}

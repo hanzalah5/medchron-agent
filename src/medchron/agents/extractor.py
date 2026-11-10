@@ -24,7 +24,7 @@ from medchron.chronology.models import (
 from medchron.grounding.dates import find_dates, parse_date, parse_iso
 from medchron.grounding.quotes import find_quote
 from medchron.ingestion.models import IngestedCase, Span
-from medchron.llm.loop import run_tool_loop
+from medchron.llm.loop import LoopResult, ToolLoop
 from medchron.llm.prompts import load_prompt
 from medchron.llm.providers import LLMProvider
 from medchron.llm.types import LLMRequest, ToolSpec
@@ -89,6 +89,9 @@ EVENTS_TOOL = ToolSpec(
         "additionalProperties": False,
     },
 )
+
+
+MAX_TURNS = 4
 
 
 @dataclass
@@ -193,14 +196,14 @@ class _Recorder:
         return None
 
 
-def extract_document(
-    provider: LLMProvider,
+def prepare_extraction(
     case: IngestedCase,
     doc: DocumentSegment,
     *,
     exclude_pages: set[int] | frozenset[int] = frozenset(),
-) -> ExtractionResult:
-    """Extract events from one document. ``exclude_pages`` (e.g. misfiled pages) are skipped."""
+) -> tuple[_Recorder, ToolLoop] | ExtractionResult:
+    """Build the extraction loop for one document, or the final result if there is
+    nothing to send (no extractable text)."""
     spans = [
         s
         for s in case.spans
@@ -226,12 +229,32 @@ def extract_document(
         tools=[EVENTS_TOOL],
         messages=[{"role": "user", "content": render_document(doc, spans)}],
     )
-    loop = run_tool_loop(
-        provider,
+    loop = ToolLoop(
         request,
         {"record_events": recorder},
-        max_turns=4,
+        max_turns=MAX_TURNS,
         done=lambda: recorder.last_rejected == 0,
     )
-    recorder.result.turns = loop.turns
+    return recorder, loop
+
+
+def finish_extraction(recorder: _Recorder, result: LoopResult) -> ExtractionResult:
+    recorder.result.turns = result.turns
     return recorder.result
+
+
+def extract_document(
+    provider: LLMProvider,
+    case: IngestedCase,
+    doc: DocumentSegment,
+    *,
+    exclude_pages: set[int] | frozenset[int] = frozenset(),
+) -> ExtractionResult:
+    """Extract events from one document. ``exclude_pages`` (e.g. misfiled pages) are skipped."""
+    prepared = prepare_extraction(case, doc, exclude_pages=exclude_pages)
+    if isinstance(prepared, ExtractionResult):
+        return prepared
+    recorder, loop = prepared
+    while (result := loop.apply(provider.complete(loop.next_request()))) is None:
+        pass
+    return finish_extraction(recorder, result)

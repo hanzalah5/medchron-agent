@@ -1,0 +1,59 @@
+{
+ "model": "oracle",
+ "stop_reason": "tool_use",
+ "content": [
+  {
+   "type": "tool_use",
+   "id": "toolu_oracle_14",
+   "name": "record_issue",
+   "input": {
+    "category": "potential_delay",
+    "description": "The final radiology report on 2022-06-17 identified a scaphoid fracture. Patient notification is documented on 2022-07-03. Is there earlier documentation of result follow-up?",
+    "event_ids": [],
+    "citations": [
+     {
+      "span_id": "case_0005:p8:0-434",
+      "quote": "Report finalized 06-17-22. FINAL REPORT: Nondisplaced fracture of the scaphoid waist."
+     },
+     {
+      "span_id": "case_0005:p9:0-414",
+      "quote": "07-03-22: Patient notified by phone of final radiology read showing scaphoid fracture."
+     }
+    ],
+    "severity_hint": "medium"
+   }
+  }
+ ],
+ "text_parts": [],
+ "tool_calls": [
+  {
+   "id": "toolu_oracle_14",
+   "name": "record_issue",
+   "input": {
+    "category": "potential_delay",
+    "description": "The final radiology report on 2022-06-17 identified a scaphoid fracture. Patient notification is documented on 2022-07-03. Is there earlier documentation of result follow-up?",
+    "event_ids": [],
+    "citations": [
+     {
+      "span_id": "case_0005:p8:0-434",
+      "quote": "Report finalized 06-17-22. FINAL REPORT: Nondisplaced fracture of the scaphoid waist."
+     },
+     {
+      "span_id": "case_0005:p9:0-414",
+      "quote": "07-03-22: Patient notified by phone of final radiology read showing scaphoid fracture."
+     }
+    ],
+    "severity_hint": "medium"
+   }
+  }
+ ],
+ "usage": {
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation_input_tokens": 0
+ },
+ "request_id": null,
+ "refusal_category": null,
+ "served_by_fallback": false
+}

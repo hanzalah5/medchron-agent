@@ -1,0 +1,55 @@
+{
+ "model": "oracle",
+ "stop_reason": "tool_use",
+ "content": [
+  {
+   "type": "tool_use",
+   "id": "toolu_oracle_10",
+   "name": "record_events",
+   "input": {
+    "events": [
+     {
+      "date_text": "2022-06-25",
+      "date_iso": "2022-06-25",
+      "type": "encounter",
+      "summary": "Primary care visit for persistent wrist pain",
+      "source_span_id": "case_0005:p12:0-819",
+      "quote": "Visit date: 2022-06-25. Persistent wrist pain since a fall.",
+      "confidence": "high"
+     }
+    ],
+    "flags": []
+   }
+  }
+ ],
+ "text_parts": [],
+ "tool_calls": [
+  {
+   "id": "toolu_oracle_10",
+   "name": "record_events",
+   "input": {
+    "events": [
+     {
+      "date_text": "2022-06-25",
+      "date_iso": "2022-06-25",
+      "type": "encounter",
+      "summary": "Primary care visit for persistent wrist pain",
+      "source_span_id": "case_0005:p12:0-819",
+      "quote": "Visit date: 2022-06-25. Persistent wrist pain since a fall.",
+      "confidence": "high"
+     }
+    ],
+    "flags": []
+   }
+  }
+ ],
+ "usage": {
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation_input_tokens": 0
+ },
+ "request_id": null,
+ "refusal_category": null,
+ "served_by_fallback": false
+}

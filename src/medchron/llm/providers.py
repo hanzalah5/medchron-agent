@@ -93,6 +93,9 @@ class ReplayProvider:
         return LLMResponse.model_validate_json(path.read_text(encoding="utf-8"))
 
 
+BATCH_DISCOUNT = 0.5  # Message Batches usage is billed at half the standard rate
+
+
 class CallRecord(BaseModel):
     """One LLM call's metadata. Content is stored only as hashes (PHI-safe)."""
 
@@ -107,6 +110,7 @@ class CallRecord(BaseModel):
     latency_ms: int
     request_id: str | None = None
     served_by_fallback: bool = False
+    batch: bool = False  # sent through the Message Batches API (billed at half price)
 
 
 class MeteredProvider:
@@ -136,12 +140,15 @@ class MeteredProvider:
             total = total + r.usage
         return total
 
-    def complete(self, req: LLMRequest) -> LLMResponse:
+    def check_budget(self) -> None:
         with self._lock:
             if self.budget_usd is not None and self.spent_usd >= self.budget_usd:
                 raise BudgetExceededError(
                     f"case budget ${self.budget_usd:.2f} spent (${self.spent_usd:.4f})"
                 )
+
+    def complete(self, req: LLMRequest) -> LLMResponse:
+        self.check_budget()
         start = time.perf_counter()
         with span("llm.call", route=req.route, prompt=req.prompt_version) as sp:
             resp = self._inner.complete(req)
@@ -150,8 +157,15 @@ class MeteredProvider:
             sp.set_attribute("llm.input_tokens", resp.usage.input_tokens)
             sp.set_attribute("llm.output_tokens", resp.usage.output_tokens)
             sp.set_attribute("llm.cache_read_tokens", resp.usage.cache_read_input_tokens)
-        latency = int((time.perf_counter() - start) * 1000)
+        self.record(req, resp, latency_ms=int((time.perf_counter() - start) * 1000))
+        return resp
+
+    def record(
+        self, req: LLMRequest, resp: LLMResponse, *, latency_ms: int = 0, batch: bool = False
+    ) -> CallRecord:
+        """Log one call. Batch results are recorded here too, at the batch discount."""
         model = resp.model or req.model or model_for(req.route)
+        cost = cost_usd(model, resp.usage) * (BATCH_DISCOUNT if batch else 1.0)
         record = CallRecord(
             route=req.route,
             model=model,
@@ -162,12 +176,13 @@ class MeteredProvider:
             ).hexdigest(),
             stop_reason=resp.stop_reason.value,
             usage=resp.usage,
-            cost_usd=cost_usd(model, resp.usage),
-            latency_ms=latency,
+            cost_usd=cost,
+            latency_ms=latency_ms,
             request_id=resp.request_id,
             served_by_fallback=resp.served_by_fallback,
+            batch=batch,
         )
         with self._lock:
             self.records.append(record)
         log.info("llm_call", extra={"llm": record.model_dump(mode="json")})
-        return resp
+        return record

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -65,6 +66,9 @@ def make_provider(args: argparse.Namespace) -> Any:
     """Build the LLM provider for ``run`` and ``eval`` from CLI flags."""
     from medchron.llm.providers import RecordingProvider, ReplayProvider
 
+    if getattr(args, "extract_mode", None):
+        os.environ["MEDCHRON_EXTRACT_MODE"] = args.extract_mode
+    provider: Any
     if args.provider == "oracle":
         from medchron.evals.oracle import OracleProvider
         from medchron.synth import CaseGold
@@ -73,13 +77,14 @@ def make_provider(args: argparse.Namespace) -> Any:
             raise SystemExit("--provider oracle needs --gold <case.gold.json>")
         gold = CaseGold.model_validate_json(Path(args.gold).read_text(encoding="utf-8"))
         print("NOTE: oracle provider answers from gold labels (test double, not a model).")
-        return OracleProvider(gold, noise=args.oracle_noise)
-    if args.provider == "replay":
+        provider = OracleProvider(gold, noise=args.oracle_noise)
+    elif args.provider == "replay":
         return ReplayProvider(Path(args.fixtures))
-    from medchron.llm.anthropic_provider import AnthropicProvider
+    else:
+        from medchron.llm.anthropic_provider import AnthropicProvider
 
-    live = AnthropicProvider()
-    return RecordingProvider(live, Path(args.fixtures)) if args.record else live
+        provider = AnthropicProvider()
+    return RecordingProvider(provider, Path(args.fixtures)) if args.record else provider
 
 
 def _cmd_run(args: argparse.Namespace) -> int:
@@ -118,6 +123,8 @@ def _cmd_eval(args: argparse.Namespace) -> int:
 
     if args.provider == "oracle":
         print("NOTE: oracle provider = gold-label test double. Results are NOT model results.")
+    if args.extract_mode:
+        os.environ["MEDCHRON_EXTRACT_MODE"] = args.extract_mode
     data = Path(args.data or f"data/synthetic/{args.split}")
     result = run_eval(
         data,
@@ -235,7 +242,12 @@ def _add_provider_args(p: argparse.ArgumentParser) -> None:
         "test double (not a model)",
     )
     p.add_argument("--fixtures", default="tests/fixtures/llm", help="record/replay directory")
-    p.add_argument("--record", action="store_true", help="record live calls as fixtures")
+    p.add_argument("--record", action="store_true", help="record calls as replay fixtures")
+    p.add_argument(
+        "--extract-mode",
+        choices=["sync", "batch"],
+        help="batch = send extraction through the Message Batches API (half price, async)",
+    )
     p.add_argument("--gold", help="gold JSON (oracle provider only)")
     p.add_argument("--oracle-noise", type=float, default=0.0, help="oracle error rate")
 

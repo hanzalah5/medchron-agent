@@ -1,0 +1,26 @@
+{
+ "model": "oracle",
+ "stop_reason": "end_turn",
+ "content": [
+  {
+   "type": "text",
+   "text": "Recorded all supported issues."
+  }
+ ],
+ "text_parts": [
+  {
+   "text": "Recorded all supported issues.",
+   "citations": []
+  }
+ ],
+ "tool_calls": [],
+ "usage": {
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation_input_tokens": 0
+ },
+ "request_id": null,
+ "refusal_category": null,
+ "served_by_fallback": false
+}

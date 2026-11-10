@@ -26,18 +26,24 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
 import time
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from pydantic import BaseModel, Field
 
 from medchron.agents.analyst import analyze
 from medchron.agents.classifier import PageLabel, classify_pages, segment
-from medchron.agents.extractor import ExtractionResult, extract_document
+from medchron.agents.extractor import (
+    ExtractionResult,
+    extract_document,
+    finish_extraction,
+    prepare_extraction,
+)
 from medchron.agents.verifier import verify_issues
 from medchron.chronology.builder import build_chronology
 from medchron.chronology.diff import ChronologyDiff, diff_chronologies
@@ -53,10 +59,12 @@ from medchron.ingestion import IngestedCase
 from medchron.ingestion.identity import find_misfiled
 from medchron.ingestion.models import Page
 from medchron.ingestion.pipeline import assemble_case, extract_production
+from medchron.llm.batch import BatchClient, custom_id, default_batch_client, wait_for
 from medchron.llm.config import effort_for, model_for
+from medchron.llm.loop import ToolLoop
 from medchron.llm.prompts import load_prompt
 from medchron.llm.providers import CallRecord, LLMProvider, MeteredProvider
-from medchron.llm.types import BudgetExceededError, LLMError
+from medchron.llm.types import BudgetExceededError, LLMError, LLMTransientError
 from medchron.observability import span
 from medchron.retrieval.embeddings import get_embedder
 from medchron.retrieval.search import MemorySearch
@@ -112,6 +120,12 @@ class RunConfig:
     ocr: bool = True
     analyze: bool = True  # run the issue analyst and verifier after the chronology
     bates_prefix: str | None = None  # default: derived from the matter ID
+    # Extraction through the Message Batches API (half price, asynchronous).
+    extract_mode: str = field(
+        default_factory=lambda: os.environ.get("MEDCHRON_EXTRACT_MODE", "sync")
+    )
+    batch_client: BatchClient | None = None  # default: real API for the live provider
+    batch_poll_seconds: float = 30.0
 
 
 @dataclass
@@ -255,21 +269,22 @@ def _run_case(
         skipped = ",".join(str(p) for p in sorted(misfiled) if doc.start_page <= p <= doc.end_page)
         return cp.key(case_id, doc.model_dump_json(), content, f"skip={skipped}", ext_settings)
 
-    def work(doc: DocumentSegment) -> tuple[str, ExtractionResult]:
-        key = doc_key(doc)
-        hit = cp.load("extract", key, _ExtractionCheckpoint)
-        if hit is not None:
-            reused.append(doc.doc_id)
-            return doc.doc_id, ExtractionResult(
-                events=[ExtractedEvent.model_validate(e) for e in hit.events],
-                flags=hit.flags,
-                rejected=hit.rejected,
-                turns=hit.turns,
-            )
-        res = extract_document(llm, case, doc, exclude_pages=misfiled)
+    def from_checkpoint(doc: DocumentSegment) -> ExtractionResult | None:
+        hit = cp.load("extract", doc_key(doc), _ExtractionCheckpoint)
+        if hit is None:
+            return None
+        reused.append(doc.doc_id)
+        return ExtractionResult(
+            events=[ExtractedEvent.model_validate(e) for e in hit.events],
+            flags=hit.flags,
+            rejected=hit.rejected,
+            turns=hit.turns,
+        )
+
+    def store(doc: DocumentSegment, res: ExtractionResult) -> None:
         cp.save(
             "extract",
-            key,
+            doc_key(doc),
             _ExtractionCheckpoint(
                 events=[e.model_dump(mode="json") for e in res.events],
                 flags=res.flags,
@@ -277,30 +292,54 @@ def _run_case(
                 turns=res.turns,
             ),
         )
+
+    def failure(doc: DocumentSegment, e: Exception) -> None:
+        nonlocal status
+        failed.append(doc.doc_id)
+        if isinstance(e, BudgetExceededError):
+            status = "budget_exceeded"
+            return
+        log.warning("extraction failed for %s: %s", doc.doc_id, e)
+        flags.append(
+            CaseFlag(
+                kind="extraction_failed",
+                page_no=doc.start_page,
+                note=f"{doc.doc_id} ({doc.doc_type.value}): {type(e).__name__}. "
+                "Needs manual review.",
+            )
+        )
+
+    def work(doc: DocumentSegment) -> tuple[str, ExtractionResult]:
+        hit = from_checkpoint(doc)
+        if hit is not None:
+            return doc.doc_id, hit
+        res = extract_document(llm, case, doc, exclude_pages=misfiled)
+        store(doc, res)
         return doc.doc_id, res
 
-    say(f"extract: {len(documents)} documents, concurrency {config.concurrency}")
-    with ThreadPoolExecutor(max_workers=config.concurrency) as pool:
-        futures = {pool.submit(work, d): d for d in documents}
-        for fut in as_completed(futures):
-            doc = futures[fut]
-            try:
-                doc_id, res = fut.result()
-                results[doc_id] = res
-            except BudgetExceededError:
-                status = "budget_exceeded"
-                failed.append(doc.doc_id)
-            except (LLMError, LookupError) as e:  # LookupError covers replay misses
-                log.warning("extraction failed for %s: %s", doc.doc_id, e)
-                failed.append(doc.doc_id)
-                flags.append(
-                    CaseFlag(
-                        kind="extraction_failed",
-                        page_no=doc.start_page,
-                        note=f"{doc.doc_id} ({doc.doc_type.value}): {type(e).__name__}. "
-                        "Needs manual review.",
-                    )
-                )
+    if config.extract_mode == "batch":
+        client = config.batch_client or default_batch_client(provider)
+        say(f"extract: {len(documents)} documents through the Message Batches API ({client.name})")
+        for doc_id, outcome in _extract_in_batches(
+            client, metered, case, documents, misfiled, cp, from_checkpoint, say, config
+        ).items():
+            doc = next(d for d in documents if d.doc_id == doc_id)
+            if isinstance(outcome, ExtractionResult):
+                results[doc_id] = outcome
+                store(doc, outcome)
+            else:
+                failure(doc, outcome)
+    else:
+        say(f"extract: {len(documents)} documents, concurrency {config.concurrency}")
+        with ThreadPoolExecutor(max_workers=config.concurrency) as pool:
+            futures = {pool.submit(work, d): d for d in documents}
+            for fut in as_completed(futures):
+                doc = futures[fut]
+                try:
+                    doc_id, res = fut.result()
+                    results[doc_id] = res
+                except (LLMError, LookupError) as e:  # LookupError covers replay misses
+                    failure(doc, e)
     if failed and status == "completed":
         status = "completed_with_errors"
 
@@ -383,6 +422,92 @@ def _run_case(
         version=version,
         diff=diff,
     )
+
+
+class _BatchRef(BaseModel):
+    batch_id: str
+    client: str
+
+
+def _extract_in_batches(
+    client: BatchClient,
+    metered: MeteredProvider,
+    case: IngestedCase,
+    documents: list[DocumentSegment],
+    misfiled: set[int],
+    cp: Checkpoints,
+    cached: Callable[[DocumentSegment], ExtractionResult | None],
+    say: Callable[[str], None],
+    config: RunConfig,
+) -> dict[str, ExtractionResult | Exception]:
+    """Run every document's extraction loop in rounds, one batch per tool-loop turn.
+
+    Each round sends exactly the request the synchronous loop would send next.
+    The batch ID is checkpointed under a key derived from those requests, so a
+    crash while waiting resumes polling the same batch instead of paying for a
+    new one. A document whose batch request is refused or fails falls back to
+    the synchronous path, which has server-side fallbacks.
+    """
+    out: dict[str, ExtractionResult | Exception] = {}
+    active: dict[str, tuple[DocumentSegment, Any, ToolLoop]] = {}
+    for doc in documents:
+        hit = cached(doc)
+        if hit is not None:
+            out[doc.doc_id] = hit
+            continue
+        prepared = prepare_extraction(case, doc, exclude_pages=misfiled)
+        if isinstance(prepared, ExtractionResult):
+            out[doc.doc_id] = prepared
+        else:
+            active[doc.doc_id] = (doc, prepared[0], prepared[1])
+
+    def synchronously(doc: DocumentSegment) -> None:
+        try:
+            out[doc.doc_id] = extract_document(metered, case, doc, exclude_pages=misfiled)
+        except (LLMError, LookupError) as e:
+            out[doc.doc_id] = e
+
+    rounds = 0
+    while active:
+        rounds += 1
+        try:
+            metered.check_budget()
+        except BudgetExceededError as e:
+            for doc_id in active:
+                out[doc_id] = e
+            break
+        items = [
+            (custom_id(case.case_id, doc_id, str(loop.turn)), loop.next_request())
+            for doc_id, (_, _, loop) in active.items()
+        ]
+        ids = list(active)
+        key = cp.key(client.name, *(f"{cid}:{req.fingerprint()}" for cid, req in items))
+        ref = cp.load("extract-batch", key, _BatchRef)
+        if ref is None:
+            ref = _BatchRef(batch_id=client.submit(items), client=client.name)
+            cp.save("extract-batch", key, ref)
+            say(f"extract: batch round {rounds}: {len(items)} document(s) submitted")
+        else:
+            say(f"extract: batch round {rounds}: resuming batch {ref.batch_id}")
+        wait_for(client, ref.batch_id, poll_seconds=config.batch_poll_seconds, progress=say)
+        answers = client.results(ref.batch_id)
+        for doc_id, (cid, req) in zip(ids, items, strict=True):
+            doc, recorder, loop = active[doc_id]
+            answer = answers.get(cid, LLMTransientError(f"no batch result for {cid}"))
+            try:
+                if isinstance(answer, Exception):
+                    raise answer
+                metered.record(req, answer, batch=True)
+                finished = loop.apply(answer)
+            except LLMError as e:
+                log.info("batch request for %s failed (%s); retrying synchronously", doc_id, e)
+                del active[doc_id]
+                synchronously(doc)
+                continue
+            if finished is not None:
+                out[doc_id] = finish_extraction(recorder, finished)
+                del active[doc_id]
+    return out
 
 
 def _record_version(out: Path, chron: Chronology) -> tuple[int, ChronologyDiff | None]:

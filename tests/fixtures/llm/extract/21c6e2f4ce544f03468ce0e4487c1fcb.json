@@ -1,0 +1,73 @@
+{
+ "model": "oracle",
+ "stop_reason": "tool_use",
+ "content": [
+  {
+   "type": "tool_use",
+   "id": "toolu_oracle_6",
+   "name": "record_events",
+   "input": {
+    "events": [
+     {
+      "date_text": "2022-07-03",
+      "date_iso": "2022-07-03",
+      "type": "communication",
+      "summary": "Patient notified of final radiology result",
+      "source_span_id": "case_0005:p9:0-414",
+      "quote": "Patient notified by phone of final radiology read showing scaphoid fracture.",
+      "confidence": "high"
+     },
+     {
+      "date_text": "2022-07-03",
+      "date_iso": "2022-07-03",
+      "type": "referral",
+      "summary": "Referred to orthopedics",
+      "source_span_id": "case_0005:p9:0-414",
+      "quote": "Referral placed to orthopedic hand surgery.",
+      "confidence": "high"
+     }
+    ],
+    "flags": []
+   }
+  }
+ ],
+ "text_parts": [],
+ "tool_calls": [
+  {
+   "id": "toolu_oracle_6",
+   "name": "record_events",
+   "input": {
+    "events": [
+     {
+      "date_text": "2022-07-03",
+      "date_iso": "2022-07-03",
+      "type": "communication",
+      "summary": "Patient notified of final radiology result",
+      "source_span_id": "case_0005:p9:0-414",
+      "quote": "Patient notified by phone of final radiology read showing scaphoid fracture.",
+      "confidence": "high"
+     },
+     {
+      "date_text": "2022-07-03",
+      "date_iso": "2022-07-03",
+      "type": "referral",
+      "summary": "Referred to orthopedics",
+      "source_span_id": "case_0005:p9:0-414",
+      "quote": "Referral placed to orthopedic hand surgery.",
+      "confidence": "high"
+     }
+    ],
+    "flags": []
+   }
+  }
+ ],
+ "usage": {
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation_input_tokens": 0
+ },
+ "request_id": null,
+ "refusal_category": null,
+ "served_by_fallback": false
+}

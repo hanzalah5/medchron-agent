@@ -1,0 +1,215 @@
+{
+ "model": "oracle",
+ "stop_reason": "tool_use",
+ "content": [
+  {
+   "type": "tool_use",
+   "id": "toolu_oracle_1",
+   "name": "label_pages",
+   "input": {
+    "pages": [
+     {
+      "page_number": 1,
+      "doc_type": "fax_cover",
+      "title": "Facsimile Transmittal - Release of Information",
+      "date_iso": "2022-09-10",
+      "facility": "Keystone Bone & Joint",
+      "provider": "Health Information Management",
+      "starts_new_document": true
+     },
+     {
+      "page_number": 2,
+      "doc_type": "office_visit",
+      "title": "Hand Surgery Consultation",
+      "date_iso": "2022-07-07",
+      "facility": "Keystone Bone & Joint",
+      "provider": "A. Delacroix, MD",
+      "starts_new_document": true
+     },
+     {
+      "page_number": 3,
+      "doc_type": "operative_report",
+      "title": "Operative Report",
+      "date_iso": "2022-07-12",
+      "facility": "Keystone Bone & Joint",
+      "provider": "A. Delacroix, MD",
+      "starts_new_document": true
+     },
+     {
+      "page_number": 4,
+      "doc_type": "office_visit",
+      "title": "Post-operative Visit",
+      "date_iso": "2022-07-24",
+      "facility": "Keystone Bone & Joint",
+      "provider": "A. Delacroix, MD",
+      "starts_new_document": true
+     },
+     {
+      "page_number": 6,
+      "doc_type": "fax_cover",
+      "title": "Facsimile Transmittal - Release of Information",
+      "date_iso": "2022-11-06",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "Health Information Management",
+      "starts_new_document": true
+     },
+     {
+      "page_number": 7,
+      "doc_type": "office_visit",
+      "title": "Urgent Care Visit",
+      "date_iso": "2022-06-16",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "C. Ramanathan, PA-C",
+      "starts_new_document": true
+     },
+     {
+      "page_number": 8,
+      "doc_type": "radiology_report",
+      "title": "Radiology Report - Wrist 3 Views",
+      "date_iso": "2022-06-17",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "R. Ramanathan, MD",
+      "starts_new_document": true
+     },
+     {
+      "page_number": 9,
+      "doc_type": "telephone_note",
+      "title": "Telephone Encounter",
+      "date_iso": "2022-07-03",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "C. Ramanathan, PA-C",
+      "starts_new_document": true
+     },
+     {
+      "page_number": 11,
+      "doc_type": "fax_cover",
+      "title": "Facsimile Transmittal - Release of Information",
+      "date_iso": "2022-08-31",
+      "facility": "Maple Street Family Medicine",
+      "provider": "Health Information Management",
+      "starts_new_document": true
+     },
+     {
+      "page_number": 12,
+      "doc_type": "office_visit",
+      "title": "Office Visit",
+      "date_iso": "2022-06-25",
+      "facility": "Maple Street Family Medicine",
+      "provider": "E. Okafor, MD",
+      "starts_new_document": true
+     }
+    ]
+   }
+  }
+ ],
+ "text_parts": [],
+ "tool_calls": [
+  {
+   "id": "toolu_oracle_1",
+   "name": "label_pages",
+   "input": {
+    "pages": [
+     {
+      "page_number": 1,
+      "doc_type": "fax_cover",
+      "title": "Facsimile Transmittal - Release of Information",
+      "date_iso": "2022-09-10",
+      "facility": "Keystone Bone & Joint",
+      "provider": "Health Information Management",
+      "starts_new_document": true
+     },
+     {
+      "page_number": 2,
+      "doc_type": "office_visit",
+      "title": "Hand Surgery Consultation",
+      "date_iso": "2022-07-07",
+      "facility": "Keystone Bone & Joint",
+      "provider": "A. Delacroix, MD",
+      "starts_new_document": true
+     },
+     {
+      "page_number": 3,
+      "doc_type": "operative_report",
+      "title": "Operative Report",
+      "date_iso": "2022-07-12",
+      "facility": "Keystone Bone & Joint",
+      "provider": "A. Delacroix, MD",
+      "starts_new_document": true
+     },
+     {
+      "page_number": 4,
+      "doc_type": "office_visit",
+      "title": "Post-operative Visit",
+      "date_iso": "2022-07-24",
+      "facility": "Keystone Bone & Joint",
+      "provider": "A. Delacroix, MD",
+      "starts_new_document": true
+     },
+     {
+      "page_number": 6,
+      "doc_type": "fax_cover",
+      "title": "Facsimile Transmittal - Release of Information",
+      "date_iso": "2022-11-06",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "Health Information Management",
+      "starts_new_document": true
+     },
+     {
+      "page_number": 7,
+      "doc_type": "office_visit",
+      "title": "Urgent Care Visit",
+      "date_iso": "2022-06-16",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "C. Ramanathan, PA-C",
+      "starts_new_document": true
+     },
+     {
+      "page_number": 8,
+      "doc_type": "radiology_report",
+      "title": "Radiology Report - Wrist 3 Views",
+      "date_iso": "2022-06-17",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "R. Ramanathan, MD",
+      "starts_new_document": true
+     },
+     {
+      "page_number": 9,
+      "doc_type": "telephone_note",
+      "title": "Telephone Encounter",
+      "date_iso": "2022-07-03",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "C. Ramanathan, PA-C",
+      "starts_new_document": true
+     },
+     {
+      "page_number": 11,
+      "doc_type": "fax_cover",
+      "title": "Facsimile Transmittal - Release of Information",
+      "date_iso": "2022-08-31",
+      "facility": "Maple Street Family Medicine",
+      "provider": "Health Information Management",
+      "starts_new_document": true
+     },
+     {
+      "page_number": 12,
+      "doc_type": "office_visit",
+      "title": "Office Visit",
+      "date_iso": "2022-06-25",
+      "facility": "Maple Street Family Medicine",
+      "provider": "E. Okafor, MD",
+      "starts_new_document": true
+     }
+    ]
+   }
+  }
+ ],
+ "usage": {
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation_input_tokens": 0
+ },
+ "request_id": null,
+ "refusal_category": null,
+ "served_by_fallback": false
+}

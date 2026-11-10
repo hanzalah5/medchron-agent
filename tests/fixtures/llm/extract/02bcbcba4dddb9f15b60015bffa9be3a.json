@@ -1,0 +1,55 @@
+{
+ "model": "oracle",
+ "stop_reason": "tool_use",
+ "content": [
+  {
+   "type": "tool_use",
+   "id": "toolu_oracle_3",
+   "name": "record_events",
+   "input": {
+    "events": [
+     {
+      "date_text": "2022-07-12",
+      "date_iso": "2022-07-12",
+      "type": "procedure",
+      "summary": "ORIF scaphoid with headless compression screw",
+      "source_span_id": "case_0005:p3:0-495",
+      "quote": "Procedure: open reduction internal fixation of scaphoid with headless\ncompression screw.",
+      "confidence": "high"
+     }
+    ],
+    "flags": []
+   }
+  }
+ ],
+ "text_parts": [],
+ "tool_calls": [
+  {
+   "id": "toolu_oracle_3",
+   "name": "record_events",
+   "input": {
+    "events": [
+     {
+      "date_text": "2022-07-12",
+      "date_iso": "2022-07-12",
+      "type": "procedure",
+      "summary": "ORIF scaphoid with headless compression screw",
+      "source_span_id": "case_0005:p3:0-495",
+      "quote": "Procedure: open reduction internal fixation of scaphoid with headless\ncompression screw.",
+      "confidence": "high"
+     }
+    ],
+    "flags": []
+   }
+  }
+ ],
+ "usage": {
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation_input_tokens": 0
+ },
+ "request_id": null,
+ "refusal_category": null,
+ "served_by_fallback": false
+}
