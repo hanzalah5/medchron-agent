@@ -1,4 +1,4 @@
-30 claims, 30 labelled, 30 judged.
+56 claims, 56 labelled, 56 judged.
 
 **No human labels yet.** Judge-human agreement has not been measured, so the verifier's supported rate is not yet calibrated.
 
@@ -6,18 +6,18 @@
 
 ### Judge vs gold-derived labels (by construction, not human)
 
-n = 30, accuracy 50.0%, Cohen's kappa 0.00
+n = 56, accuracy 50.0%, Cohen's kappa 0.00
 
 | Class | Precision | Recall | Support |
 |---|---|---|---|
-| supported | 50.0% | 100.0% | 15 |
+| supported | 50.0% | 100.0% | 28 |
 | partial | n/a | n/a | 0 |
-| unsupported | n/a | 0.0% | 15 |
+| unsupported | n/a | 0.0% | 28 |
 
 Confusion matrix (rows = label, columns = judge):
 
 | label \ judge | supported | partial | unsupported |
 |---|---|---|---|
-| supported | 15 | 0 | 0 |
+| supported | 28 | 0 | 0 |
 | partial | 0 | 0 | 0 |
-| unsupported | 15 | 0 | 0 |
+| unsupported | 28 | 0 | 0 |

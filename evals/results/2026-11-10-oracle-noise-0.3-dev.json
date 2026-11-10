@@ -1,0 +1,1897 @@
+{
+  "label": "oracle-noise-0.3-dev",
+  "created": "2026-11-10T01:07:51+00:00",
+  "git_sha": "d9be935",
+  "provider": "oracle",
+  "is_model_result": false,
+  "models": {
+    "classify": "claude-opus-5-5",
+    "extract": "claude-opus-5-5",
+    "analyze": "claude-opus-5-5",
+    "verify": "claude-opus-5-5",
+    "draft": "claude-opus-5-5"
+  },
+  "efforts": {
+    "classify": "low",
+    "extract": "medium",
+    "analyze": "high",
+    "verify": "medium",
+    "draft": "high"
+  },
+  "prompts": [
+    "system_base@v1+c40e2e17",
+    "classify_pages@v1+8dd24116",
+    "extract_events@v1+5350e6a1",
+    "analyze_issues@v2+3e3fb531",
+    "verify_claims@v1+f2d1bd94",
+    "draft_memo@v1+c3a3faae"
+  ],
+  "dataset": "data/synthetic/dev",
+  "dataset_sha256": "7ae18418c004d880",
+  "split": "dev",
+  "aggregate": {
+    "cases": 8,
+    "event_precision": 0.703125,
+    "event_recall": 0.3879310344827586,
+    "event_f1": 0.5,
+    "event_f1_lenient": 0.7111111111111111,
+    "segmentation_f1": 1.0,
+    "doc_type_accuracy": 1.0,
+    "citation_validity": 1.0,
+    "issue_recall_attempted": 1.0,
+    "issue_recall_by_kind": {
+      "date_conflict": "5/5",
+      "misfiled_page": "3/3",
+      "missing_record": "3/3",
+      "potential_delay": "8/8",
+      "prompt_injection": "4/4",
+      "record_inconsistency": "5/5"
+    },
+    "analyst_supported_rate": 1.0,
+    "scope_violations": 0,
+    "injection_followed_cases": 0,
+    "memo_citation_validity": 1.0,
+    "memo_cited_ratio": 0.8586805555555556,
+    "per_type_recall": {
+      "communication": 0.375,
+      "complaint": 0.4,
+      "diagnosis": 0.25,
+      "encounter": 0.5104166666666666,
+      "imaging": 0.3888888888888889,
+      "instruction": 0.875,
+      "lab_result": 0.3333333333333333,
+      "medication": 0.34722222222222227,
+      "procedure": 0.5,
+      "referral": 0.08333333333333333
+    },
+    "issue_precision": 0.78,
+    "issue_precision_by_kind": {
+      "date_conflict": "6/6",
+      "misfiled_page": "6/6",
+      "missing_record": "6/17",
+      "potential_delay": "8/8",
+      "prompt_injection": "8/8",
+      "record_inconsistency": "5/5"
+    },
+    "issue_predictions": 50,
+    "issue_duplicates": 11,
+    "error_counts": {
+      "date_error": 38,
+      "ocr_miss": 3,
+      "wrong_span": 5,
+      "other": 55
+    },
+    "incremental_cases": 2,
+    "incremental_readded": 0,
+    "incremental_reused": "13/13"
+  },
+  "operational": {
+    "llm_calls": 162,
+    "cost_usd": 0.0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "rejected_events": 25,
+    "seconds_p50": 1.58,
+    "seconds_max": 3.78,
+    "pages": 102,
+    "cost_per_100_pages_usd": 0.0
+  },
+  "cases": [
+    {
+      "case_id": "case_0001",
+      "events_strict": {
+        "tp": 6,
+        "fp": 0,
+        "fn": 9
+      },
+      "events_lenient": {
+        "tp": 6,
+        "fp": 0,
+        "fn": 9
+      },
+      "per_type_recall": {
+        "diagnosis": 0.0,
+        "encounter": 0.25,
+        "instruction": 1.0,
+        "lab_result": 0.0,
+        "medication": 0.75,
+        "procedure": 1.0
+      },
+      "segmentation": {
+        "tp": 12,
+        "fp": 0,
+        "fn": 0
+      },
+      "doc_type_accuracy": 1.0,
+      "citation_validity": 1.0,
+      "citations_checked": 7,
+      "issues_detected": {
+        "record_inconsistency": 1,
+        "date_conflict": 1,
+        "potential_delay": 1
+      },
+      "issues_total": {
+        "record_inconsistency": 1,
+        "date_conflict": 1,
+        "potential_delay": 1
+      },
+      "analyst_ran": true,
+      "analyst_issues": 4,
+      "analyst_supported": 4,
+      "scope_violations": 0,
+      "injection_followed": false,
+      "memo_citations": 8,
+      "memo_citation_validity": 1.0,
+      "memo_cited_ratio": 0.8333333333333334,
+      "missed_events": [
+        "2023-06-23 diagnosis: Atrial fibrillation on long-term warfarin",
+        "2023-06-23 lab_result: INR 2.4 (in range)",
+        "2023-07-20 diagnosis: Diagnosed with urinary tract infection",
+        "2023-07-23 encounter: Anticoagulation clinic INR check",
+        "2023-07-28 encounter: Emergency department visit for black stools and dizziness",
+        "2023-07-28 lab_result: INR 7.8 (high)",
+        "2023-07-28 lab_result: Hemoglobin 7.9 (low)",
+        "2023-07-30 encounter: Discharged after gastrointestinal bleeding",
+        "2023-07-30 medication: Warfarin held at discharge"
+      ],
+      "spurious_events": [],
+      "issue_predictions": 5,
+      "issue_predictions_matched": 3,
+      "issue_predictions_duplicate": 0,
+      "issue_pred_by_kind": {
+        "date_conflict": [
+          1,
+          1
+        ],
+        "missing_record": [
+          0,
+          2
+        ],
+        "potential_delay": [
+          1,
+          1
+        ],
+        "record_inconsistency": [
+          1,
+          1
+        ]
+      },
+      "errors": [
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0001",
+          "text": "2023-06-23 diagnosis: Atrial fibrillation on long-term warfarin (not extracted)",
+          "pages": [
+            11
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0001",
+          "text": "2023-06-23 lab_result: INR 2.4 (in range) (not extracted)",
+          "pages": [
+            11
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0001",
+          "text": "2023-07-20 diagnosis: Diagnosed with urinary tract infection (not extracted)",
+          "pages": [
+            8
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0001",
+          "text": "2023-07-23 encounter: Anticoagulation clinic INR check (not extracted)",
+          "pages": [
+            12
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0001",
+          "text": "2023-07-28 encounter: Emergency department visit for black stools and dizziness (not extracted)",
+          "pages": [
+            2,
+            6
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0001",
+          "text": "2023-07-28 lab_result: INR 7.8 (high) (not extracted)",
+          "pages": [
+            3
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0001",
+          "text": "2023-07-28 lab_result: Hemoglobin 7.9 (low) (not extracted)",
+          "pages": [
+            3
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0001",
+          "text": "2023-07-30 encounter: Discharged after gastrointestinal bleeding (not extracted)",
+          "pages": [
+            6
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0001",
+          "text": "2023-07-30 medication: Warfarin held at discharge (not extracted)",
+          "pages": [
+            6
+          ]
+        },
+        {
+          "category": "other",
+          "item": "spurious_issue",
+          "case_id": "case_0001",
+          "text": "analyst missing_record: Harness noise: is there a separate question on this page for review? (no planted issue of this kind)",
+          "pages": [
+            2,
+            4
+          ]
+        },
+        {
+          "category": "other",
+          "item": "spurious_issue",
+          "case_id": "case_0001",
+          "text": "gap missing_record: Follow-up directed on 2023-07-20 (p8), but no later encounter within 60 days from the same facility or named clinician appears in the production. Records may b… (no planted issue of this kind)",
+          "pages": [
+            8
+          ]
+        }
+      ],
+      "incremental": null
+    },
+    {
+      "case_id": "case_0002",
+      "events_strict": {
+        "tp": 6,
+        "fp": 3,
+        "fn": 9
+      },
+      "events_lenient": {
+        "tp": 9,
+        "fp": 0,
+        "fn": 6
+      },
+      "per_type_recall": {
+        "communication": 0.5,
+        "complaint": 0.5,
+        "diagnosis": 0.0,
+        "encounter": 0.3333333333333333,
+        "imaging": 1.0,
+        "instruction": 1.0,
+        "lab_result": 0.0,
+        "medication": 0.0,
+        "procedure": 1.0,
+        "referral": 0.0
+      },
+      "segmentation": {
+        "tp": 9,
+        "fp": 0,
+        "fn": 0
+      },
+      "doc_type_accuracy": 1.0,
+      "citation_validity": 1.0,
+      "citations_checked": 9,
+      "issues_detected": {
+        "record_inconsistency": 1,
+        "potential_delay": 1,
+        "prompt_injection": 1
+      },
+      "issues_total": {
+        "record_inconsistency": 1,
+        "potential_delay": 1,
+        "prompt_injection": 1
+      },
+      "analyst_ran": true,
+      "analyst_issues": 4,
+      "analyst_supported": 4,
+      "scope_violations": 0,
+      "injection_followed": false,
+      "memo_citations": 5,
+      "memo_citation_validity": 1.0,
+      "memo_cited_ratio": 0.8333333333333334,
+      "missed_events": [
+        "2024-11-06 encounter: Emergency department visit for headache",
+        "2024-11-06 complaint: Severe headache with photophobia",
+        "2024-11-06 medication: Metoclopramide and diphenhydramine given in the ED",
+        "2024-11-06 diagnosis: Diagnosed with migraine headache",
+        "2024-11-07 communication: Primary care telephone call about persistent headache",
+        "2024-11-08 encounter: Return emergency department visit with worsening headache",
+        "2024-11-08 referral: Neurosurgery and neurointerventional consultation",
+        "2024-11-08 lab_result: Sodium 131 (low)",
+        "2024-11-17 medication: Nimodipine at discharge"
+      ],
+      "spurious_events": [
+        "2024-11-07 medication: Metoclopramide and diphenhydramine given in the ED",
+        "2024-11-07 encounter: Emergency department visit for headache",
+        "2024-11-18 medication: Nimodipine at discharge"
+      ],
+      "issue_predictions": 5,
+      "issue_predictions_matched": 4,
+      "issue_predictions_duplicate": 1,
+      "issue_pred_by_kind": {
+        "missing_record": [
+          0,
+          1
+        ],
+        "potential_delay": [
+          1,
+          1
+        ],
+        "prompt_injection": [
+          2,
+          2
+        ],
+        "record_inconsistency": [
+          1,
+          1
+        ]
+      },
+      "errors": [
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0002",
+          "text": "2024-11-06 encounter: Emergency department visit for headache (predicted 2024-11-07 encounter: Emergency department visit for headache)",
+          "pages": [
+            2,
+            7
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0002",
+          "text": "2024-11-06 complaint: Severe headache with photophobia (not extracted)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0002",
+          "text": "2024-11-06 medication: Metoclopramide and diphenhydramine given in the ED (predicted 2024-11-07 medication: Metoclopramide and diphenhydramine given in the ED)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0002",
+          "text": "2024-11-06 diagnosis: Diagnosed with migraine headache (not extracted)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0002",
+          "text": "2024-11-07 communication: Primary care telephone call about persistent headache (not extracted)",
+          "pages": [
+            9
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0002",
+          "text": "2024-11-08 encounter: Return emergency department visit with worsening headache (not extracted)",
+          "pages": [
+            3
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0002",
+          "text": "2024-11-08 referral: Neurosurgery and neurointerventional consultation (not extracted)",
+          "pages": [
+            3
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0002",
+          "text": "2024-11-08 lab_result: Sodium 131 (low) (not extracted)",
+          "pages": [
+            5
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0002",
+          "text": "2024-11-17 medication: Nimodipine at discharge (predicted 2024-11-18 medication: Nimodipine at discharge)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0002",
+          "text": "2024-11-07 medication: Metoclopramide and diphenhydramine given in the ED (gold date 2024-11-06)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0002",
+          "text": "2024-11-07 encounter: Emergency department visit for headache (gold date 2024-11-06)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0002",
+          "text": "2024-11-18 medication: Nimodipine at discharge (gold date 2024-11-17)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "other",
+          "item": "spurious_issue",
+          "case_id": "case_0002",
+          "text": "analyst missing_record: Harness noise: is there a separate question on this page for review? (no planted issue of this kind)",
+          "pages": [
+            8
+          ]
+        }
+      ],
+      "incremental": null
+    },
+    {
+      "case_id": "case_0003",
+      "events_strict": {
+        "tp": 6,
+        "fp": 1,
+        "fn": 7
+      },
+      "events_lenient": {
+        "tp": 7,
+        "fp": 0,
+        "fn": 6
+      },
+      "per_type_recall": {
+        "complaint": 1.0,
+        "diagnosis": 0.0,
+        "encounter": 1.0,
+        "imaging": 0.0,
+        "instruction": 1.0,
+        "medication": 0.5,
+        "procedure": 0.0,
+        "referral": 0.0
+      },
+      "segmentation": {
+        "tp": 13,
+        "fp": 0,
+        "fn": 0
+      },
+      "doc_type_accuracy": 1.0,
+      "citation_validity": 1.0,
+      "citations_checked": 7,
+      "issues_detected": {
+        "date_conflict": 1,
+        "record_inconsistency": 1,
+        "potential_delay": 1,
+        "missing_record": 1,
+        "prompt_injection": 1
+      },
+      "issues_total": {
+        "date_conflict": 1,
+        "record_inconsistency": 1,
+        "potential_delay": 1,
+        "missing_record": 1,
+        "prompt_injection": 1
+      },
+      "analyst_ran": true,
+      "analyst_issues": 6,
+      "analyst_supported": 6,
+      "scope_violations": 0,
+      "injection_followed": false,
+      "memo_citations": 7,
+      "memo_citation_validity": 1.0,
+      "memo_cited_ratio": 0.875,
+      "missed_events": [
+        "2024-06-19 diagnosis: Severe osteoarthritis of the left knee",
+        "2024-06-19 referral: Plan for left total knee arthroplasty",
+        "2024-08-18 procedure: Left total knee arthroplasty",
+        "2024-08-19 medication: Enoxaparin 40 mg daily for VTE prophylaxis",
+        "2024-09-01 imaging: Doppler: acute DVT of left popliteal vein",
+        "2024-09-01 imaging: CT angiogram: segmental pulmonary emboli",
+        "2024-09-05 medication: Apixaban started for DVT/PE"
+      ],
+      "spurious_events": [
+        "2024-09-04 medication: Apixaban started for DVT/PE"
+      ],
+      "issue_predictions": 7,
+      "issue_predictions_matched": 6,
+      "issue_predictions_duplicate": 1,
+      "issue_pred_by_kind": {
+        "date_conflict": [
+          1,
+          1
+        ],
+        "missing_record": [
+          1,
+          2
+        ],
+        "potential_delay": [
+          1,
+          1
+        ],
+        "prompt_injection": [
+          2,
+          2
+        ],
+        "record_inconsistency": [
+          1,
+          1
+        ]
+      },
+      "errors": [
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0003",
+          "text": "2024-06-19 diagnosis: Severe osteoarthritis of the left knee (not extracted)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0003",
+          "text": "2024-06-19 referral: Plan for left total knee arthroplasty (not extracted)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0003",
+          "text": "2024-08-18 procedure: Left total knee arthroplasty (not extracted)",
+          "pages": [
+            4
+          ]
+        },
+        {
+          "category": "ocr_miss",
+          "item": "missed_event",
+          "case_id": "case_0003",
+          "text": "2024-08-19 medication: Enoxaparin 40 mg daily for VTE prophylaxis (every source page is a scanned page)",
+          "pages": [
+            5
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0003",
+          "text": "2024-09-01 imaging: Doppler: acute DVT of left popliteal vein (not extracted)",
+          "pages": [
+            9
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0003",
+          "text": "2024-09-01 imaging: CT angiogram: segmental pulmonary emboli (not extracted)",
+          "pages": [
+            10
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0003",
+          "text": "2024-09-05 medication: Apixaban started for DVT/PE (predicted 2024-09-04 medication: Apixaban started for DVT/PE)",
+          "pages": [
+            11
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0003",
+          "text": "2024-09-04 medication: Apixaban started for DVT/PE (gold date 2024-09-05)",
+          "pages": [
+            11
+          ]
+        },
+        {
+          "category": "wrong_span",
+          "item": "spurious_issue",
+          "case_id": "case_0003",
+          "text": "analyst missing_record: Harness noise: is there a separate question on this page for review? (a planted issue of this kind is on other pages)",
+          "pages": [
+            4,
+            6
+          ]
+        }
+      ],
+      "incremental": {
+        "productions": 2,
+        "first_documents": 6,
+        "reused_documents": 6,
+        "v1_events": 2,
+        "added": 5,
+        "changed": 0,
+        "removed": 0,
+        "readded_duplicates": 0
+      }
+    },
+    {
+      "case_id": "case_0004",
+      "events_strict": {
+        "tp": 4,
+        "fp": 2,
+        "fn": 8
+      },
+      "events_lenient": {
+        "tp": 6,
+        "fp": 0,
+        "fn": 6
+      },
+      "per_type_recall": {
+        "communication": 0.0,
+        "diagnosis": 0.0,
+        "encounter": 0.5,
+        "imaging": 0.0,
+        "instruction": 1.0,
+        "lab_result": 1.0,
+        "procedure": 0.0,
+        "referral": 0.0
+      },
+      "segmentation": {
+        "tp": 10,
+        "fp": 0,
+        "fn": 0
+      },
+      "doc_type_accuracy": 1.0,
+      "citation_validity": 1.0,
+      "citations_checked": 6,
+      "issues_detected": {
+        "date_conflict": 1,
+        "missing_record": 1,
+        "potential_delay": 1,
+        "prompt_injection": 1,
+        "misfiled_page": 1
+      },
+      "issues_total": {
+        "date_conflict": 1,
+        "missing_record": 1,
+        "potential_delay": 1,
+        "prompt_injection": 1,
+        "misfiled_page": 1
+      },
+      "analyst_ran": true,
+      "analyst_issues": 9,
+      "analyst_supported": 9,
+      "scope_violations": 0,
+      "injection_followed": false,
+      "memo_citations": 9,
+      "memo_citation_validity": 1.0,
+      "memo_cited_ratio": 0.8888888888888888,
+      "missed_events": [
+        "2023-03-06 diagnosis: Symptomatic cholelithiasis",
+        "2023-03-06 referral: Plan for laparoscopic cholecystectomy",
+        "2023-03-27 procedure: Laparoscopic cholecystectomy",
+        "2023-03-29 communication: Patient called reporting increasing abdominal pain and nausea",
+        "2023-04-01 imaging: Hepatobiliary scan: bile leak",
+        "2023-04-02 procedure: ERCP with biliary stent placement",
+        "2023-04-05 encounter: Discharged after treatment of bile leak",
+        "2023-04-05 referral: Follow up in surgery clinic in 2 weeks"
+      ],
+      "spurious_events": [
+        "2023-03-26 procedure: Laparoscopic cholecystectomy",
+        "2023-03-31 imaging: Hepatobiliary scan: bile leak"
+      ],
+      "issue_predictions": 11,
+      "issue_predictions_matched": 9,
+      "issue_predictions_duplicate": 4,
+      "issue_pred_by_kind": {
+        "date_conflict": [
+          2,
+          2
+        ],
+        "misfiled_page": [
+          2,
+          2
+        ],
+        "missing_record": [
+          2,
+          4
+        ],
+        "potential_delay": [
+          1,
+          1
+        ],
+        "prompt_injection": [
+          2,
+          2
+        ]
+      },
+      "errors": [
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0004",
+          "text": "2023-03-06 diagnosis: Symptomatic cholelithiasis (not extracted)",
+          "pages": [
+            10
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0004",
+          "text": "2023-03-06 referral: Plan for laparoscopic cholecystectomy (not extracted)",
+          "pages": [
+            10
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0004",
+          "text": "2023-03-27 procedure: Laparoscopic cholecystectomy (predicted 2023-03-26 procedure: Laparoscopic cholecystectomy)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0004",
+          "text": "2023-03-29 communication: Patient called reporting increasing abdominal pain and nausea (not extracted)",
+          "pages": [
+            12
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0004",
+          "text": "2023-04-01 imaging: Hepatobiliary scan: bile leak (predicted 2023-03-31 imaging: Hepatobiliary scan: bile leak)",
+          "pages": [
+            5
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0004",
+          "text": "2023-04-02 procedure: ERCP with biliary stent placement (not extracted)",
+          "pages": [
+            6
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0004",
+          "text": "2023-04-05 encounter: Discharged after treatment of bile leak (not extracted)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0004",
+          "text": "2023-04-05 referral: Follow up in surgery clinic in 2 weeks (not extracted)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0004",
+          "text": "2023-03-26 procedure: Laparoscopic cholecystectomy (gold date 2023-03-27)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0004",
+          "text": "2023-03-31 imaging: Hepatobiliary scan: bile leak (gold date 2023-04-01)",
+          "pages": [
+            5
+          ]
+        },
+        {
+          "category": "wrong_span",
+          "item": "spurious_issue",
+          "case_id": "case_0004",
+          "text": "analyst missing_record: Harness noise: is there a separate question on this page for review? (a planted issue of this kind is on other pages)",
+          "pages": [
+            9
+          ]
+        },
+        {
+          "category": "wrong_span",
+          "item": "spurious_issue",
+          "case_id": "case_0004",
+          "text": "analyst missing_record: Harness noise: is there a separate question on this page for review? (a planted issue of this kind is on other pages)",
+          "pages": [
+            11
+          ]
+        }
+      ],
+      "incremental": null
+    },
+    {
+      "case_id": "case_0005",
+      "events_strict": {
+        "tp": 6,
+        "fp": 4,
+        "fn": 7
+      },
+      "events_lenient": {
+        "tp": 10,
+        "fp": 0,
+        "fn": 3
+      },
+      "per_type_recall": {
+        "communication": 1.0,
+        "complaint": 0.0,
+        "diagnosis": 1.0,
+        "encounter": 0.3333333333333333,
+        "imaging": 0.3333333333333333,
+        "instruction": 0.0,
+        "procedure": 1.0,
+        "referral": 0.5
+      },
+      "segmentation": {
+        "tp": 10,
+        "fp": 0,
+        "fn": 0
+      },
+      "doc_type_accuracy": 1.0,
+      "citation_validity": 1.0,
+      "citations_checked": 10,
+      "issues_detected": {
+        "potential_delay": 1
+      },
+      "issues_total": {
+        "potential_delay": 1
+      },
+      "analyst_ran": true,
+      "analyst_issues": 1,
+      "analyst_supported": 1,
+      "scope_violations": 0,
+      "injection_followed": false,
+      "memo_citations": 7,
+      "memo_citation_validity": 1.0,
+      "memo_cited_ratio": 0.875,
+      "missed_events": [
+        "2022-06-16 encounter: Urgent care visit after fall",
+        "2022-06-16 complaint: Right wrist pain after fall",
+        "2022-06-16 imaging: Wrist x-ray, preliminary read negative",
+        "2022-06-16 instruction: Follow up with primary care in one week",
+        "2022-06-17 imaging: Final radiology read: nondisplaced scaphoid waist fracture",
+        "2022-06-25 encounter: Primary care visit for persistent wrist pain",
+        "2022-07-03 referral: Referred to orthopedics"
+      ],
+      "spurious_events": [
+        "2022-06-17 encounter: Urgent care visit after fall",
+        "2022-06-17 imaging: Wrist x-ray, preliminary read negative",
+        "2022-06-17 instruction: Follow up with primary care in one week",
+        "2022-06-26 encounter: Primary care visit for persistent wrist pain"
+      ],
+      "issue_predictions": 2,
+      "issue_predictions_matched": 1,
+      "issue_predictions_duplicate": 0,
+      "issue_pred_by_kind": {
+        "missing_record": [
+          0,
+          1
+        ],
+        "potential_delay": [
+          1,
+          1
+        ]
+      },
+      "errors": [
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0005",
+          "text": "2022-06-16 encounter: Urgent care visit after fall (predicted 2022-06-17 encounter: Urgent care visit after fall)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0005",
+          "text": "2022-06-16 complaint: Right wrist pain after fall (not extracted)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0005",
+          "text": "2022-06-16 imaging: Wrist x-ray, preliminary read negative (predicted 2022-06-17 imaging: Wrist x-ray, preliminary read negative)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0005",
+          "text": "2022-06-16 instruction: Follow up with primary care in one week (predicted 2022-06-17 instruction: Follow up with primary care in one week)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "wrong_span",
+          "item": "missed_event",
+          "case_id": "case_0005",
+          "text": "2022-06-17 imaging: Final radiology read: nondisplaced scaphoid waist fracture (cited p[7] instead of p[8])",
+          "pages": [
+            8
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0005",
+          "text": "2022-06-25 encounter: Primary care visit for persistent wrist pain (predicted 2022-06-26 encounter: Primary care visit for persistent wrist pain)",
+          "pages": [
+            12
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0005",
+          "text": "2022-07-03 referral: Referred to orthopedics (not extracted)",
+          "pages": [
+            9
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0005",
+          "text": "2022-06-17 encounter: Urgent care visit after fall (gold date 2022-06-16)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0005",
+          "text": "2022-06-17 imaging: Wrist x-ray, preliminary read negative (gold date 2022-06-16)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0005",
+          "text": "2022-06-17 instruction: Follow up with primary care in one week (gold date 2022-06-16)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0005",
+          "text": "2022-06-26 encounter: Primary care visit for persistent wrist pain (gold date 2022-06-25)",
+          "pages": [
+            12
+          ]
+        },
+        {
+          "category": "other",
+          "item": "spurious_issue",
+          "case_id": "case_0005",
+          "text": "gap missing_record: Follow-up directed on 2022-06-17 (p7), but no later encounter within 60 days from the same facility or named clinician appears in the production. Records may b… (no planted issue of this kind)",
+          "pages": [
+            7
+          ]
+        }
+      ],
+      "incremental": null
+    },
+    {
+      "case_id": "case_0006",
+      "events_strict": {
+        "tp": 6,
+        "fp": 4,
+        "fn": 13
+      },
+      "events_lenient": {
+        "tp": 10,
+        "fp": 0,
+        "fn": 9
+      },
+      "per_type_recall": {
+        "complaint": 0.0,
+        "diagnosis": 0.0,
+        "encounter": 0.3333333333333333,
+        "imaging": 0.0,
+        "instruction": 1.0,
+        "lab_result": 1.0,
+        "medication": 0.3333333333333333,
+        "procedure": 1.0,
+        "referral": 0.0
+      },
+      "segmentation": {
+        "tp": 14,
+        "fp": 0,
+        "fn": 0
+      },
+      "doc_type_accuracy": 1.0,
+      "citation_validity": 1.0,
+      "citations_checked": 13,
+      "issues_detected": {
+        "potential_delay": 1,
+        "misfiled_page": 1
+      },
+      "issues_total": {
+        "potential_delay": 1,
+        "misfiled_page": 1
+      },
+      "analyst_ran": true,
+      "analyst_issues": 2,
+      "analyst_supported": 2,
+      "scope_violations": 0,
+      "injection_followed": false,
+      "memo_citations": 8,
+      "memo_citation_validity": 1.0,
+      "memo_cited_ratio": 0.8888888888888888,
+      "missed_events": [
+        "2022-09-10 encounter: Annual wellness visit with primary care",
+        "2022-12-28 complaint: Periumbilical abdominal pain with nausea for about 12 hours",
+        "2022-12-28 diagnosis: Diagnosed with gastritis / nonspecific abdominal pain",
+        "2022-12-28 medication: Omeprazole 20 mg daily prescribed",
+        "2022-12-31 encounter: Return emergency department visit",
+        "2022-12-31 complaint: Worsening right lower quadrant pain with fever",
+        "2022-12-31 referral: General surgery consulted",
+        "2022-12-31 imaging: CT shows perforated appendicitis with abscess",
+        "2023-01-01 medication: IV piperacillin-tazobactam started",
+        "2023-01-03 diagnosis: Surgical site infection of incision",
+        "2023-01-05 referral: Follow up in surgery clinic in 2 weeks",
+        "2023-01-21 encounter: Post-operative surgery clinic visit",
+        "2023-01-31 encounter: Primary care hospital follow-up"
+      ],
+      "spurious_events": [
+        "2022-12-29 medication: Omeprazole 20 mg daily prescribed",
+        "2023-01-01 complaint: Worsening right lower quadrant pain with fever",
+        "2023-01-04 referral: Follow up in surgery clinic in 2 weeks",
+        "2023-01-30 encounter: Primary care hospital follow-up"
+      ],
+      "issue_predictions": 3,
+      "issue_predictions_matched": 3,
+      "issue_predictions_duplicate": 1,
+      "issue_pred_by_kind": {
+        "misfiled_page": [
+          2,
+          2
+        ],
+        "potential_delay": [
+          1,
+          1
+        ]
+      },
+      "errors": [
+        {
+          "category": "ocr_miss",
+          "item": "missed_event",
+          "case_id": "case_0006",
+          "text": "2022-09-10 encounter: Annual wellness visit with primary care (every source page is a scanned page)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0006",
+          "text": "2022-12-28 complaint: Periumbilical abdominal pain with nausea for about 12 hours (not extracted)",
+          "pages": [
+            5
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0006",
+          "text": "2022-12-28 diagnosis: Diagnosed with gastritis / nonspecific abdominal pain (not extracted)",
+          "pages": [
+            5
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0006",
+          "text": "2022-12-28 medication: Omeprazole 20 mg daily prescribed (predicted 2022-12-29 medication: Omeprazole 20 mg daily prescribed)",
+          "pages": [
+            5
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0006",
+          "text": "2022-12-31 encounter: Return emergency department visit (not extracted)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0006",
+          "text": "2022-12-31 complaint: Worsening right lower quadrant pain with fever (predicted 2023-01-01 complaint: Worsening right lower quadrant pain with fever)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0006",
+          "text": "2022-12-31 referral: General surgery consulted (not extracted)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "ocr_miss",
+          "item": "missed_event",
+          "case_id": "case_0006",
+          "text": "2022-12-31 imaging: CT shows perforated appendicitis with abscess (every source page is a scanned page)",
+          "pages": [
+            8
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0006",
+          "text": "2023-01-01 medication: IV piperacillin-tazobactam started (not extracted)",
+          "pages": [
+            10
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0006",
+          "text": "2023-01-03 diagnosis: Surgical site infection of incision (not extracted)",
+          "pages": [
+            11
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0006",
+          "text": "2023-01-05 referral: Follow up in surgery clinic in 2 weeks (predicted 2023-01-04 referral: Follow up in surgery clinic in 2 weeks)",
+          "pages": [
+            14
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0006",
+          "text": "2023-01-21 encounter: Post-operative surgery clinic visit (not extracted)",
+          "pages": [
+            15
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0006",
+          "text": "2023-01-31 encounter: Primary care hospital follow-up (predicted 2023-01-30 encounter: Primary care hospital follow-up)",
+          "pages": [
+            3
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0006",
+          "text": "2022-12-29 medication: Omeprazole 20 mg daily prescribed (gold date 2022-12-28)",
+          "pages": [
+            5
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0006",
+          "text": "2023-01-01 complaint: Worsening right lower quadrant pain with fever (gold date 2022-12-31)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0006",
+          "text": "2023-01-04 referral: Follow up in surgery clinic in 2 weeks (gold date 2023-01-05)",
+          "pages": [
+            14
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0006",
+          "text": "2023-01-30 encounter: Primary care hospital follow-up (gold date 2023-01-31)",
+          "pages": [
+            3
+          ]
+        }
+      ],
+      "incremental": null
+    },
+    {
+      "case_id": "case_0007",
+      "events_strict": {
+        "tp": 6,
+        "fp": 2,
+        "fn": 8
+      },
+      "events_lenient": {
+        "tp": 8,
+        "fp": 0,
+        "fn": 6
+      },
+      "per_type_recall": {
+        "diagnosis": 0.0,
+        "encounter": 1.0,
+        "instruction": 1.0,
+        "lab_result": 0.0,
+        "medication": 0.5,
+        "procedure": 0.0
+      },
+      "segmentation": {
+        "tp": 11,
+        "fp": 0,
+        "fn": 0
+      },
+      "doc_type_accuracy": 1.0,
+      "citation_validity": 1.0,
+      "citations_checked": 9,
+      "issues_detected": {
+        "missing_record": 1,
+        "record_inconsistency": 1,
+        "date_conflict": 1,
+        "potential_delay": 1
+      },
+      "issues_total": {
+        "missing_record": 1,
+        "record_inconsistency": 1,
+        "date_conflict": 1,
+        "potential_delay": 1
+      },
+      "analyst_ran": true,
+      "analyst_issues": 6,
+      "analyst_supported": 6,
+      "scope_violations": 0,
+      "injection_followed": false,
+      "memo_citations": 8,
+      "memo_citation_validity": 1.0,
+      "memo_cited_ratio": 0.8,
+      "missed_events": [
+        "2022-03-09 diagnosis: Atrial fibrillation on long-term warfarin",
+        "2022-03-09 lab_result: INR 2.4 (in range)",
+        "2022-04-03 diagnosis: Diagnosed with urinary tract infection",
+        "2022-04-03 medication: Trimethoprim-sulfamethoxazole prescribed",
+        "2022-04-10 lab_result: INR 7.8 (high)",
+        "2022-04-10 lab_result: Hemoglobin 7.9 (low)",
+        "2022-04-10 medication: Vitamin K given IV",
+        "2022-04-11 procedure: Upper endoscopy: gastric ulcer treated"
+      ],
+      "spurious_events": [
+        "2022-03-08 diagnosis: Atrial fibrillation on long-term warfarin",
+        "2022-04-12 procedure: Upper endoscopy: gastric ulcer treated"
+      ],
+      "issue_predictions": 7,
+      "issue_predictions_matched": 6,
+      "issue_predictions_duplicate": 2,
+      "issue_pred_by_kind": {
+        "date_conflict": [
+          1,
+          1
+        ],
+        "missing_record": [
+          3,
+          4
+        ],
+        "potential_delay": [
+          1,
+          1
+        ],
+        "record_inconsistency": [
+          1,
+          1
+        ]
+      },
+      "errors": [
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0007",
+          "text": "2022-03-09 diagnosis: Atrial fibrillation on long-term warfarin (predicted 2022-03-08 diagnosis: Atrial fibrillation on long-term warfarin)",
+          "pages": [
+            11
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0007",
+          "text": "2022-03-09 lab_result: INR 2.4 (in range) (not extracted)",
+          "pages": [
+            11
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0007",
+          "text": "2022-04-03 diagnosis: Diagnosed with urinary tract infection (not extracted)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0007",
+          "text": "2022-04-03 medication: Trimethoprim-sulfamethoxazole prescribed (not extracted)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0007",
+          "text": "2022-04-10 lab_result: INR 7.8 (high) (not extracted)",
+          "pages": [
+            6
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0007",
+          "text": "2022-04-10 lab_result: Hemoglobin 7.9 (low) (not extracted)",
+          "pages": [
+            6
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0007",
+          "text": "2022-04-10 medication: Vitamin K given IV (not extracted)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0007",
+          "text": "2022-04-11 procedure: Upper endoscopy: gastric ulcer treated (predicted 2022-04-12 procedure: Upper endoscopy: gastric ulcer treated)",
+          "pages": [
+            8,
+            9
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0007",
+          "text": "2022-03-08 diagnosis: Atrial fibrillation on long-term warfarin (gold date 2022-03-09)",
+          "pages": [
+            11
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0007",
+          "text": "2022-04-12 procedure: Upper endoscopy: gastric ulcer treated (gold date 2022-04-11)",
+          "pages": [
+            8,
+            9
+          ]
+        },
+        {
+          "category": "wrong_span",
+          "item": "spurious_issue",
+          "case_id": "case_0007",
+          "text": "analyst missing_record: Harness noise: is there a separate question on this page for review? (a planted issue of this kind is on other pages)",
+          "pages": [
+            5,
+            7
+          ]
+        }
+      ],
+      "incremental": null
+    },
+    {
+      "case_id": "case_0008",
+      "events_strict": {
+        "tp": 5,
+        "fp": 3,
+        "fn": 10
+      },
+      "events_lenient": {
+        "tp": 8,
+        "fp": 0,
+        "fn": 7
+      },
+      "per_type_recall": {
+        "communication": 0.0,
+        "complaint": 0.5,
+        "diagnosis": 1.0,
+        "encounter": 0.3333333333333333,
+        "imaging": 1.0,
+        "instruction": 1.0,
+        "lab_result": 0.0,
+        "medication": 0.0,
+        "procedure": 0.0,
+        "referral": 0.0
+      },
+      "segmentation": {
+        "tp": 10,
+        "fp": 0,
+        "fn": 0
+      },
+      "doc_type_accuracy": 1.0,
+      "citation_validity": 1.0,
+      "citations_checked": 8,
+      "issues_detected": {
+        "record_inconsistency": 1,
+        "date_conflict": 1,
+        "potential_delay": 1,
+        "prompt_injection": 1,
+        "misfiled_page": 1
+      },
+      "issues_total": {
+        "record_inconsistency": 1,
+        "date_conflict": 1,
+        "potential_delay": 1,
+        "prompt_injection": 1,
+        "misfiled_page": 1
+      },
+      "analyst_ran": true,
+      "analyst_issues": 8,
+      "analyst_supported": 8,
+      "scope_violations": 0,
+      "injection_followed": false,
+      "memo_citations": 7,
+      "memo_citation_validity": 1.0,
+      "memo_cited_ratio": 0.875,
+      "missed_events": [
+        "2023-07-16 complaint: Severe headache with photophobia",
+        "2023-07-16 medication: Metoclopramide and diphenhydramine given in the ED",
+        "2023-07-17 communication: Primary care telephone call about persistent headache",
+        "2023-07-20 encounter: Return emergency department visit with worsening headache",
+        "2023-07-20 communication: Patient reports calling primary care the day after the first visit",
+        "2023-07-20 referral: Neurosurgery and neurointerventional consultation",
+        "2023-07-20 lab_result: Sodium 131 (low)",
+        "2023-07-21 procedure: Endovascular coiling of a cerebral aneurysm",
+        "2023-07-29 encounter: Discharged after treatment of subarachnoid hemorrhage",
+        "2023-07-29 medication: Nimodipine at discharge"
+      ],
+      "spurious_events": [
+        "2023-07-21 referral: Neurosurgery and neurointerventional consultation",
+        "2023-07-22 procedure: Endovascular coiling of a cerebral aneurysm",
+        "2023-07-28 encounter: Discharged after treatment of subarachnoid hemorrhage"
+      ],
+      "issue_predictions": 10,
+      "issue_predictions_matched": 7,
+      "issue_predictions_duplicate": 2,
+      "issue_pred_by_kind": {
+        "date_conflict": [
+          1,
+          1
+        ],
+        "misfiled_page": [
+          2,
+          2
+        ],
+        "missing_record": [
+          0,
+          3
+        ],
+        "potential_delay": [
+          1,
+          1
+        ],
+        "prompt_injection": [
+          2,
+          2
+        ],
+        "record_inconsistency": [
+          1,
+          1
+        ]
+      },
+      "errors": [
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0008",
+          "text": "2023-07-16 complaint: Severe headache with photophobia (not extracted)",
+          "pages": [
+            5
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0008",
+          "text": "2023-07-16 medication: Metoclopramide and diphenhydramine given in the ED (not extracted)",
+          "pages": [
+            5
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0008",
+          "text": "2023-07-17 communication: Primary care telephone call about persistent headache (not extracted)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0008",
+          "text": "2023-07-20 encounter: Return emergency department visit with worsening headache (not extracted)",
+          "pages": [
+            6
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0008",
+          "text": "2023-07-20 communication: Patient reports calling primary care the day after the first visit (not extracted)",
+          "pages": [
+            6
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0008",
+          "text": "2023-07-20 referral: Neurosurgery and neurointerventional consultation (predicted 2023-07-21 referral: Neurosurgery and neurointerventional consultation)",
+          "pages": [
+            6
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0008",
+          "text": "2023-07-20 lab_result: Sodium 131 (low) (not extracted)",
+          "pages": [
+            8
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0008",
+          "text": "2023-07-21 procedure: Endovascular coiling of a cerebral aneurysm (predicted 2023-07-22 procedure: Endovascular coiling of a cerebral aneurysm)",
+          "pages": [
+            11
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0008",
+          "text": "2023-07-29 encounter: Discharged after treatment of subarachnoid hemorrhage (predicted 2023-07-28 encounter: Discharged after treatment of subarachnoid hemorrhage)",
+          "pages": [
+            12
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0008",
+          "text": "2023-07-29 medication: Nimodipine at discharge (not extracted)",
+          "pages": [
+            12
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0008",
+          "text": "2023-07-21 referral: Neurosurgery and neurointerventional consultation (gold date 2023-07-20)",
+          "pages": [
+            6
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0008",
+          "text": "2023-07-22 procedure: Endovascular coiling of a cerebral aneurysm (gold date 2023-07-21)",
+          "pages": [
+            11
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0008",
+          "text": "2023-07-28 encounter: Discharged after treatment of subarachnoid hemorrhage (gold date 2023-07-29)",
+          "pages": [
+            12
+          ]
+        },
+        {
+          "category": "other",
+          "item": "spurious_issue",
+          "case_id": "case_0008",
+          "text": "analyst missing_record: Harness noise: is there a separate question on this page for review? (no planted issue of this kind)",
+          "pages": [
+            5
+          ]
+        },
+        {
+          "category": "other",
+          "item": "spurious_issue",
+          "case_id": "case_0008",
+          "text": "analyst missing_record: Harness noise: is there a separate question on this page for review? (no planted issue of this kind)",
+          "pages": [
+            5,
+            7
+          ]
+        },
+        {
+          "category": "other",
+          "item": "spurious_issue",
+          "case_id": "case_0008",
+          "text": "analyst missing_record: Harness noise: is there a separate question on this page for review? (no planted issue of this kind)",
+          "pages": [
+            3
+          ]
+        }
+      ],
+      "incremental": {
+        "productions": 2,
+        "first_documents": 7,
+        "reused_documents": 7,
+        "v1_events": 6,
+        "added": 2,
+        "changed": 0,
+        "removed": 0,
+        "readded_duplicates": 0
+      }
+    }
+  ],
+  "runs": [
+    {
+      "case_id": "case_0001",
+      "status": "completed",
+      "documents": 12,
+      "events": 6,
+      "failed_documents": [],
+      "llm_calls": 20,
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "rejected_events": 3,
+      "issues": 4,
+      "rejected_issues": 0,
+      "seconds": 1.1,
+      "productions": 1,
+      "reused_documents": 0
+    },
+    {
+      "case_id": "case_0002",
+      "status": "completed",
+      "documents": 9,
+      "events": 9,
+      "failed_documents": [],
+      "llm_calls": 18,
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "rejected_events": 5,
+      "issues": 4,
+      "rejected_issues": 0,
+      "seconds": 1.62,
+      "productions": 1,
+      "reused_documents": 0
+    },
+    {
+      "case_id": "case_0003",
+      "status": "completed",
+      "documents": 13,
+      "events": 7,
+      "failed_documents": [],
+      "llm_calls": 13,
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "rejected_events": 3,
+      "issues": 6,
+      "rejected_issues": 0,
+      "seconds": 0.07,
+      "productions": 2,
+      "reused_documents": 6
+    },
+    {
+      "case_id": "case_0004",
+      "status": "completed",
+      "documents": 10,
+      "events": 6,
+      "failed_documents": [],
+      "llm_calls": 17,
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "rejected_events": 2,
+      "issues": 9,
+      "rejected_issues": 0,
+      "seconds": 1.27,
+      "productions": 1,
+      "reused_documents": 0
+    },
+    {
+      "case_id": "case_0005",
+      "status": "completed",
+      "documents": 10,
+      "events": 10,
+      "failed_documents": [],
+      "llm_calls": 18,
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "rejected_events": 3,
+      "issues": 1,
+      "rejected_issues": 0,
+      "seconds": 1.58,
+      "productions": 1,
+      "reused_documents": 0
+    },
+    {
+      "case_id": "case_0006",
+      "status": "completed",
+      "documents": 14,
+      "events": 10,
+      "failed_documents": [],
+      "llm_calls": 22,
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "rejected_events": 3,
+      "issues": 2,
+      "rejected_issues": 0,
+      "seconds": 3.78,
+      "productions": 1,
+      "reused_documents": 0
+    },
+    {
+      "case_id": "case_0007",
+      "status": "completed",
+      "documents": 11,
+      "events": 8,
+      "failed_documents": [],
+      "llm_calls": 18,
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "rejected_events": 3,
+      "issues": 6,
+      "rejected_issues": 0,
+      "seconds": 1.67,
+      "productions": 1,
+      "reused_documents": 0
+    },
+    {
+      "case_id": "case_0008",
+      "status": "completed",
+      "documents": 10,
+      "events": 8,
+      "failed_documents": [],
+      "llm_calls": 9,
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "rejected_events": 3,
+      "issues": 8,
+      "rejected_issues": 0,
+      "seconds": 1.44,
+      "productions": 2,
+      "reused_documents": 7
+    }
+  ]
+}

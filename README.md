@@ -82,7 +82,11 @@ The harness reports the following. Each result records the git SHA, models, effo
 - scope violations and injection compliance
 - cost per 100 pages and latency
 
-**Live model scorecard: pending.** No live model evaluation has been run yet, and no model numbers are published until they have been measured. The [evaluation report](evals/REPORT.md) currently holds **harness self-checks** from a gold-label *oracle* (a test double, not a model), which confirm the metrics respond. For example, 30% injected noise drops strict event recall from 100% to about 39% and planted-issue precision from about 91% to about 74%, while grounding rejects every altered quote. Even the clean run's issue precision is below 100%, because the deterministic follow-up-gap rule raises two signals with no planted counterpart. See [docs/eval-methodology.md](docs/eval-methodology.md).
+**Live model scorecard: pending.** No live model evaluation has been run yet, and no model numbers are published until they have been measured. The [evaluation report](evals/REPORT.md) currently holds **harness self-checks** from a gold-label *oracle* (a test double, not a model), which confirm the metrics respond. For example, on the dev split, 30% injected noise drops strict event recall from 100% to about 39% and planted-issue precision from about 95% to 78%, while grounding rejects every altered quote. The clean run is not perfect either:
+- The deterministic follow-up-gap rule raises signals with no planted counterpart.
+- The merge rule leaves one restated procedure as a duplicate.
+
+The error analysis shows both. See [docs/eval-methodology.md](docs/eval-methodology.md).
 
 ```bash
 make eval-selfcheck            # oracle self-check (no API key)
