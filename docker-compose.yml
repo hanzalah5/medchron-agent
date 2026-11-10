@@ -1,4 +1,6 @@
-# Local development stack. API, worker and UI services are added in later steps.
+# Local development stack: Postgres + pgvector, and (profile "app") migrations, API and worker.
+# Migrations run as the database owner. The API and worker connect as non-owner roles
+# (created by `medchron db-users`), so Postgres row-level security applies to them.
 services:
   db:
     image: pgvector/pgvector:pg16
@@ -19,12 +21,15 @@ services:
   migrate:
     profiles: ["app"]
     build: .
-    command: ["alembic", "upgrade", "head"]
+    command: ["sh", "-c", "alembic upgrade head && medchron db-users"]
     environment: &app-env
-      DATABASE_URL: postgresql+psycopg://medchron:medchron@db:5432/medchron
+      DATABASE_URL: postgresql+psycopg://medchron:medchron@db:5432/medchron  # owner
+      MEDCHRON_DB_API_PASSWORD: medchron_api  # local development only
+      MEDCHRON_DB_WORKER_PASSWORD: medchron_worker  # local development only
       MEDCHRON_ENV: development
       MEDCHRON_AUTH_MODE: dev
       MEDCHRON_STORAGE: /data/storage
+      MEDCHRON_RUNS_DIR: /data/runs
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     volumes: [storage:/data/storage]
     depends_on:
@@ -33,7 +38,9 @@ services:
   api:
     profiles: ["app"]
     build: .
-    environment: *app-env
+    environment:
+      <<: *app-env
+      DATABASE_URL: postgresql+psycopg://medchron_api:medchron_api@db:5432/medchron
     ports: ["8080:8080"]
     volumes: [storage:/data/storage]
     depends_on:
@@ -43,11 +50,15 @@ services:
     profiles: ["app"]
     build: .
     command: ["medchron", "worker"]
-    environment: *app-env
-    volumes: [storage:/data/storage]
+    environment:
+      <<: *app-env
+      DATABASE_URL: postgresql+psycopg://medchron_worker:medchron_worker@db:5432/medchron
+    # Checkpoints are shared, so a restarted (or second) worker resumes where one stopped.
+    volumes: [storage:/data/storage, runs:/data/runs]
     depends_on:
       migrate: { condition: service_completed_successfully }
 
 volumes:
   pgdata:
   storage:
+  runs:

@@ -165,6 +165,7 @@ def assemble(
     prompt_injection: bool,
     misfiled: bool = False,
     productions: int = 1,
+    max_scans: int | None = None,
 ) -> tuple[list[LaidPage], CaseGold]:
     # Group documents by producing facility; chronological within each group.
     groups: dict[str, list[DocDraft]] = {}
@@ -255,6 +256,8 @@ def assemble(
     # skewed or rotated. The misfiled page stays legible so the planted issue is fair.
     scannable = [p for p in pages if not p.misfiled]
     n_scan = rng.randint(1, max(1, len(pages) // 8))
+    if max_scans is not None:
+        n_scan = min(n_scan, max_scans)
     for p in rng.sample(scannable, min(n_scan, len(scannable))):
         p.text_layer = False
         p.scan = rng.choice(SCAN_KINDS)

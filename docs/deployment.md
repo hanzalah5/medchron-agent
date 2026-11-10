@@ -50,7 +50,26 @@ echo -n "$(openssl rand -hex 12)" | gcloud secrets versions add medchron-dev-dem
 psql "$DATABASE_URL" -c "CREATE EXTENSION IF NOT EXISTS vector"
 ```
 
-4. GitHub repository variables: `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_WIF_PROVIDER` (from `terraform output workload_identity_provider`) and `GCP_DEPLOYER_SA` (from `terraform output deployer_service_account`). For `prod-demo`, add required reviewers under Settings → Environments.
+```bash
+# 4. Database roles (once, and after rotating passwords): run as the owner, which needs CREATEROLE.
+#    Migrations (run as the owner) create the group roles and grants; this creates the logins.
+DATABASE_URL="$OWNER_URL" MEDCHRON_DB_API_PASSWORD=... MEDCHRON_DB_WORKER_PASSWORD=... \
+  medchron db-users
+```
+
+The services must **not** connect as the owner. Postgres exempts superusers from row-level security, and an owner can turn it off.
+
+| Role | Used by | Can |
+|---|---|---|
+| owner (e.g. `medchron`) | Migrations only | Everything; member of `medchron_system` |
+| `medchron_api` | API service, MCP server | Read and write rows of matters the caller is a member of. Append to the audit log, never update or delete it. **Cannot** enable the system bypass |
+| `medchron_worker` | Worker job | Same, plus the system bypass (`medchron.system`) for background processing |
+
+Store `medchron_api`'s URL in the API's `database-url` secret and `medchron_worker`'s URL in the worker's. Migrations need the owner URL in a separate secret.
+
+The Terraform module has a single `database-url` secret for both services today, so a real rollout must split it into three: API, worker and migration. This change is described here but not applied in `infra/terraform`.
+
+5. GitHub repository variables: `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_WIF_PROVIDER` (from `terraform output workload_identity_provider`) and `GCP_DEPLOYER_SA` (from `terraform output deployer_service_account`). For `prod-demo`, add required reviewers under Settings → Environments.
 
 After that, the [deploy workflow](../.github/workflows/deploy.yml) works like this:
 - every green CI run on `main` builds and pushes the image, runs migrations through the worker job, deploys the API and smoke-tests `/healthz`
@@ -74,7 +93,7 @@ The public demo is synthetic-only. Visitors choose a display name, the bundled c
 | Public project, free tiers | The firm's own cloud organization with VPC Service Controls and private networking (Cloud Run behind an internal load balancer or IAP), under BAAs with every vendor that touches PHI |
 | Direct Anthropic API | Claude through the firm's cloud (Vertex AI or Bedrock) or the direct API under an appropriate data-retention agreement, with data-residency constraints applied |
 | Dev sign-in | `MEDCHRON_AUTH_MODE=oidc` against the firm's IdP (SSO and MFA), SCIM provisioning, matter membership synced from the matter-management system |
-| Neon | Cloud SQL (or AlloyDB) with private IP, HA, PITR backups, tested restores, and a **non-owner application role** so row-level security can't be bypassed |
+| Neon | Cloud SQL (or AlloyDB) with private IP, HA, PITR backups and tested restores. Separate owner, API and worker roles as above (compose and CI already run this way) |
 | Google-managed encryption | Customer-managed keys (`kms_key_name`) with rotation, plus per-matter keys for crypto-shredding |
 | Audit log in Postgres | Also streamed to WORM storage or a SIEM, with alerting on chain-verification failure |
 | Local OCR in the container | Scaled OCR workers or a managed OCR service under a BAA |

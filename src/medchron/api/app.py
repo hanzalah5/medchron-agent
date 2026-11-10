@@ -86,6 +86,7 @@ from medchron.observability import setup_tracing
 from medchron.retrieval.embeddings import get_embedder
 from medchron.retrieval.search import PostgresSearch, SearchHit
 from medchron.security import audit
+from medchron.security.access import MatterNotFound, open_matter, principal_of, record
 from medchron.security.auth import Principal, Role, authenticate, require
 from medchron.storage import Storage, get_storage
 
@@ -111,23 +112,19 @@ DB = Annotated[Session, Depends(db)]
 
 
 def who(session: Session) -> Principal:
-    principal: Principal = session.info["principal"]
-    return principal
+    return principal_of(session)
 
 
 def get_matter(session: Session, matter_id: str, permission: str = "matter.read") -> Matter:
     """Load a matter the caller may access. Non-members get 404, which doesn't reveal existence."""
-    user = who(session)
-    require(user, permission)
-    member = session.get(MatterMember, (matter_id, user.user_id))
-    matter = session.get(Matter, matter_id) if member else None
-    if matter is None:
-        raise HTTPException(404, "matter not found")
-    return matter
+    try:
+        return open_matter(session, matter_id, permission)
+    except MatterNotFound:
+        raise HTTPException(404, "matter not found") from None
 
 
 def log(session: Session, action: str, matter_id: str | None = None, **kw: Any) -> None:
-    audit.record(session, who(session).user_id, action, matter_id=matter_id, **kw)
+    record(session, action, matter_id, **kw)
 
 
 EXPORT_FORMATS = ("md", "docx", "xlsx")

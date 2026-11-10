@@ -18,6 +18,7 @@ Roles are fixed: paralegal, attorney, admin and auditor. Matter-level access
 from __future__ import annotations
 
 import os
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from functools import lru_cache
@@ -134,24 +135,44 @@ def verify_token(token: str) -> Principal:
     return Principal(user_id=str(user), roles=roles)
 
 
-def authenticate(request: Request) -> Principal:
-    """Bearer header, or a cookie for requests browsers can't add headers to
-    (EventSource, <img>). In production the cookie is HttpOnly, Secure and
-    SameSite=Strict, and is set by the login flow."""
+def _header(headers: Mapping[str, str], name: str) -> str:
+    for key, value in headers.items():
+        if key.lower() == name:
+            return value
+    return ""
+
+
+def principal_from_headers(
+    headers: Mapping[str, str], cookies: Mapping[str, str] | None = None
+) -> Principal:
+    """The caller, from request headers (and cookies, for browser requests).
+
+    OIDC mode accepts only a bearer token whose signature, issuer, audience and
+    expiry check out. Dev mode trusts ``X-Dev-User`` and is refused outside
+    development and test environments (``auth_mode``).
+    """
+    cookies = cookies or {}
     if auth_mode() == "oidc":
-        header = request.headers.get("authorization", "")
+        header = _header(headers, "authorization")
         token = header[7:].strip() if header.lower().startswith("bearer ") else None
-        token = token or request.cookies.get("medchron_token")
+        token = token or cookies.get("medchron_token")
         if not token:
             raise AuthError(401, "missing bearer token")
         return verify_token(token)
-    user = request.headers.get("x-dev-user")
-    roles = request.headers.get("x-dev-roles", "")
-    if not user and (cookie := request.cookies.get("medchron_dev")):
+    user = _header(headers, "x-dev-user")
+    roles = _header(headers, "x-dev-roles")
+    if not user and (cookie := cookies.get("medchron_dev")):
         user, _, roles = cookie.partition(":")
     if not user:
         raise AuthError(401, "not signed in (dev mode: X-Dev-User header or medchron_dev cookie)")
     return Principal(user_id=user[:128], roles=_roles(roles))
+
+
+def authenticate(request: Request) -> Principal:
+    """Bearer header, or a cookie for requests browsers can't add headers to
+    (EventSource, <img>). In production the cookie is HttpOnly, Secure and
+    SameSite=Strict, and is set by the login flow."""
+    return principal_from_headers(request.headers, request.cookies)
 
 
 def require(principal: Principal, permission: str) -> None:

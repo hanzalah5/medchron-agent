@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from medchron.synth.builder import CaseBuilder
-from medchron.synth.layout import assemble
+from medchron.synth.layout import assemble, paginate
 from medchron.synth.models import CaseGold
 from medchron.synth.render import render_pdf
 from medchron.synth.scenarios import SCENARIOS, ScenarioOptions
@@ -96,6 +96,43 @@ def generate_case(
         "scans": sorted({p.scan for p in gold.pages if p.scan}),
     }
     return GeneratedCase(gold=gold, pdfs=pdfs, hazards=hazards)
+
+
+def generate_long_case(
+    seed: int, target_pages: int, *, case_id: str | None = None, max_scans: int = 40
+) -> GeneratedCase:
+    """One fictional patient's long history (for load tests): scenarios as repeated episodes.
+
+    Episodes keep separate event keys and evidence tags, so the gold labels stay
+    exact. Scanned pages are capped (``max_scans``) to bound OCR time.
+    """
+    rng = random.Random(seed)
+    names = sorted(SCENARIOS)
+    builder = CaseBuilder(rng)
+    episode = pages_so_far = 0
+    while pages_so_far < target_pages:
+        before = len(builder.docs)
+        builder.episode = f"ep{episode}-"
+        options = ScenarioOptions(
+            date_conflict=rng.random() < 0.5, missing_record=rng.random() < 0.6
+        )
+        SCENARIOS[names[(seed + episode) % len(names)]](builder, options)
+        pages_so_far += sum(len(paginate(d, builder)) for d in builder.docs[before:])
+        episode += 1
+    pages, gold = assemble(
+        builder,
+        rng,
+        case_id=case_id or f"long_{seed:04d}",
+        seed=seed,
+        scenario=f"long:{episode}-episodes",
+        prompt_injection=True,
+        max_scans=max_scans,
+    )
+    hazards: dict[str, object] = {
+        "episodes": episode,
+        "scans": sorted({p.scan for p in gold.pages if p.scan}),
+    }
+    return GeneratedCase(gold=gold, pdfs=[render_pdf(pages, seed)], hazards=hazards)
 
 
 def write_case(case: GeneratedCase, out_dir: Path) -> list[Path]:

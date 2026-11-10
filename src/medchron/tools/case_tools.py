@@ -24,6 +24,7 @@ from medchron.retrieval.search import SpanSearch
 from medchron.taxonomy import EventType
 
 MAX_PAGE_CHARS = 6000
+SNIPPET_CHARS = 700  # search hit text
 
 
 def _obj(props: dict[str, Any], required: list[str]) -> dict[str, Any]:
@@ -116,7 +117,12 @@ class CaseTools:
             page_to=int(args.get("page_to") or 0) or None,
         )
         return [
-            {"span_id": h.span_id, "page": h.page_no, "text": h.text[:700], "score": h.score}
+            {
+                "span_id": h.span_id,
+                "page": h.page_no,
+                "text": h.text[:SNIPPET_CHARS],
+                "score": h.score,
+            }
             for h in hits
         ]
 

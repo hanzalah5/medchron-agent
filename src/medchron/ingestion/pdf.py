@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import io
 import logging
+import os
 import re
 import shutil
 from dataclasses import dataclass
@@ -22,6 +23,11 @@ from PIL import Image
 from medchron.ingestion.models import BBox, Page, TextSource, Word
 
 log = logging.getLogger(__name__)
+
+# Tesseract parallelises one page across every core with OpenMP. Several workers
+# OCR-ing at once then oversubscribe the CPU badly (found by the load test: one
+# page took minutes). Parallelism comes from documents and workers instead.
+os.environ.setdefault("OMP_THREAD_LIMIT", "1")
 
 MIN_TEXT_WORDS = 5  # fewer words than this on a page means "probably a scan"
 OCR_DPI = 200

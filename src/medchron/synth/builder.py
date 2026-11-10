@@ -88,6 +88,9 @@ class CaseBuilder:
         self.docs: list[DocDraft] = []
         self.issues: list[IssueDraft] = []
         self._used_clinicians: set[str] = set()
+        # Long productions run several scenarios ("episodes") for one patient. A
+        # prefix keeps each episode's event keys and evidence tags apart.
+        self.episode = ""
 
     # ----- people and places -------------------------------------------------
     def facility(self, pool: list[str]) -> Facility:
@@ -96,7 +99,12 @@ class CaseBuilder:
         return Facility(name=name, mrn=mrn, date_format=self.rng.choice(DATE_FORMATS))
 
     def clinician(self, credential: str) -> str:
-        while True:
+        """A clinician name not used yet in this case, while any remain.
+
+        Long histories (many episodes) can exhaust the pool; the same clinicians
+        then recur, as they would in a real patient's records.
+        """
+        for _ in range(500):
             name = (
                 f"{self.rng.choice(names.CLINICIAN_FIRST_INITIAL)}. "
                 f"{self.rng.choice(names.CLINICIAN_LAST)}, {credential}"
@@ -104,6 +112,7 @@ class CaseBuilder:
             if name not in self._used_clinicians:
                 self._used_clinicians.add(name)
                 return name
+        return name
 
     # ----- documents ----------------------------------------------------------
     def doc(
@@ -129,7 +138,7 @@ class CaseBuilder:
         return date.strftime(facility.date_format)
 
     def para(self, doc: DocDraft, text: str, *tags: str) -> None:
-        doc.paras.append(Para(text=text, tags=tags))
+        doc.paras.append(Para(text=text, tags=tuple(self.episode + t for t in tags)))
 
     def event(
         self,
@@ -143,6 +152,8 @@ class CaseBuilder:
         tags: tuple[str, ...] = (),
     ) -> None:
         """Register an event (first time) and cite it from ``doc`` with ``quote``."""
+        key = self.episode + key
+        tags = tuple(self.episode + t for t in tags)
         if key not in self.events:
             self.events[key] = EventSpec(
                 key=key,
@@ -156,6 +167,7 @@ class CaseBuilder:
 
     def cite(self, key: str, doc: DocDraft, quote: str, prefix: str = "") -> None:
         """Add another source for an already-registered event."""
+        key = self.episode + key
         if key not in self.events:
             raise KeyError(f"unknown event {key!r}")
         doc.paras.append(Para(text=prefix + quote, event_key=key, quote=quote))
@@ -167,7 +179,14 @@ class CaseBuilder:
         event_keys: list[str] | None = None,
         tags: list[str] | None = None,
     ) -> None:
-        self.issues.append(IssueDraft(kind, description, event_keys or [], tags or []))
+        self.issues.append(
+            IssueDraft(
+                kind,
+                description,
+                [self.episode + k for k in event_keys or []],
+                [self.episode + t for t in tags or []],
+            )
+        )
 
     def table(self, doc: DocDraft, columns: list[str], rows: list[list[str] | Row]) -> None:
         """A fixed-width table with a ruled header. Each row is its own line.
@@ -193,23 +212,24 @@ class CaseBuilder:
                 doc.paras.append(Para(text, preformatted=True, gap_after=last))
                 continue
             quote = " ".join(text.split())
-            if r.date is not None and r.type is not None and r.key not in self.events:
-                self.events[r.key] = EventSpec(
-                    key=r.key,
+            key = self.episode + r.key
+            if r.date is not None and r.type is not None and key not in self.events:
+                self.events[key] = EventSpec(
+                    key=key,
                     date=r.date,
                     type=r.type,
                     summary=r.summary,
                     facility=doc.facility.name,
                     provider=doc.provider,
                 )
-            elif r.key not in self.events:
+            elif key not in self.events:
                 raise KeyError(f"unknown event {r.key!r}")
             doc.paras.append(
                 Para(
                     text,
-                    event_key=r.key,
+                    event_key=key,
                     quote=quote,
-                    tags=r.tags,
+                    tags=tuple(self.episode + t for t in r.tags),
                     preformatted=True,
                     gap_after=last,
                 )

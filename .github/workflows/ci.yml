@@ -27,7 +27,11 @@ jobs:
           --health-cmd "pg_isready -U medchron"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
+      # Migrations and owner-only checks use the owner. The API and worker tests connect as
+      # the non-owner roles created below, so row-level security is enforced for real.
       MEDCHRON_TEST_DATABASE_URL: postgresql+psycopg://medchron:medchron@localhost:5432/medchron_test
+      MEDCHRON_TEST_APP_DATABASE_URL: postgresql+psycopg://medchron_api:medchron_api@localhost:5432/medchron_test
+      MEDCHRON_TEST_WORKER_DATABASE_URL: postgresql+psycopg://medchron_worker:medchron_worker@localhost:5432/medchron_test
     steps:
       - uses: actions/checkout@v4
       - name: Install Tesseract OCR
@@ -41,6 +45,8 @@ jobs:
         run: make lint
       - name: Type-check
         run: make typecheck
+      - name: Create the non-owner database roles
+        run: DATABASE_URL="$MEDCHRON_TEST_DATABASE_URL" .venv/bin/medchron db-users
       - name: Test
         run: make test
 

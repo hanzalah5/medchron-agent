@@ -19,6 +19,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from medchron.security import auth
+from medchron.security.auth import Principal, Role
 from medchron.security.logs import JsonFormatter, ScrubFilter, scrub
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -296,3 +297,143 @@ def test_stale_jobs_are_recovered(engine: Engine, matter: dict[str, Any]) -> Non
     with Session(engine) as s:
         job = s.get(Job, job_id)
         assert job is not None and job.status == "failed"
+
+
+def test_heartbeat_keeps_a_long_step_alive(engine: Engine, matter: dict[str, Any]) -> None:
+    from medchron.db.models import Job
+    from medchron.jobs import Heartbeat, requeue_stale
+
+    alice: TestClient = matter["alice"]
+    job_id = alice.get("/api/matters/wall-1").json()["jobs"][0]["job_id"]
+    old = dt.datetime.now(dt.UTC) - dt.timedelta(hours=1)
+    with Session(engine) as s, s.begin():
+        job = s.get(Job, job_id)
+        assert job is not None
+        job.status, job.heartbeat_at, job.attempts = "running", old, 1
+    with Heartbeat(engine, job_id, every=0.05):  # a long step with no progress messages
+        import time
+
+        time.sleep(0.3)
+        assert requeue_stale(engine, dt.timedelta(seconds=5)) == 0  # still alive
+    with Session(engine) as s, s.begin():
+        job = s.get(Job, job_id)
+        assert job is not None and job.heartbeat_at is not None and job.heartbeat_at > old
+        job.status = "completed"
+
+
+def test_a_reassigned_job_keeps_the_new_owners_outcome(
+    engine: Engine, matter: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A worker that was presumed dead must not overwrite the job once someone else owns it."""
+    from medchron import jobs
+    from medchron.db.models import Job
+
+    alice: TestClient = matter["alice"]
+    job_id = alice.get("/api/matters/wall-1").json()["jobs"][0]["job_id"]
+    with Session(engine) as s, s.begin():
+        job = s.get(Job, job_id)
+        assert job is not None
+        job.status, job.attempts = "running", 1
+
+    def slow_pipeline(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        with Session(engine) as s, s.begin():  # meanwhile: declared stale, claimed again
+            job = s.get(Job, job_id)
+            assert job is not None
+            job.attempts = 2
+        return {"status": "completed"}
+
+    monkeypatch.setattr(jobs, "_pipeline", slow_pipeline)
+    monkeypatch.setattr(jobs, "_provider", lambda name, sha: object())
+    jobs.process(engine, job_id)
+    with Session(engine) as s:
+        job = s.get(Job, job_id)
+        assert job is not None and job.status == "running" and job.attempts == 2
+
+
+# ------------------------------------------------- non-owner database roles (migration 0008)
+@pytest.fixture(scope="module")
+def role_engines(engine: Engine) -> Iterator[dict[str, Engine]]:
+    """Engines for the API and worker login roles, created with ``medchron db-users`` logic."""
+    from medchron.db.roles import ensure_login_roles, login_roles_from_env, url_for
+    from medchron.db.store import make_engine
+
+    roles = login_roles_from_env()
+    try:
+        ensure_login_roles(engine, roles)
+    except Exception as e:  # the test database user cannot create roles
+        pytest.skip(f"cannot create login roles here: {e}")
+    api, worker = roles
+    engines = {
+        "api": make_engine(url_for(str(URL), api)),
+        "worker": make_engine(url_for(str(URL), worker)),
+    }
+    yield engines
+    for e in engines.values():
+        e.dispose()
+
+
+@needs_db
+def test_app_role_cannot_bypass_row_level_security(
+    role_engines: dict[str, Engine], matter: dict[str, Any]
+) -> None:
+    api, worker = role_engines["api"], role_engines["worker"]
+    member = Principal(user_id="alice", roles=frozenset({Role.ATTORNEY}))
+    stranger = Principal(user_id="mallory", roles=frozenset({Role.ATTORNEY}))
+    count = text("SELECT count(*) FROM pages WHERE matter_id = 'wall-1'")
+    with Session(api, info={"actor": member.user_id, "principal": member}) as s:
+        assert s.execute(count).scalar() > 0  # members see their matter
+    with Session(api, info={"actor": stranger.user_id, "principal": stranger}) as s:
+        assert s.execute(count).scalar() == 0
+        # Direct SQL cannot switch the system bypass on for the API role.
+        s.execute(text("SELECT set_config('medchron.system', 'on', true)"))
+        assert s.execute(count).scalar() == 0
+        assert s.execute(text("SELECT medchron_is_system()")).scalar() is False
+        # The one sanctioned bypass: existence checks, without revealing rows.
+        assert s.execute(text("SELECT medchron_matter_exists('wall-1')")).scalar() is True
+    with Session(worker) as s:  # system session: the worker may use the bypass
+        assert s.execute(count).scalar() > 0
+
+
+@needs_db
+def test_app_role_cannot_rewrite_history_or_policies(
+    role_engines: dict[str, Engine], matter: dict[str, Any]
+) -> None:
+    from sqlalchemy.exc import DBAPIError
+
+    api = role_engines["api"]
+    for stmt in (
+        "UPDATE audit_log SET actor = 'nobody'",
+        "DELETE FROM audit_log",
+        "ALTER TABLE pages DISABLE ROW LEVEL SECURITY",
+        "DROP POLICY matter_isolation ON pages",
+        "ALTER TABLE audit_log DISABLE TRIGGER audit_log_immutable",
+    ):
+        with api.connect() as conn, pytest.raises(DBAPIError):
+            conn.execute(text(stmt))
+    with api.connect() as conn:
+        row = conn.execute(
+            text("SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user")
+        ).one()
+        assert tuple(row) == (False, False)
+
+
+@needs_db
+def test_api_runs_end_to_end_as_the_app_roles(
+    role_engines: dict[str, Engine], matter: dict[str, Any]
+) -> None:
+    from medchron.jobs import work
+
+    tmp: Path = matter["tmp"]
+    alice = _client(role_engines["api"], tmp, "alice", "attorney")
+    pdf = (ROOT / "data/synthetic/dev/case_0005.pdf").read_bytes()
+    r = alice.post("/api/matters", files={"file": ("c5.pdf", pdf)},
+                   data={"matter_id": "roles-1", "provider": "oracle"})  # fmt: skip
+    assert r.status_code == 202, r.text
+    dup = alice.post("/api/matters", files={"file": ("c5.pdf", pdf)},
+                     data={"matter_id": "wall-1", "provider": "oracle"})  # fmt: skip
+    assert dup.status_code == 409  # existence check works for the API role
+    assert work(role_engines["worker"], once=True) == 1
+    chron = alice.get("/api/matters/roles-1/chronology")
+    assert chron.status_code == 200 and chron.json()["events"]
+    mallory = _client(role_engines["api"], tmp, "mallory", "attorney")
+    assert mallory.get("/api/matters/roles-1/chronology").status_code == 404

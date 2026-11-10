@@ -13,7 +13,9 @@ import datetime as dt
 import json
 import logging
 import os
+import socket
 import tempfile
+import threading
 import time
 import uuid
 from collections.abc import Callable
@@ -50,6 +52,50 @@ PROVIDERS = {"anthropic", "replay", "oracle"}
 WORKER = "system:worker"
 STALE_AFTER = dt.timedelta(minutes=10)
 MAX_ATTEMPTS = 3
+HEARTBEAT_SECONDS = 30.0
+
+
+def _stale_after() -> dt.timedelta:
+    return dt.timedelta(
+        seconds=float(os.environ.get("MEDCHRON_STALE_AFTER_S", STALE_AFTER.seconds))
+    )
+
+
+def worker_id() -> str:
+    return os.environ.get("MEDCHRON_WORKER_ID") or f"{socket.gethostname()}:{os.getpid()}"
+
+
+class Heartbeat:
+    """Keeps a running job's heartbeat fresh while a long step runs.
+
+    Progress messages also refresh it, but a single step (OCR of a large
+    production, a batch wait) can run longer than the stale-job timeout. Without
+    this, another worker would requeue a job that is still alive.
+    """
+
+    def __init__(self, engine: Engine, job_id: str, every: float | None = None) -> None:
+        self.engine, self.job_id = engine, job_id
+        self.every = every or float(os.environ.get("MEDCHRON_HEARTBEAT_S", HEARTBEAT_SECONDS))
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._run, name=f"heartbeat-{job_id}", daemon=True)
+
+    def __enter__(self) -> Heartbeat:
+        self._thread.start()
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self._stop.set()
+        self._thread.join(timeout=self.every + 5)
+
+    def _run(self) -> None:
+        while not self._stop.wait(self.every):
+            try:
+                with Session(self.engine) as s, s.begin():
+                    job = s.get(Job, self.job_id)
+                    if job is not None and job.status == "running":
+                        job.heartbeat_at = dt.datetime.now(dt.UTC)
+            except Exception:  # a missed beat is not fatal; the next one may succeed
+                log.warning("heartbeat failed for job %s", self.job_id, exc_info=True)
 
 
 def enqueue(
@@ -163,37 +209,45 @@ def process(engine: Engine, job_id: str, storage: Storage | None = None) -> None
         assert job is not None
         matter = s.get(Matter, job.matter_id)
         assert matter is not None
+        attempt = job.attempts
         provider_name, budget, kind = job.provider, job.budget_usd, job.kind
         matter_id, sha = matter.matter_id, matter.source_sha256
         bates_prefix = matter.bates_prefix or None
         keys = [r.storage_key for r in list_productions(s, matter_id)] or [matter.source_path]
 
     summary: dict[str, Any] | None = None
-    try:
-        provider = _provider(provider_name, sha)
-        if kind == "memo":
-            summary = _draft(engine, matter_id, provider, budget, note)
-            status, error = "completed", None
-        else:
-            summary = _pipeline(
-                engine,
-                storage,
-                matter_id,
-                keys,
-                provider,
-                budget,
-                note,
-                job_id=job_id,
-                bates_prefix=bates_prefix,
-            )
-            status, error = str(summary["status"]), None
-    except Exception as e:  # the job records the failure; the worker keeps running
-        log.exception("job %s failed", job_id)
-        status, error = "failed", f"{type(e).__name__}: {e}"[:2000]
-        note(f"failed: {type(e).__name__}")
+    note(f"attempt {attempt} started by worker {worker_id()}")
+    with Heartbeat(engine, job_id):
+        try:
+            provider = _provider(provider_name, sha)
+            if kind == "memo":
+                summary = _draft(engine, matter_id, provider, budget, note)
+                status, error = "completed", None
+            else:
+                summary = _pipeline(
+                    engine,
+                    storage,
+                    matter_id,
+                    keys,
+                    provider,
+                    budget,
+                    note,
+                    job_id=job_id,
+                    bates_prefix=bates_prefix,
+                )
+                status, error = str(summary["status"]), None
+        except Exception as e:  # the job records the failure; the worker keeps running
+            log.exception("job %s failed", job_id)
+            status, error = "failed", f"{type(e).__name__}: {e}"[:2000]
+            note(f"failed: {type(e).__name__}")
     with Session(engine) as s, s.begin():
-        job = s.get(Job, job_id)
+        job = s.get(Job, job_id, with_for_update=True)
         assert job is not None
+        if job.attempts != attempt or job.status != "running":
+            # The job was declared stale and handed to another worker meanwhile.
+            # That worker owns it now; don't overwrite its outcome.
+            log.warning("job %s was reassigned during attempt %d; result dropped", job_id, attempt)
+            return
         job.status, job.error, job.summary = status, error, summary
         job.finished_at = dt.datetime.now(dt.UTC)
         s.add(JobEvent(job_id=job_id, message=f"finished: {status}"))
@@ -308,13 +362,13 @@ def _draft(
     }
 
 
-def requeue_stale(engine: Engine, stale_after: dt.timedelta = STALE_AFTER) -> int:
+def requeue_stale(engine: Engine, stale_after: dt.timedelta | None = None) -> int:
     """Recover jobs whose worker died: requeue them, or fail them after MAX_ATTEMPTS.
 
     Pipeline steps are checkpointed and idempotent, so a requeued job resumes
     where it stopped, and results are replaced rather than duplicated.
     """
-    cutoff = dt.datetime.now(dt.UTC) - stale_after
+    cutoff = dt.datetime.now(dt.UTC) - (stale_after or _stale_after())
     n = 0
     with Session(engine) as s, s.begin():
         stale = s.scalars(

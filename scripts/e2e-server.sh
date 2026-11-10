@@ -9,7 +9,9 @@ export MEDCHRON_RUNS_DIR="${MEDCHRON_RUNS_DIR:-runs/e2e/runs}"
 export MEDCHRON_UI_DIST="ui/dist"
 .venv/bin/alembic downgrade base >/dev/null
 .venv/bin/alembic upgrade head >/dev/null
-.venv/bin/medchron worker &
+# The API and worker connect as non-owner roles, so row-level security applies to them.
+eval "$(.venv/bin/medchron db-users --shell)"
+DATABASE_URL="$MEDCHRON_WORKER_DATABASE_URL" .venv/bin/medchron worker &
 WORKER=$!
 trap 'kill $WORKER 2>/dev/null || true' EXIT
-.venv/bin/medchron serve --port "${PORT:-8765}"
+DATABASE_URL="$MEDCHRON_API_DATABASE_URL" .venv/bin/medchron serve --port "${PORT:-8765}"

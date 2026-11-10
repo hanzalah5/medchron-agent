@@ -233,6 +233,48 @@ def _cmd_calib(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_mcp(args: argparse.Namespace) -> int:
+    from medchron.db.store import make_engine
+    from medchron.mcp_server import build_server, fixed_principal, http_principal
+    from medchron.security.auth import Principal, _roles, auth_mode, verify_token
+
+    engine = make_engine()
+    if args.transport == "http":
+        server = build_server(engine, http_principal)
+        server.run("streamable-http", host=args.host, port=args.port)
+        return 0
+    # stdio serves one local user: a verified token in OIDC mode, or a dev identity.
+    if auth_mode() == "oidc":
+        token = os.environ.get("MEDCHRON_MCP_TOKEN")
+        if not token:
+            raise SystemExit("set MEDCHRON_MCP_TOKEN to a bearer token for the MCP user")
+        principal = verify_token(token)
+    else:
+        user = os.environ.get("MEDCHRON_MCP_USER")
+        if not user:
+            raise SystemExit("dev mode: set MEDCHRON_MCP_USER (and MEDCHRON_MCP_ROLES)")
+        principal = Principal(user_id=user, roles=_roles(os.environ.get("MEDCHRON_MCP_ROLES", "")))
+    build_server(engine, fixed_principal(principal)).run("stdio")
+    return 0
+
+
+def _cmd_db_users(args: argparse.Namespace) -> int:
+    """Create or update the API and worker login roles (run with the owner's DATABASE_URL)."""
+    from medchron.db.roles import ensure_login_roles, login_roles_from_env, url_for
+    from medchron.db.store import DEFAULT_URL, make_engine
+
+    roles = login_roles_from_env()
+    ensure_login_roles(make_engine(), roles)
+    owner = os.environ.get("DATABASE_URL", DEFAULT_URL)
+    if args.shell:  # for scripts: eval "$(medchron db-users --shell)"
+        api, worker = roles
+        print(f"export MEDCHRON_API_DATABASE_URL='{url_for(owner, api)}'")
+        print(f"export MEDCHRON_WORKER_DATABASE_URL='{url_for(owner, worker)}'")
+    else:
+        print("login roles ready: " + ", ".join(r.name for r in roles))
+    return 0
+
+
 def _add_provider_args(p: argparse.ArgumentParser) -> None:
     p.add_argument(
         "--provider",
@@ -340,6 +382,16 @@ def build_parser() -> argparse.ArgumentParser:
     c_score.add_argument("files", nargs="+")
     c_score.add_argument("--out", help="also write the Markdown report here")
     calib.set_defaults(func=_cmd_calib)
+
+    mcp = sub.add_parser("mcp", help="Serve the read-only case tools over MCP")
+    mcp.add_argument("--transport", choices=["stdio", "http"], default="stdio")
+    mcp.add_argument("--host", default="127.0.0.1")
+    mcp.add_argument("--port", type=int, default=8811)
+    mcp.set_defaults(func=_cmd_mcp)
+
+    users = sub.add_parser("db-users", help="Create the API and worker database login roles")
+    users.add_argument("--shell", action="store_true", help="print export lines for the URLs")
+    users.set_defaults(func=_cmd_db_users)
 
     mig = sub.add_parser("migrate", help="Apply database migrations (DATABASE_URL)")
     mig.add_argument("--root", default=".", help="directory containing alembic.ini")

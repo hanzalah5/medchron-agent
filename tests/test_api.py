@@ -39,18 +39,40 @@ def engine() -> Iterator[Engine]:
     eng.dispose()
 
 
+# When set (as in CI), the API and the worker connect as the non-owner roles, so these
+# tests run with Postgres row-level security enforced. Otherwise they use the owner.
+APP_URL = os.environ.get("MEDCHRON_TEST_APP_DATABASE_URL")
+WORKER_URL = os.environ.get("MEDCHRON_TEST_WORKER_DATABASE_URL")
+
+
 @pytest.fixture(scope="module")
-def client(engine: Engine, tmp_path_factory: pytest.TempPathFactory) -> Iterator[TestClient]:
+def app_engine(engine: Engine) -> Iterator[Engine]:
+    eng = make_engine(APP_URL) if APP_URL else engine
+    yield eng
+    if APP_URL:
+        eng.dispose()
+
+
+@pytest.fixture(scope="module")
+def worker_engine(engine: Engine) -> Iterator[Engine]:
+    eng = make_engine(WORKER_URL) if WORKER_URL else engine
+    yield eng
+    if WORKER_URL:
+        eng.dispose()
+
+
+@pytest.fixture(scope="module")
+def client(app_engine: Engine, tmp_path_factory: pytest.TempPathFactory) -> Iterator[TestClient]:
     tmp = tmp_path_factory.mktemp("api")
     os.environ["MEDCHRON_GOLD_DIR"] = str(ROOT / "data" / "synthetic")
     os.environ["MEDCHRON_RUNS_DIR"] = str(tmp / "runs")
-    app = create_app(engine, LocalStorage(tmp / "storage"))
+    app = create_app(app_engine, LocalStorage(tmp / "storage"))
     with TestClient(app, headers={"X-Dev-User": "alice", "X-Dev-Roles": "attorney"}) as c:
         yield c
 
 
 @pytest.fixture(scope="module")
-def processed(client: TestClient, engine: Engine) -> dict[str, str]:
+def processed(worker_engine: Engine, client: TestClient, engine: Engine) -> dict[str, str]:
     pdf = (ROOT / "data/synthetic/dev/case_0004.pdf").read_bytes()
     r = client.post(
         "/api/matters",
@@ -61,7 +83,7 @@ def processed(client: TestClient, engine: Engine) -> dict[str, str]:
     body = r.json()
     storage_root = client.app.state.storage.root  # type: ignore[attr-defined]
     os.environ["MEDCHRON_STORAGE_DIR"] = str(storage_root)
-    assert work(engine, once=True) == 1
+    assert work(worker_engine, once=True) == 1
     return dict(body)
 
 
@@ -127,14 +149,14 @@ def test_not_found(client: TestClient) -> None:
     assert client.get("/api/matters/demo-0003/pages/999").status_code == 404
 
 
-def test_failed_job_is_recorded(client: TestClient, engine: Engine) -> None:
+def test_failed_job_is_recorded(worker_engine: Engine, client: TestClient, engine: Engine) -> None:
     r = client.post(
         "/api/matters",
         files={"file": ("x.pdf", b"%PDF-1.4 not really a pdf", "application/pdf")},
         data={"matter_id": "broken", "provider": "oracle"},
     )
     assert r.status_code == 202
-    assert work(engine, once=True) == 1
+    assert work(worker_engine, once=True) == 1
     job = client.get(f"/api/jobs/{r.json()['job_id']}").json()
     assert job["status"] == "failed" and job["error"]
 
@@ -179,7 +201,7 @@ def test_review_workflow(client: TestClient, processed: dict[str, str]) -> None:
 
 
 def test_issue_triage_and_memo_signoff(
-    client: TestClient, processed: dict[str, str], engine: Engine
+    worker_engine: Engine, client: TestClient, processed: dict[str, str], engine: Engine
 ) -> None:
     base = "/api/matters/demo-0003"
     issues = client.get(f"{base}/issues").json()
@@ -204,7 +226,7 @@ def test_issue_triage_and_memo_signoff(
     assert client.get(f"{base}/memo").status_code == 404
     r = client.post(f"{base}/memo", json={"provider": "oracle"})
     assert r.status_code == 202
-    assert work(engine, once=True) == 1
+    assert work(worker_engine, once=True) == 1
     job = client.get(f"/api/jobs/{r.json()['job_id']}").json()
     assert job["status"] == "completed" and job["kind"] == "memo", job["error"]
     assert job["summary"]["invalid_citations"] == 0
@@ -223,7 +245,7 @@ def test_issue_triage_and_memo_signoff(
 
 
 def test_second_production_creates_a_version_and_keeps_review_state(
-    client: TestClient, engine: Engine
+    worker_engine: Engine, client: TestClient, engine: Engine
 ) -> None:
     """Upload production 1, review an event, upload production 2: the chronology gets a
     new version with a diff, earlier work is reused, and the review decision survives."""
@@ -238,7 +260,7 @@ def test_second_production_creates_a_version_and_keeps_review_state(
         data={"matter_id": mid, "provider": "oracle"},
     )
     assert r.status_code == 202, r.text
-    assert work(engine, once=True) == 1
+    assert work(worker_engine, once=True) == 1
     versions = client.get(f"/api/matters/{mid}/chronology/versions").json()
     assert [v["version"] for v in versions] == [1] and versions[0]["diff"] is None
     first_events = client.get(f"/api/matters/{mid}/chronology").json()["events"]
@@ -257,7 +279,7 @@ def test_second_production_creates_a_version_and_keeps_review_state(
         data={"provider": "oracle"},
     )
     assert r.status_code == 202 and r.json()["production_no"] == 2
-    assert work(engine, once=True) == 1
+    assert work(worker_engine, once=True) == 1
     job = client.get(f"/api/jobs/{r.json()['job_id']}").json()
     assert job["status"] == "completed", job["error"]
     assert job["summary"]["reused_documents"] > 0 and job["summary"]["chronology_version"] == 2
