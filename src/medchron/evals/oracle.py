@@ -56,6 +56,7 @@ class OracleProvider:
     def __init__(self, gold: CaseGold, *, noise: float = 0.0, seed: int = 0) -> None:
         self.gold = gold
         self.noise = noise
+        self._seed = seed
         self._rng = random.Random(seed)
         self._ids = itertools.count(1)
         self._page_doc: dict[int, GoldDocument] = {}
@@ -110,6 +111,9 @@ class OracleProvider:
 
     def _events(self, content: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         spans = _SPAN.findall(content)
+        # Noise is drawn from a per-request generator, so results do not depend on the
+        # order in which concurrent extraction threads call the oracle.
+        rng = random.Random(f"{self._seed}:{content}")
         events: list[dict[str, Any]] = []
         for ev in self.gold.events:
             for src in ev.sources:
@@ -117,12 +121,12 @@ class OracleProvider:
                 if hit is None:
                     continue
                 span_id, quote = hit
-                if self.noise and self._rng.random() < self.noise:
+                if self.noise and rng.random() < self.noise:
                     continue  # simulated miss
                 date: dt.date = ev.date
-                if self.noise and self._rng.random() < self.noise:
-                    date = date + dt.timedelta(days=self._rng.choice([-1, 1]))
-                if self.noise and self._rng.random() < self.noise:
+                if self.noise and rng.random() < self.noise:
+                    date = date + dt.timedelta(days=rng.choice([-1, 1]))
+                if self.noise and rng.random() < self.noise:
                     quote = quote + " (paraphrased)"  # should be rejected by grounding
                 events.append(
                     {
