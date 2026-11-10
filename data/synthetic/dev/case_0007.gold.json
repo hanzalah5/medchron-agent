@@ -1,0 +1,520 @@
+{
+  "case_id": "case_0007",
+  "seed": 7,
+  "scenario": "anticoag_interaction",
+  "generator_version": "0.2.0",
+  "synthetic": true,
+  "patient": {
+    "name": "Rowan Testwell",
+    "dob": "1955-07-14",
+    "sex": "F"
+  },
+  "documents": [
+    {
+      "doc_id": "F001",
+      "doc_type": "fax_cover",
+      "title": "Facsimile Transmittal - Release of Information",
+      "date": "2022-07-25",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "Health Information Management",
+      "start_page": 1,
+      "end_page": 1
+    },
+    {
+      "doc_id": "D002",
+      "doc_type": "office_visit",
+      "title": "Urgent Care Visit",
+      "date": "2022-04-03",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "E. Whitfield, NP",
+      "start_page": 2,
+      "end_page": 2
+    },
+    {
+      "doc_id": "D003",
+      "doc_type": "medication_list",
+      "title": "Medication List - Reconciled",
+      "date": "2022-04-03",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "E. Whitfield, NP",
+      "start_page": 3,
+      "end_page": 3
+    },
+    {
+      "doc_id": "F004",
+      "doc_type": "fax_cover",
+      "title": "Facsimile Transmittal - Release of Information",
+      "date": "2022-07-16",
+      "facility": "St. Synthetic General Hospital",
+      "provider": "Health Information Management",
+      "start_page": 4,
+      "end_page": 4
+    },
+    {
+      "doc_id": "D004",
+      "doc_type": "ed_note",
+      "title": "Emergency Department Provider Note",
+      "date": "2022-04-10",
+      "facility": "St. Synthetic General Hospital",
+      "provider": "P. Ramanathan, MD",
+      "start_page": 5,
+      "end_page": 5
+    },
+    {
+      "doc_id": "D005",
+      "doc_type": "lab_report",
+      "title": "Laboratory Report - Hematology and Coagulation",
+      "date": "2022-04-10",
+      "facility": "St. Synthetic General Hospital",
+      "provider": "Laboratory",
+      "start_page": 6,
+      "end_page": 6
+    },
+    {
+      "doc_id": "D006",
+      "doc_type": "medication_list",
+      "title": "Medication Administration Record",
+      "date": "2022-04-10",
+      "facility": "St. Synthetic General Hospital",
+      "provider": "Nursing",
+      "start_page": 7,
+      "end_page": 7
+    },
+    {
+      "doc_id": "D007",
+      "doc_type": "operative_report",
+      "title": "Upper Endoscopy Report",
+      "date": "2022-04-11",
+      "facility": "St. Synthetic General Hospital",
+      "provider": "W. Lindqvist, MD",
+      "start_page": 8,
+      "end_page": 8
+    },
+    {
+      "doc_id": "D008",
+      "doc_type": "discharge_summary",
+      "title": "Discharge Summary",
+      "date": "2022-04-14",
+      "facility": "St. Synthetic General Hospital",
+      "provider": "K. Kowalczyk, DO",
+      "start_page": 9,
+      "end_page": 9
+    },
+    {
+      "doc_id": "F010",
+      "doc_type": "fax_cover",
+      "title": "Facsimile Transmittal - Release of Information",
+      "date": "2022-07-12",
+      "facility": "Cedar Hollow Health Partners",
+      "provider": "Health Information Management",
+      "start_page": 10,
+      "end_page": 10
+    },
+    {
+      "doc_id": "D001",
+      "doc_type": "office_visit",
+      "title": "Anticoagulation Clinic Visit",
+      "date": "2022-03-09",
+      "facility": "Cedar Hollow Health Partners",
+      "provider": "B. Kowalczyk, MD",
+      "start_page": 11,
+      "end_page": 11
+    }
+  ],
+  "events": [
+    {
+      "event_id": "E001",
+      "date": "2022-03-09",
+      "type": "diagnosis",
+      "summary": "Atrial fibrillation on long-term warfarin",
+      "facility": "Cedar Hollow Health Partners",
+      "provider": "B. Kowalczyk, MD",
+      "sources": [
+        {
+          "doc_id": "D001",
+          "page": 11,
+          "quote": "Indication for anticoagulation: atrial fibrillation."
+        }
+      ]
+    },
+    {
+      "event_id": "E002",
+      "date": "2022-03-09",
+      "type": "lab_result",
+      "summary": "INR 2.4 (in range)",
+      "facility": "Cedar Hollow Health Partners",
+      "provider": "B. Kowalczyk, MD",
+      "sources": [
+        {
+          "doc_id": "D001",
+          "page": 11,
+          "quote": "03-09-22 2.4 7.5 mg daily 4 weeks"
+        }
+      ]
+    },
+    {
+      "event_id": "E003",
+      "date": "2022-03-09",
+      "type": "medication",
+      "summary": "Warfarin 7.5 mg daily continued",
+      "facility": "Cedar Hollow Health Partners",
+      "provider": "B. Kowalczyk, MD",
+      "sources": [
+        {
+          "doc_id": "D003",
+          "page": 3,
+          "quote": "Warfarin 7.5 mg PO daily active"
+        },
+        {
+          "doc_id": "D001",
+          "page": 11,
+          "quote": "Plan: continue warfarin 7.5 mg daily. Recheck INR in 4 weeks."
+        }
+      ]
+    },
+    {
+      "event_id": "E004",
+      "date": "2022-04-03",
+      "type": "encounter",
+      "summary": "Urgent care visit for urinary symptoms",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "E. Whitfield, NP",
+      "sources": [
+        {
+          "doc_id": "D002",
+          "page": 2,
+          "quote": "Visit date: 04-03-22. Dysuria and urinary frequency for two days."
+        }
+      ]
+    },
+    {
+      "event_id": "E005",
+      "date": "2022-04-03",
+      "type": "diagnosis",
+      "summary": "Diagnosed with urinary tract infection",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "E. Whitfield, NP",
+      "sources": [
+        {
+          "doc_id": "D002",
+          "page": 2,
+          "quote": "Assessment: acute cystitis."
+        }
+      ]
+    },
+    {
+      "event_id": "E006",
+      "date": "2022-04-03",
+      "type": "medication",
+      "summary": "Trimethoprim-sulfamethoxazole prescribed",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "E. Whitfield, NP",
+      "sources": [
+        {
+          "doc_id": "D002",
+          "page": 2,
+          "quote": "Prescribed trimethoprim-sulfamethoxazole DS one tablet twice daily for 7 days."
+        }
+      ]
+    },
+    {
+      "event_id": "E007",
+      "date": "2022-04-03",
+      "type": "instruction",
+      "summary": "Follow up with anticoagulation clinic for INR check",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "E. Whitfield, NP",
+      "sources": [
+        {
+          "doc_id": "D002",
+          "page": 2,
+          "quote": "Follow up with anticoagulation clinic for an INR check within 3 days."
+        }
+      ]
+    },
+    {
+      "event_id": "E008",
+      "date": "2022-04-10",
+      "type": "encounter",
+      "summary": "Emergency department visit for black stools and dizziness",
+      "facility": "St. Synthetic General Hospital",
+      "provider": "P. Ramanathan, MD",
+      "sources": [
+        {
+          "doc_id": "D004",
+          "page": 5,
+          "quote": "Date of service: April 10, 2022. Black stools and lightheadedness for one day."
+        }
+      ]
+    },
+    {
+      "event_id": "E009",
+      "date": "2022-04-10",
+      "type": "lab_result",
+      "summary": "INR 7.8 (high)",
+      "facility": "St. Synthetic General Hospital",
+      "provider": "Laboratory",
+      "sources": [
+        {
+          "doc_id": "D005",
+          "page": 6,
+          "quote": "PT/INR 7.8 H 0.9-1.1"
+        }
+      ]
+    },
+    {
+      "event_id": "E010",
+      "date": "2022-04-10",
+      "type": "lab_result",
+      "summary": "Hemoglobin 7.9 (low)",
+      "facility": "St. Synthetic General Hospital",
+      "provider": "Laboratory",
+      "sources": [
+        {
+          "doc_id": "D005",
+          "page": 6,
+          "quote": "Hemoglobin 7.9 g/dL L 12.0-16.0"
+        }
+      ]
+    },
+    {
+      "event_id": "E011",
+      "date": "2022-04-10",
+      "type": "medication",
+      "summary": "Vitamin K given IV",
+      "facility": "St. Synthetic General Hospital",
+      "provider": "Nursing",
+      "sources": [
+        {
+          "doc_id": "D006",
+          "page": 7,
+          "quote": "Phytonadione (vitamin K) 10 mg IV April 10, 2022 RN"
+        }
+      ]
+    },
+    {
+      "event_id": "E012",
+      "date": "2022-04-11",
+      "type": "procedure",
+      "summary": "Upper endoscopy: gastric ulcer treated",
+      "facility": "St. Synthetic General Hospital",
+      "provider": "W. Lindqvist, MD",
+      "sources": [
+        {
+          "doc_id": "D007",
+          "page": 8,
+          "quote": "Findings: clean-based gastric ulcer; no active bleeding. Biopsies taken."
+        },
+        {
+          "doc_id": "D008",
+          "page": 9,
+          "quote": "Findings: clean-based gastric ulcer; no active bleeding. Biopsies taken."
+        }
+      ]
+    },
+    {
+      "event_id": "E013",
+      "date": "2022-04-14",
+      "type": "encounter",
+      "summary": "Discharged after gastrointestinal bleeding",
+      "facility": "St. Synthetic General Hospital",
+      "provider": "K. Kowalczyk, DO",
+      "sources": [
+        {
+          "doc_id": "D008",
+          "page": 9,
+          "quote": "Admission date: April 10, 2022. Discharge date: April 14, 2022."
+        }
+      ]
+    },
+    {
+      "event_id": "E014",
+      "date": "2022-04-14",
+      "type": "medication",
+      "summary": "Warfarin held at discharge",
+      "facility": "St. Synthetic General Hospital",
+      "provider": "K. Kowalczyk, DO",
+      "sources": [
+        {
+          "doc_id": "D008",
+          "page": 9,
+          "quote": "Warfarin held; resume only after review at the anticoagulation clinic."
+        }
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "issue_id": "I001",
+      "kind": "missing_record",
+      "description": "Urgent care directed an INR check at the anticoagulation clinic within 3 days, but no anticoagulation clinic record after that date appears in the production. Request the clinic records.",
+      "event_ids": [
+        "E007"
+      ],
+      "pages": [
+        2
+      ]
+    },
+    {
+      "issue_id": "I002",
+      "kind": "record_inconsistency",
+      "description": "The ED order lists vitamin K 5 mg IV, but the medication administration record shows 10 mg given. Which dose was given, and is the difference explained?",
+      "event_ids": [
+        "E011"
+      ],
+      "pages": [
+        5,
+        7
+      ]
+    },
+    {
+      "issue_id": "I003",
+      "kind": "date_conflict",
+      "description": "The discharge summary gives a different endoscopy date than the endoscopy report. Which date is correct?",
+      "event_ids": [
+        "E012"
+      ],
+      "pages": [
+        8,
+        9
+      ]
+    },
+    {
+      "issue_id": "I004",
+      "kind": "potential_delay",
+      "description": "Trimethoprim-sulfamethoxazole was started on 2022-04-03 while the medication list shows warfarin, and the INR was 7.8 on 2022-04-10. Was INR monitoring arranged in between?",
+      "event_ids": [
+        "E006",
+        "E009"
+      ],
+      "pages": [
+        2,
+        6
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "page": 1,
+      "doc_id": "F001",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 07/25/2022 10:23 FROM HIM DEPT    P.001\nQUICKCARE URGENT CARE - ELM PLAZA\nFacsimile Transmittal - Release of Information\nPatient: Rowan Testwell   DOB: 07-14-55   MRN: H2037872\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Health Information Management\n------------------------------------------------------------------------------------------\nTo: Records Requester, Synthetic Law Office (fictional).\n\nFrom: QuickCare Urgent Care - Elm Plaza, Health Information Management Department.\n\nRe: Medical records for Rowan Testwell. Pages: 3 including cover.\n\nDate sent: 07-25-22.\n\nCONFIDENTIALITY NOTICE: This transmission contains confidential health information. If you\nreceived it in error, notify the sender and destroy all copies.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 2,
+      "doc_id": "D002",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 07/25/2022 10:23 FROM HIM DEPT    P.002\nQUICKCARE URGENT CARE - ELM PLAZA\nUrgent Care Visit\nPatient: Rowan Testwell   DOB: 07-14-55   MRN: H2037872\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: E. Whitfield, NP\n------------------------------------------------------------------------------------------\nVisit date: 04-03-22. Dysuria and urinary frequency for two days.\n\nAssessment: acute cystitis.\n\nPrescribed trimethoprim-sulfamethoxazole DS one tablet twice daily for 7 days.\n\nFollow up with anticoagulation clinic for an INR check within 3 days.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 3,
+      "doc_id": "D003",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 07/25/2022 10:23 FROM HIM DEPT    P.003\nQUICKCARE URGENT CARE - ELM PLAZA\nMedication List - Reconciled\nPatient: Rowan Testwell   DOB: 07-14-55   MRN: H2037872\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: E. Whitfield, NP\n------------------------------------------------------------------------------------------\nMedication                        Dose    Route  Frequency    Status\n--------------------------------------------------------------------\nWarfarin                          7.5 mg  PO     daily        active\nMetoprolol tartrate               25 mg   PO     twice daily  active\nTrimethoprim-sulfamethoxazole DS  1 tab   PO     twice daily  new\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 4,
+      "doc_id": "F004",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 07/16/2022 10:30 FROM HIM DEPT    P.001\nST. SYNTHETIC GENERAL HOSPITAL\nFacsimile Transmittal - Release of Information\nPatient: Rowan Testwell   DOB: July 14, 1955   MRN: R1831970\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Health Information Management\n------------------------------------------------------------------------------------------\nTo: Records Requester, Synthetic Law Office (fictional).\n\nFrom: St. Synthetic General Hospital, Health Information Management Department.\n\nRe: Medical records for Rowan Testwell. Pages: 6 including cover.\n\nDate sent: July 16, 2022.\n\nCONFIDENTIALITY NOTICE: This transmission contains confidential health information. If you\nreceived it in error, notify the sender and destroy all copies.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 5,
+      "doc_id": "D004",
+      "doc_page": 1,
+      "text_layer": false,
+      "duplicate_of": null,
+      "text": "FAX 07/16/2022 10:30 FROM HIM DEPT    P.002\nST. SYNTHETIC GENERAL HOSPITAL\nEmergency Department Provider Note\nPatient: Rowan Testwell   DOB: July 14, 1955   MRN: R1831970\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: P. Ramanathan, MD\n------------------------------------------------------------------------------------------\nDate of service: April 10, 2022. Black stools and lightheadedness for one day.\n\nVitals: BP 122/76, HR 90, RR 18, SpO2 98% on room air, Temp 36.9 C.\n\nOrder: vitamin K 5 mg IV once.\n\n\nPage 1 of 1",
+      "scan": "skew",
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 6,
+      "doc_id": "D005",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 07/16/2022 10:30 FROM HIM DEPT    P.003\nST. SYNTHETIC GENERAL HOSPITAL\nLaboratory Report - Hematology and Coagulation\nPatient: Rowan Testwell   DOB: July 14, 1955   MRN: R1831970\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Laboratory\n------------------------------------------------------------------------------------------\nTest        Result        Flag  Reference\n-----------------------------------------\nPT/INR      7.8           H     0.9-1.1\nHemoglobin  7.9 g/dL      L     12.0-16.0\nPlatelets   212 x10^3/uL        150-400\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 7,
+      "doc_id": "D006",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 07/16/2022 10:30 FROM HIM DEPT    P.004\nST. SYNTHETIC GENERAL HOSPITAL\nMedication Administration Record\nPatient: Rowan Testwell   DOB: July 14, 1955   MRN: R1831970\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Nursing\n------------------------------------------------------------------------------------------\nMedication                Dose   Route  Given           By\n----------------------------------------------------------\nPhytonadione (vitamin K)  10 mg  IV     April 10, 2022  RN\nPantoprazole              80 mg  IV     April 10, 2022  RN\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 8,
+      "doc_id": "D007",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 07/16/2022 10:30 FROM HIM DEPT    P.005\nST. SYNTHETIC GENERAL HOSPITAL\nUpper Endoscopy Report\nPatient: Rowan Testwell   DOB: July 14, 1955   MRN: R1831970\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: W. Lindqvist, MD\n------------------------------------------------------------------------------------------\nProcedure date: April 11, 2022. Findings: clean-based gastric ulcer; no active bleeding.\nBiopsies taken.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 9,
+      "doc_id": "D008",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 07/16/2022 10:30 FROM HIM DEPT    P.006\nST. SYNTHETIC GENERAL HOSPITAL\nDischarge Summary\nPatient: Rowan Testwell   DOB: July 14, 1955   MRN: R1831970\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: K. Kowalczyk, DO\n------------------------------------------------------------------------------------------\nAdmission date: April 10, 2022. Discharge date: April 14, 2022.\n\nInterval history (copied forward from prior note): Procedure date: April 11, 2022.\nFindings: clean-based gastric ulcer; no active bleeding. Biopsies taken.\n\nHospital course: endoscopy on April 10, 2022 showed an ulcer.\n\nWarfarin held; resume only after review at the anticoagulation clinic.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 10,
+      "doc_id": "F010",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 07/12/2022 10:39 FROM HIM DEPT    P.001\nCEDAR HOLLOW HEALTH PARTNERS\nFacsimile Transmittal - Release of Information\nPatient: Rowan Testwell   DOB: 07-14-55   MRN: S1991709\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Health Information Management\n------------------------------------------------------------------------------------------\nTo: Records Requester, Synthetic Law Office (fictional).\n\nFrom: Cedar Hollow Health Partners, Health Information Management Department.\n\nRe: Medical records for Rowan Testwell. Pages: 2 including cover.\n\nDate sent: 07-12-22.\n\nCONFIDENTIALITY NOTICE: This transmission contains confidential health information. If you\nreceived it in error, notify the sender and destroy all copies.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 11,
+      "doc_id": "D001",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 07/12/2022 10:39 FROM HIM DEPT    P.002\nCEDAR HOLLOW HEALTH PARTNERS\nAnticoagulation Clinic Visit\nPatient: Rowan Testwell   DOB: 07-14-55   MRN: S1991709\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: B. Kowalczyk, MD\n------------------------------------------------------------------------------------------\nIndication for anticoagulation: atrial fibrillation.\n\nDate      INR  Warfarin dose  Next check\n----------------------------------------\n02-09-22  2.6  7.5 mg daily   4 weeks\n03-09-22  2.4  7.5 mg daily   4 weeks\n\nPlan: continue warfarin 7.5 mg daily. Recheck INR in 4 weeks.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    }
+  ],
+  "productions": 1
+}

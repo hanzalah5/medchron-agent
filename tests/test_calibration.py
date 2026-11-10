@@ -13,7 +13,7 @@ from medchron.evals.oracle import OracleJudge, OracleProvider
 from medchron.orchestrator.pipeline import RunConfig, run_case
 from medchron.synth.models import CaseGold
 
-SMOKE = Path(__file__).resolve().parents[1] / "data" / "synthetic"
+SMOKE = Path(__file__).resolve().parents[1] / "data" / "synthetic" / "dev"
 
 
 def test_gold_seed_labels_are_marked_gold_derived() -> None:
@@ -89,7 +89,7 @@ def test_oracle_judge_self_check_is_labelled(tmp_path: Path) -> None:
 
 
 def test_sample_claims_from_a_run(tmp_path: Path) -> None:
-    cid = "case_0003"
+    cid = "case_0004"
     gold = CaseGold.model_validate_json((SMOKE / f"{cid}.gold.json").read_text())
     run_dir = tmp_path / "runs"
     run_case(SMOKE / f"{cid}.pdf", cid, OracleProvider(gold), RunConfig(out_dir=run_dir / cid))

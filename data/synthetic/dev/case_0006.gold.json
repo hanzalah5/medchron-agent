@@ -1,0 +1,659 @@
+{
+  "case_id": "case_0006",
+  "seed": 6,
+  "scenario": "abdominal_pain_return_visit",
+  "generator_version": "0.2.0",
+  "synthetic": true,
+  "patient": {
+    "name": "Dakota Demoson",
+    "dob": "1951-05-16",
+    "sex": "M"
+  },
+  "documents": [
+    {
+      "doc_id": "F001",
+      "doc_type": "fax_cover",
+      "title": "Facsimile Transmittal - Release of Information",
+      "date": "2023-04-19",
+      "facility": "Cedar Hollow Health Partners",
+      "provider": "Health Information Management",
+      "start_page": 1,
+      "end_page": 1
+    },
+    {
+      "doc_id": "D001",
+      "doc_type": "office_visit",
+      "title": "Office Visit - Annual Exam",
+      "date": "2022-09-10",
+      "facility": "Cedar Hollow Health Partners",
+      "provider": "L. Lindqvist, MD",
+      "start_page": 2,
+      "end_page": 2
+    },
+    {
+      "doc_id": "D012",
+      "doc_type": "office_visit",
+      "title": "Office Visit - Hospital Follow-up",
+      "date": "2023-01-31",
+      "facility": "Cedar Hollow Health Partners",
+      "provider": "L. Lindqvist, MD",
+      "start_page": 3,
+      "end_page": 3
+    },
+    {
+      "doc_id": "F004",
+      "doc_type": "fax_cover",
+      "title": "Facsimile Transmittal - Release of Information",
+      "date": "2023-03-08",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "Health Information Management",
+      "start_page": 4,
+      "end_page": 4
+    },
+    {
+      "doc_id": "D002",
+      "doc_type": "ed_note",
+      "title": "Emergency Department Provider Note",
+      "date": "2022-12-28",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "M. Nakamura, DO",
+      "start_page": 5,
+      "end_page": 5
+    },
+    {
+      "doc_id": "D003",
+      "doc_type": "lab_report",
+      "title": "Laboratory Report - Hematology",
+      "date": "2022-12-28",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "Laboratory",
+      "start_page": 6,
+      "end_page": 6
+    },
+    {
+      "doc_id": "D004",
+      "doc_type": "ed_note",
+      "title": "Emergency Department Provider Note",
+      "date": "2022-12-31",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "J. Abernathy, MD",
+      "start_page": 7,
+      "end_page": 7
+    },
+    {
+      "doc_id": "D005",
+      "doc_type": "radiology_report",
+      "title": "CT Abdomen and Pelvis with Contrast",
+      "date": "2022-12-31",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "B. Hollingsworth, MD",
+      "start_page": 8,
+      "end_page": 8
+    },
+    {
+      "doc_id": "D006",
+      "doc_type": "operative_report",
+      "title": "Operative Report",
+      "date": "2022-12-31",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "D. Delacroix, MD, FACS",
+      "start_page": 9,
+      "end_page": 9
+    },
+    {
+      "doc_id": "D007",
+      "doc_type": "progress_note",
+      "title": "Hospitalist Progress Note",
+      "date": "2023-01-01",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "K. Lindqvist, MD",
+      "start_page": 10,
+      "end_page": 10
+    },
+    {
+      "doc_id": "D008",
+      "doc_type": "progress_note",
+      "title": "Surgery Progress Note",
+      "date": "2023-01-03",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "D. Delacroix, MD, FACS",
+      "start_page": 11,
+      "end_page": 11
+    },
+    {
+      "doc_id": "D009",
+      "doc_type": "progress_note",
+      "title": "Hospitalist Progress Note",
+      "date": "2023-01-04",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "K. Lindqvist, MD",
+      "start_page": 12,
+      "end_page": 13
+    },
+    {
+      "doc_id": "D010",
+      "doc_type": "discharge_summary",
+      "title": "Discharge Summary",
+      "date": "2023-01-05",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "K. Lindqvist, MD",
+      "start_page": 14,
+      "end_page": 14
+    },
+    {
+      "doc_id": "D011",
+      "doc_type": "office_visit",
+      "title": "Surgery Clinic Post-operative Visit",
+      "date": "2023-01-21",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "D. Delacroix, MD, FACS",
+      "start_page": 15,
+      "end_page": 15
+    }
+  ],
+  "events": [
+    {
+      "event_id": "E001",
+      "date": "2022-09-10",
+      "type": "encounter",
+      "summary": "Annual wellness visit with primary care",
+      "facility": "Cedar Hollow Health Partners",
+      "provider": "L. Lindqvist, MD",
+      "sources": [
+        {
+          "doc_id": "D001",
+          "page": 2,
+          "quote": "Patient seen on 2022-09-10 for annual wellness examination."
+        }
+      ]
+    },
+    {
+      "event_id": "E002",
+      "date": "2022-12-28",
+      "type": "encounter",
+      "summary": "Emergency department visit for abdominal pain",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "M. Nakamura, DO",
+      "sources": [
+        {
+          "doc_id": "D002",
+          "page": 5,
+          "quote": "Date of service: 12-28-22. Patient presents to the emergency department."
+        }
+      ]
+    },
+    {
+      "event_id": "E003",
+      "date": "2022-12-28",
+      "type": "complaint",
+      "summary": "Periumbilical abdominal pain with nausea for about 12 hours",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "M. Nakamura, DO",
+      "sources": [
+        {
+          "doc_id": "D002",
+          "page": 5,
+          "quote": "Chief complaint: periumbilical abdominal pain with nausea for approximately 12 hours."
+        }
+      ]
+    },
+    {
+      "event_id": "E004",
+      "date": "2022-12-28",
+      "type": "lab_result",
+      "summary": "White blood cell count 17.1 (high)",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "M. Nakamura, DO",
+      "sources": [
+        {
+          "doc_id": "D002",
+          "page": 5,
+          "quote": "Labs: WBC 17.1 x10^3/uL (H). Lipase within normal limits."
+        },
+        {
+          "doc_id": "D003",
+          "page": 6,
+          "quote": "WBC 4.0-11.0 x10^3/uL  RESULT 17.1  FLAG H  COLLECTED 12-28-22"
+        }
+      ]
+    },
+    {
+      "event_id": "E005",
+      "date": "2022-12-28",
+      "type": "diagnosis",
+      "summary": "Diagnosed with gastritis / nonspecific abdominal pain",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "M. Nakamura, DO",
+      "sources": [
+        {
+          "doc_id": "D002",
+          "page": 5,
+          "quote": "Impression: abdominal pain, likely gastritis."
+        }
+      ]
+    },
+    {
+      "event_id": "E006",
+      "date": "2022-12-28",
+      "type": "medication",
+      "summary": "Omeprazole 20 mg daily prescribed",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "M. Nakamura, DO",
+      "sources": [
+        {
+          "doc_id": "D002",
+          "page": 5,
+          "quote": "Discharged home with omeprazole 20 mg by mouth daily."
+        }
+      ]
+    },
+    {
+      "event_id": "E007",
+      "date": "2022-12-28",
+      "type": "instruction",
+      "summary": "Return precautions for worsening pain or fever",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "M. Nakamura, DO",
+      "sources": [
+        {
+          "doc_id": "D002",
+          "page": 5,
+          "quote": "Return precautions given for worsening pain, fever or vomiting."
+        }
+      ]
+    },
+    {
+      "event_id": "E008",
+      "date": "2022-12-31",
+      "type": "encounter",
+      "summary": "Return emergency department visit",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "J. Abernathy, MD",
+      "sources": [
+        {
+          "doc_id": "D004",
+          "page": 7,
+          "quote": "Date of service: 12-31-22. Patient returns to the emergency department."
+        }
+      ]
+    },
+    {
+      "event_id": "E009",
+      "date": "2022-12-31",
+      "type": "complaint",
+      "summary": "Worsening right lower quadrant pain with fever",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "J. Abernathy, MD",
+      "sources": [
+        {
+          "doc_id": "D004",
+          "page": 7,
+          "quote": "Worsening right lower quadrant pain with fever to 38.9 C since last evening."
+        }
+      ]
+    },
+    {
+      "event_id": "E010",
+      "date": "2022-12-31",
+      "type": "referral",
+      "summary": "General surgery consulted",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "J. Abernathy, MD",
+      "sources": [
+        {
+          "doc_id": "D004",
+          "page": 7,
+          "quote": "General surgery consulted emergently after CT results."
+        }
+      ]
+    },
+    {
+      "event_id": "E011",
+      "date": "2022-12-31",
+      "type": "imaging",
+      "summary": "CT shows perforated appendicitis with abscess",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "B. Hollingsworth, MD",
+      "sources": [
+        {
+          "doc_id": "D005",
+          "page": 8,
+          "quote": "IMPRESSION: Perforated appendicitis with a 3.1 cm periappendiceal abscess."
+        }
+      ]
+    },
+    {
+      "event_id": "E012",
+      "date": "2022-12-31",
+      "type": "procedure",
+      "summary": "Laparoscopic converted to open appendectomy",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "D. Delacroix, MD, FACS",
+      "sources": [
+        {
+          "doc_id": "D006",
+          "page": 9,
+          "quote": "Procedure: laparoscopic converted to open appendectomy with drainage of abscess."
+        },
+        {
+          "doc_id": "D008",
+          "page": 11,
+          "quote": "Procedure: laparoscopic converted to open appendectomy with drainage of abscess."
+        },
+        {
+          "doc_id": "D010",
+          "page": 14,
+          "quote": "Hospital course: underwent appendectomy on 12-31-22 for perforated appendicitis."
+        }
+      ]
+    },
+    {
+      "event_id": "E013",
+      "date": "2023-01-01",
+      "type": "medication",
+      "summary": "IV piperacillin-tazobactam started",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "K. Lindqvist, MD",
+      "sources": [
+        {
+          "doc_id": "D007",
+          "page": 10,
+          "quote": "Started IV piperacillin-tazobactam 4.5 g every 8 hours."
+        }
+      ]
+    },
+    {
+      "event_id": "E014",
+      "date": "2023-01-03",
+      "type": "diagnosis",
+      "summary": "Surgical site infection of incision",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "D. Delacroix, MD, FACS",
+      "sources": [
+        {
+          "doc_id": "D008",
+          "page": 11,
+          "quote": "Incision with erythema and purulent drainage consistent with superficial surgical site infection."
+        }
+      ]
+    },
+    {
+      "event_id": "E015",
+      "date": "2023-01-05",
+      "type": "encounter",
+      "summary": "Discharged from hospital",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "K. Lindqvist, MD",
+      "sources": [
+        {
+          "doc_id": "D010",
+          "page": 14,
+          "quote": "Admission date: 12-31-22. Discharge date: 01-05-23."
+        }
+      ]
+    },
+    {
+      "event_id": "E016",
+      "date": "2023-01-05",
+      "type": "medication",
+      "summary": "Amoxicillin-clavulanate at discharge",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "K. Lindqvist, MD",
+      "sources": [
+        {
+          "doc_id": "D010",
+          "page": 14,
+          "quote": "Discharge medications: amoxicillin-clavulanate 875 mg twice daily for 7 days."
+        }
+      ]
+    },
+    {
+      "event_id": "E017",
+      "date": "2023-01-05",
+      "type": "referral",
+      "summary": "Follow up in surgery clinic in 2 weeks",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "K. Lindqvist, MD",
+      "sources": [
+        {
+          "doc_id": "D010",
+          "page": 14,
+          "quote": "Follow up in general surgery clinic with D. Delacroix, MD, FACS in 2 weeks."
+        }
+      ]
+    },
+    {
+      "event_id": "E018",
+      "date": "2023-01-21",
+      "type": "encounter",
+      "summary": "Post-operative surgery clinic visit",
+      "facility": "Northbrook Regional Medical Center",
+      "provider": "D. Delacroix, MD, FACS",
+      "sources": [
+        {
+          "doc_id": "D011",
+          "page": 15,
+          "quote": "Wound packing discontinued. Return as needed."
+        }
+      ]
+    },
+    {
+      "event_id": "E019",
+      "date": "2023-01-31",
+      "type": "encounter",
+      "summary": "Primary care hospital follow-up",
+      "facility": "Cedar Hollow Health Partners",
+      "provider": "L. Lindqvist, MD",
+      "sources": [
+        {
+          "doc_id": "D012",
+          "page": 3,
+          "quote": "Seen on 2023-01-31 for follow-up after hospitalization for appendicitis."
+        }
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "issue_id": "I001",
+      "kind": "potential_delay",
+      "description": "The WBC was elevated (17.1) at the first ED visit, and the patient was discharged with a gastritis impression. The diagnosis of perforated appendicitis came 3 days later. Was the elevated WBC addressed before discharge?",
+      "event_ids": [
+        "E004",
+        "E005",
+        "E011"
+      ],
+      "pages": [
+        5
+      ]
+    },
+    {
+      "issue_id": "I002",
+      "kind": "misfiled_page",
+      "description": "A page in this production names a different patient in its header (name and date of birth do not match the rest of the records). Should it be set aside and returned to the producing party rather than reviewed?",
+      "event_ids": [],
+      "pages": [
+        13
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "page": 1,
+      "doc_id": "F001",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 04/19/2023 10:28 FROM HIM DEPT    P.001\nCEDAR HOLLOW HEALTH PARTNERS\nFacsimile Transmittal - Release of Information\nPatient: Dakota Demoson   DOB: 1951-05-16   MRN: K2478224\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Health Information Management\n------------------------------------------------------------------------------------------\nTo: Records Requester, Synthetic Law Office (fictional).\n\nFrom: Cedar Hollow Health Partners, Health Information Management Department.\n\nRe: Medical records for Dakota Demoson. Pages: 3 including cover.\n\nDate sent: 2023-04-19.\n\nCONFIDENTIALITY NOTICE: This transmission contains confidential health information. If you\nreceived it in error, notify the sender and destroy all copies.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 2,
+      "doc_id": "D001",
+      "doc_page": 1,
+      "text_layer": false,
+      "duplicate_of": null,
+      "text": "FAX 04/19/2023 10:28 FROM HIM DEPT    P.002\nCEDAR HOLLOW HEALTH PARTNERS\nOffice Visit - Annual Exam\nPatient: Dakota Demoson   DOB: 1951-05-16   MRN: K2478224\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: L. Lindqvist, MD\n------------------------------------------------------------------------------------------\nPatient seen on 2022-09-10 for annual wellness examination.\n\nPast medical history: hyperlipidemia, seasonal allergies. Past surgical history:\ntonsillectomy in childhood. Family history: father with hypertension. Social history:\nnever smoker, drinks alcohol socially, works in an office setting.\n\nROS: 10-point review of systems performed and negative except as documented in the history\nof present illness. Patient denies headache, vision change, chest pain, shortness of\nbreath at rest, urinary symptoms, or new rash.\n\nVitals: BP 128/82, HR 84, RR 16, SpO2 98% on room air, Temp 36.8 C.\n\nExam: Vitals reviewed. Well-appearing. Cardiopulmonary exam unremarkable. Abdomen soft.\nExtremities without gross deformity. Mental status at baseline per patient.\n\nAssessment: Routine health maintenance. No acute concerns raised today.\n\nDiscussed risks, benefits and alternatives of the plan of care. Patient verbalized\nunderstanding. Printed after-visit summary provided.\n\nElectronically signed. This note may contain transcription errors; please contact the\nauthor with any questions regarding its content.\n\n\nPage 1 of 1",
+      "scan": "skew",
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 3,
+      "doc_id": "D012",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 04/19/2023 10:28 FROM HIM DEPT    P.003\nCEDAR HOLLOW HEALTH PARTNERS\nOffice Visit - Hospital Follow-up\nPatient: Dakota Demoson   DOB: 1951-05-16   MRN: K2478224\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: L. Lindqvist, MD\n------------------------------------------------------------------------------------------\nSeen on 2023-01-31 for follow-up after hospitalization for appendicitis.\n\nReview of systems: Constitutional negative for weight change. HEENT negative.\nCardiovascular negative for chest pain or palpitations. Respiratory negative for cough.\nGenitourinary negative for dysuria. Skin negative for rash. Neurologic negative for focal\nweakness. All other systems reviewed and negative except as noted.\n\nVitals: BP 128/82, HR 84, RR 16, SpO2 98% on room air, Temp 36.8 C.\n\nPhysical exam: General - alert, oriented, in no acute distress. HEENT - normocephalic,\nmucous membranes moist. Neck - supple. Lungs - clear to auscultation bilaterally. Heart -\nregular rate and rhythm, no murmur. Extremities - no cyanosis. Neuro - grossly intact.\nSkin - warm and dry.\n\nMedication reconciliation completed and reviewed with the patient. Patient given\nopportunity to ask questions; all questions answered. Patient agrees with plan.\n\nElectronically signed. This note may contain transcription errors; please contact the\nauthor with any questions regarding its content.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 4,
+      "doc_id": "F004",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "NORTHBROOK REGIONAL MEDICAL CENTER\nFacsimile Transmittal - Release of Information\nPatient: Dakota Demoson   DOB: 05-16-51   MRN: D4237748\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Health Information Management\n------------------------------------------------------------------------------------------\nTo: Records Requester, Synthetic Law Office (fictional).\n\nFrom: Northbrook Regional Medical Center, Health Information Management Department.\n\nRe: Medical records for Dakota Demoson. Pages: 12 including cover.\n\nDate sent: 03-08-23.\n\nCONFIDENTIALITY NOTICE: This transmission contains confidential health information. If you\nreceived it in error, notify the sender and destroy all copies.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 5,
+      "doc_id": "D002",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "NORTHBROOK REGIONAL MEDICAL CENTER\nEmergency Department Provider Note\nPatient: Dakota Demoson   DOB: 05-16-51   MRN: D4237748\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: M. Nakamura, DO\n------------------------------------------------------------------------------------------\nDate of service: 12-28-22. Patient presents to the emergency department.\n\nHPI: Chief complaint: periumbilical abdominal pain with nausea for approximately 12 hours.\n\nPast medical history: hyperlipidemia, seasonal allergies. Past surgical history:\ntonsillectomy in childhood. Family history: father with hypertension. Social history:\nnever smoker, drinks alcohol socially, works in an office setting.\n\nReview of systems: Constitutional negative for weight change. HEENT negative.\nCardiovascular negative for chest pain or palpitations. Respiratory negative for cough.\nGenitourinary negative for dysuria. Skin negative for rash. Neurologic negative for focal\nweakness. All other systems reviewed and negative except as noted.\n\nVitals: BP 122/76, HR 90, RR 18, SpO2 98% on room air, Temp 36.9 C.\n\nAbdominal exam: mild tenderness to deep palpation in the periumbilical region. No rebound.\nNo guarding documented.\n\nLabs: WBC 17.1 x10^3/uL (H). Lipase within normal limits.\n\nImpression: abdominal pain, likely gastritis.\n\nDischarged home with omeprazole 20 mg by mouth daily.\n\nReturn precautions given for worsening pain, fever or vomiting.\n\nI personally evaluated the patient and reviewed the available records. Documentation\ncompleted with the assistance of templated text and reviewed for accuracy.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 6,
+      "doc_id": "D003",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "NORTHBROOK REGIONAL MEDICAL CENTER\nLaboratory Report - Hematology\nPatient: Dakota Demoson   DOB: 05-16-51   MRN: D4237748\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Laboratory\n------------------------------------------------------------------------------------------\nWBC 4.0-11.0 x10^3/uL  RESULT 17.1  FLAG H  COLLECTED 12-28-22\n\nHGB 13.1-17.2 g/dL  RESULT 14.2. PLT 150-400 x10^3/uL  RESULT 268.\n\nLipase 13-60 U/L  RESULT 31. Specimen received and verified by lab staff.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 7,
+      "doc_id": "D004",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "NORTHBROOK REGIONAL MEDICAL CENTER\nEmergency Department Provider Note\nPatient: Dakota Demoson   DOB: 05-16-51   MRN: D4237748\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: J. Abernathy, MD\n------------------------------------------------------------------------------------------\nDate of service: 12-31-22. Patient returns to the emergency department.\n\nHPI: Worsening right lower quadrant pain with fever to 38.9 C since last evening.\n\nPatient reports being seen in this emergency department on 12-28-22.\n\nVitals: BP 128/82, HR 84, RR 16, SpO2 98% on room air, Temp 36.8 C.\n\nExam: Vitals reviewed. Well-appearing. Cardiopulmonary exam unremarkable. Abdomen soft.\nExtremities without gross deformity. Mental status at baseline per patient.\n\nGeneral surgery consulted emergently after CT results.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 8,
+      "doc_id": "D005",
+      "doc_page": 1,
+      "text_layer": false,
+      "duplicate_of": null,
+      "text": "NORTHBROOK REGIONAL MEDICAL CENTER\nCT Abdomen and Pelvis with Contrast\nPatient: Dakota Demoson   DOB: 05-16-51   MRN: D4237748\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: B. Hollingsworth, MD\n------------------------------------------------------------------------------------------\nIMPRESSION: Perforated appendicitis with a 3.1 cm periappendiceal abscess.\n\nTechnique: Axial images of the abdomen and pelvis with IV contrast.\n\nComparison: None available.\n\n\nPage 1 of 1",
+      "scan": "tilt",
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 9,
+      "doc_id": "D006",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "NORTHBROOK REGIONAL MEDICAL CENTER\nOperative Report\nPatient: Dakota Demoson   DOB: 05-16-51   MRN: D4237748\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: D. Delacroix, MD, FACS\n------------------------------------------------------------------------------------------\nDate of procedure: 12-31-22. Procedure: laparoscopic converted to open appendectomy with\ndrainage of abscess.\n\nFindings: perforated appendix with purulent fluid in the right lower quadrant. Conversion\nto open approach due to inflammation obscuring anatomy.\n\nEstimated blood loss 50 mL. Specimen: appendix to pathology. No complications.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 10,
+      "doc_id": "D007",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "NORTHBROOK REGIONAL MEDICAL CENTER\nHospitalist Progress Note\nPatient: Dakota Demoson   DOB: 05-16-51   MRN: D4237748\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: K. Lindqvist, MD\n------------------------------------------------------------------------------------------\nPlan: Started IV piperacillin-tazobactam 4.5 g every 8 hours.\n\nNursing note: Vital signs per flowsheet. Patient educated on incentive spirometer use and\nverbalized understanding. Bed in low position. Family at bedside this shift.\n\nVitals: BP 122/76, HR 90, RR 18, SpO2 98% on room air, Temp 36.9 C.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 11,
+      "doc_id": "D008",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "NORTHBROOK REGIONAL MEDICAL CENTER\nSurgery Progress Note\nPatient: Dakota Demoson   DOB: 05-16-51   MRN: D4237748\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: D. Delacroix, MD, FACS\n------------------------------------------------------------------------------------------\nPOD 3. Incision with erythema and purulent drainage consistent with superficial surgical\nsite infection.\n\nInterval history (copied forward from prior note): Date of procedure: 12-31-22. Procedure:\nlaparoscopic converted to open appendectomy with drainage of abscess.\n\nWound opened at bedside and packed. Continue antibiotics.\n\nNursing: Patient resting in bed, call light within reach. Fall precautions in place. IV\nsite clean, dry and intact. Tolerating diet. Ambulated in hallway with assistance. Pain\nreassessed after medication per protocol.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 12,
+      "doc_id": "D009",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "NORTHBROOK REGIONAL MEDICAL CENTER\nHospitalist Progress Note\nPatient: Dakota Demoson   DOB: 05-16-51   MRN: D4237748\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: K. Lindqvist, MD\n------------------------------------------------------------------------------------------\nHospital day 5. Afebrile overnight. Tolerating regular diet.\n\nVitals: BP 134/86, HR 78, RR 14, SpO2 97% on room air, Temp 37.0 C.\n\nNursing note: Vital signs per flowsheet. Patient educated on incentive spirometer use and\nverbalized understanding. Bed in low position. Family at bedside this shift.\n\nPhysical exam: General - alert, oriented, in no acute distress. HEENT - normocephalic,\nmucous membranes moist. Neck - supple. Lungs - clear to auscultation bilaterally. Heart -\nregular rate and rhythm, no murmur. Extremities - no cyanosis. Neuro - grossly intact.\nSkin - warm and dry.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 13,
+      "doc_id": "D009",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "NORTHBROOK REGIONAL MEDICAL CENTER\nOffice Visit - Chronic Care Follow-up\nPatient: Avery Trialton   DOB: 07-13-90   MRN: D4237748\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: L. Lindqvist, MD\n------------------------------------------------------------------------------------------\nVitals: BP 122/76, HR 90, RR 18, SpO2 98% on room air, Temp 36.9 C.\n\nPhysical exam: General - alert, oriented, in no acute distress. HEENT - normocephalic,\nmucous membranes moist. Neck - supple. Lungs - clear to auscultation bilaterally. Heart -\nregular rate and rhythm, no murmur. Extremities - no cyanosis. Neuro - grossly intact.\nSkin - warm and dry.\n\nAssessment: chronic conditions stable on current regimen. Continue current medications.\nReturn to clinic in three months or sooner as needed.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": true
+    },
+    {
+      "page": 14,
+      "doc_id": "D010",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "NORTHBROOK REGIONAL MEDICAL CENTER\nDischarge Summary\nPatient: Dakota Demoson   DOB: 05-16-51   MRN: D4237748\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: K. Lindqvist, MD\n------------------------------------------------------------------------------------------\nAdmission date: 12-31-22. Discharge date: 01-05-23.\n\nHospital course: underwent appendectomy on 12-31-22 for perforated appendicitis.\n\nDischarge medications: amoxicillin-clavulanate 875 mg twice daily for 7 days.\n\nFollow up in general surgery clinic with D. Delacroix, MD, FACS in 2 weeks.\n\nMedication reconciliation completed and reviewed with the patient. Patient given\nopportunity to ask questions; all questions answered. Patient agrees with plan.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 15,
+      "doc_id": "D011",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "NORTHBROOK REGIONAL MEDICAL CENTER\nSurgery Clinic Post-operative Visit\nPatient: Dakota Demoson   DOB: 05-16-51   MRN: D4237748\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: D. Delacroix, MD, FACS\n------------------------------------------------------------------------------------------\nPost-operative visit on 01-21-23. Wound healing by secondary intention.\n\nWound packing discontinued. Return as needed.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 16,
+      "doc_id": "D010",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": 14,
+      "text": "NORTHBROOK REGIONAL MEDICAL CENTER\nDischarge Summary\nPatient: Dakota Demoson   DOB: 05-16-51   MRN: D4237748\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: K. Lindqvist, MD\n------------------------------------------------------------------------------------------\nAdmission date: 12-31-22. Discharge date: 01-05-23.\n\nHospital course: underwent appendectomy on 12-31-22 for perforated appendicitis.\n\nDischarge medications: amoxicillin-clavulanate 875 mg twice daily for 7 days.\n\nFollow up in general surgery clinic with D. Delacroix, MD, FACS in 2 weeks.\n\nMedication reconciliation completed and reviewed with the patient. Patient given\nopportunity to ask questions; all questions answered. Patient agrees with plan.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    }
+  ],
+  "productions": 1
+}

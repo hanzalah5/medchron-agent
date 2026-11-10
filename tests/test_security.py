@@ -113,9 +113,11 @@ def test_pipeline_logs_contain_no_record_text(
     from medchron.orchestrator.pipeline import RunConfig, run_case
     from medchron.synth import CaseGold
 
-    gold = CaseGold.model_validate_json((ROOT / "data/synthetic/case_0003.gold.json").read_text())
+    gold = CaseGold.model_validate_json(
+        (ROOT / "data/synthetic/dev/case_0004.gold.json").read_text()
+    )
     with caplog.at_level(logging.DEBUG):
-        run_case(ROOT / "data/synthetic/case_0003.pdf", "c3", OracleProvider(gold),
+        run_case(ROOT / "data/synthetic/dev/case_0004.pdf", "c3", OracleProvider(gold),
                  RunConfig(out_dir=tmp_path))  # fmt: skip
     logged = "\n".join(r.getMessage() + json.dumps(getattr(r, "llm", {})) for r in caplog.records)
     assert gold.patient.name not in logged
@@ -162,7 +164,7 @@ def matter(engine: Engine, tmp_path_factory: pytest.TempPathFactory) -> dict[str
     os.environ["MEDCHRON_RUNS_DIR"] = str(tmp / "runs")
     os.environ["MEDCHRON_STORAGE_DIR"] = str(tmp / "storage")
     alice = _client(engine, tmp, "alice", "attorney")
-    pdf = (ROOT / "data/synthetic/case_0001.pdf").read_bytes()
+    pdf = (ROOT / "data/synthetic/dev/case_0001.pdf").read_bytes()
     r = alice.post("/api/matters", files={"file": ("c1.pdf", pdf)},
                    data={"matter_id": "wall-1", "provider": "oracle"})  # fmt: skip
     assert r.status_code == 202, r.text

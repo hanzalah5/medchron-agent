@@ -12,16 +12,27 @@ from medchron import __version__
 
 def _cmd_synth(args: argparse.Namespace) -> int:
     from medchron.synth import generate_dataset
+    from medchron.synth.generate import SPLITS
 
-    seeds = list(range(args.start_seed, args.start_seed + args.cases))
-    cases = generate_dataset(seeds, Path(args.out))
+    seeds_range = SPLITS[args.split]
+    start = args.start_seed if args.start_seed is not None else seeds_range.start
+    seeds = list(range(start, start + args.cases))
+    outside = [s for s in seeds if s not in seeds_range]
+    if outside:
+        raise SystemExit(
+            f"seeds {outside[0]}..{outside[-1]} are outside the {args.split} split "
+            f"({seeds_range.start}-{seeds_range.stop - 1}); dev and test seeds never overlap"
+        )
+    out = Path(args.out or f"data/generated/{args.split}")
+    cases = generate_dataset(seeds, out)
     for case in cases:
         g = case.gold
+        prods = f", {g.productions} productions" if g.productions > 1 else ""
         print(
-            f"{g.case_id}: {g.scenario}, {len(g.pages)} pages, {len(g.events)} events, "
+            f"{g.case_id}: {g.scenario}, {len(g.pages)} pages{prods}, {len(g.events)} events, "
             f"{len(g.issues)} planted issues"
         )
-    print(f"Wrote {len(cases)} cases to {args.out}")
+    print(f"Wrote {len(cases)} {args.split} cases to {out}")
     return 0
 
 
@@ -76,12 +87,18 @@ def _cmd_run(args: argparse.Namespace) -> int:
 
     out = Path(args.out) / args.matter
     result = run_case(
-        Path(args.pdf),
+        [Path(p) for p in args.pdf],
         args.matter,
         make_provider(args),
         RunConfig(out_dir=out, budget_usd=args.budget, concurrency=args.concurrency),
         progress=print,
     )
+    if result.diff is not None:
+        d = result.diff
+        print(
+            f"Version {result.version}: {len(d.added)} events added, {len(d.changed)} changed, "
+            f"{len(d.removed)} removed since version {d.from_version}"
+        )
     print(f"Outputs in {out}/ (chronology.md, chronology.csv, chronology.json, run.json)")
     return 0 if result.summary.status == "completed" else 2
 
@@ -101,14 +118,16 @@ def _cmd_eval(args: argparse.Namespace) -> int:
 
     if args.provider == "oracle":
         print("NOTE: oracle provider = gold-label test double. Results are NOT model results.")
+    data = Path(args.data or f"data/synthetic/{args.split}")
     result = run_eval(
-        Path(args.data),
+        data,
         provider_for,
         label=args.label,
         provider_name=args.provider,
         work_dir=Path(args.work) / args.label,
         budget_per_case=args.budget_per_case,
         case_ids=args.cases.split(",") if args.cases else None,
+        split=args.split,
     )
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -231,8 +250,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     synth = sub.add_parser("synth", help="Generate synthetic benchmark cases (PDF + gold JSON)")
     synth.add_argument("--cases", type=int, default=5, help="number of cases")
-    synth.add_argument("--start-seed", type=int, default=1, help="first seed (one seed per case)")
-    synth.add_argument("--out", default="data/generated", help="output directory")
+    synth.add_argument(
+        "--split", choices=["dev", "test"], default="dev", help="seed range: dev 1-999, test 1000+"
+    )
+    synth.add_argument(
+        "--start-seed", type=int, default=None, help="first seed (default: split start)"
+    )
+    synth.add_argument("--out", help="output directory (default data/generated/<split>)")
     synth.set_defaults(func=_cmd_synth)
 
     ingest = sub.add_parser("ingest", help="OCR, de-duplicate and chunk a PDF production")
@@ -243,7 +267,7 @@ def build_parser() -> argparse.ArgumentParser:
     ingest.set_defaults(func=_cmd_ingest)
 
     run = sub.add_parser("run", help="Run the agent pipeline on a PDF and write a chronology")
-    run.add_argument("pdf")
+    run.add_argument("pdf", nargs="+", help="PDF production(s), in the order they were received")
     run.add_argument("--matter", required=True)
     run.add_argument("--out", default="runs")
     run.add_argument("--budget", type=float, default=None, help="max LLM spend in USD")
@@ -252,7 +276,15 @@ def build_parser() -> argparse.ArgumentParser:
     run.set_defaults(func=_cmd_run)
 
     ev = sub.add_parser("eval", help="Evaluate the pipeline against gold labels")
-    ev.add_argument("--data", default="data/synthetic", help="dataset dir with manifest.json")
+    ev.add_argument(
+        "--split",
+        choices=["dev", "test"],
+        default="dev",
+        help="tune prompts on dev only; test is held out for reporting",
+    )
+    ev.add_argument(
+        "--data", help="dataset dir with manifest.json (default data/synthetic/<split>)"
+    )
     ev.add_argument("--label", required=True, help="name for this evaluation run")
     ev.add_argument("--out", default="evals/results")
     ev.add_argument("--work", default="runs/evals", help="pipeline outputs and checkpoints")

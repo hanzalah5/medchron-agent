@@ -63,7 +63,14 @@ Diagrams, a sequence diagram of one claim and a module map are in **[docs/archit
 
 ## Evaluation
 
-The project ships its own **synthetic benchmark**: seeded, multi-provider PDF productions with fax covers, duplicates, scanned pages and mixed date formats. Each case has **exact gold labels** and **planted issues** (date conflicts, missing records, inconsistencies, potential delays, prompt injection). Five cases are committed in [`data/synthetic/`](data/synthetic/).
+The project ships its own **synthetic benchmark**: seeded, multi-provider PDF productions across six clinical scenarios. They include:
+- fax covers, duplicates and mixed date formats
+- skewed, sideways and upside-down scans
+- table pages and copy-forward notes with stale dates
+- a page from another (fictional) patient's chart
+- cases delivered in two productions
+
+Each case has **exact gold labels** and **planted issues**: date conflicts, missing records, inconsistencies, potential delays, misfiled pages and prompt injection. A **dev** split (8 cases) is used for tuning, and a held-out **test** split (9 cases) is used for reporting. Both are committed in [`data/synthetic/`](data/synthetic/).
 
 The harness reports the following. Each result records the git SHA, models, efforts and exact prompt versions. A **regression gate** fails a run on metric drops, new scope violations or any injection compliance.
 - event P/R/F1, strict and with ±1-day dates
@@ -96,7 +103,7 @@ make eval-report               # regenerate evals/REPORT.md
 
 ```bash
 git clone https://github.com/hanzalah5/medchron-agent.git && cd medchron-agent
-docker compose --profile app up --build      # http://localhost:8080 - sign in, upload data/synthetic/case_0003.pdf
+docker compose --profile app up --build      # http://localhost:8080 - sign in, upload data/synthetic/dev/case_0004.pdf
 ```
 
 The **Demo oracle** engine needs no API key: it runs the bundled synthetic cases end to end. For real model runs, set `ANTHROPIC_API_KEY` and choose **Claude**.
@@ -112,10 +119,10 @@ make db-up                                     # Postgres + pgvector, migrations
 .venv/bin/medchron serve & .venv/bin/medchron worker &
 
 # CLI, no server:
-.venv/bin/medchron synth --cases 5 --out data/generated
-.venv/bin/medchron run data/synthetic/case_0003.pdf --matter c3 --budget 2.00          # Claude
-.venv/bin/medchron run data/synthetic/case_0003.pdf --matter c3 \
-    --provider oracle --gold data/synthetic/case_0003.gold.json                        # no key
+.venv/bin/medchron synth --split dev --cases 5          # -> data/generated/dev
+.venv/bin/medchron run data/synthetic/dev/case_0004.pdf --matter c4 --budget 2.00      # Claude
+.venv/bin/medchron run data/synthetic/dev/case_0003.p1.pdf data/synthetic/dev/case_0003.p2.pdf \
+    --matter c3 --provider oracle --gold data/synthetic/dev/case_0003.gold.json       # no key, 2 productions
 ```
 </details>
 
@@ -162,7 +169,7 @@ src/medchron/   synth · ingestion · llm · agents · grounding · chronology �
                 tools · retrieval · api · jobs · security · evals · prompts
 ui/             React reviewer app + Playwright e2e
 migrations/     Alembic (incl. row-level security)        infra/terraform/   GCP module + envs
-data/synthetic/ committed smoke cases + gold labels       evals/             results + REPORT.md
+data/synthetic/ dev + held-out test cases, gold labels   evals/             results + REPORT.md
 docs/           plan · architecture · security · deployment · eval methodology · ADRs
 ```
 

@@ -27,15 +27,16 @@ from medchron.retrieval.embeddings import HashingEmbedder
 from medchron.retrieval.search import MemorySearch
 from medchron.synth import CaseGold
 
-SMOKE = Path(__file__).resolve().parents[1] / "data" / "synthetic"
+SMOKE = Path(__file__).resolve().parents[1] / "data" / "synthetic" / "dev"
+CASE = "case_0004"
 
 
 @pytest.fixture(scope="module")
 def run(tmp_path_factory: pytest.TempPathFactory) -> tuple[RunResult, CaseGold]:
-    gold = CaseGold.model_validate_json((SMOKE / "case_0003.gold.json").read_text())
+    gold = CaseGold.model_validate_json((SMOKE / f"{CASE}.gold.json").read_text())
     result = run_case(
-        SMOKE / "case_0003.pdf",
-        "case_0003",
+        SMOKE / f"{CASE}.pdf",
+        CASE,
         OracleProvider(gold),
         RunConfig(out_dir=tmp_path_factory.mktemp("a")),
     )
@@ -91,7 +92,7 @@ def test_analyst_enforces_scope_and_grounding(run: tuple[RunResult, CaseGold]) -
     quote = next(line for line in span.text.splitlines() if "WBC" in line).strip()
     good = {
         "category": "potential_delay",
-        "description": "The WBC was elevated at the first ED visit. Was it addressed?",
+        "description": "The WBC was elevated at the ED visit. Was it addressed?",
         "event_ids": [],
         "citations": [{"span_id": span.span_id, "quote": quote}],
         "severity_hint": "high",

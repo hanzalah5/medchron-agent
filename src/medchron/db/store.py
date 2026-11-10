@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import os
+from typing import Any
 
-from sqlalchemy import create_engine, delete, select
+from sqlalchemy import create_engine, delete, func, select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
@@ -21,11 +22,13 @@ from medchron.chronology.models import (
 )
 from medchron.db.models import (
     CaseFlagRow,
+    ChronologyVersionRow,
     DocumentRow,
     EventRow,
     IssueRow,
     Matter,
     PageRow,
+    ProductionRow,
     SpanRow,
 )
 from medchron.ingestion.models import IngestedCase, Page, Span
@@ -67,6 +70,7 @@ def save_ingested(
             content_hash=p.content_hash,
             duplicate_of=p.duplicate_of,
             words=[w.model_dump() for w in p.words],
+            production=p.production,
         )
         for p in case.pages
     )
@@ -115,10 +119,20 @@ def load_ingested(session: Session, matter_id: str) -> IngestedCase:
                     "height": p.height,
                     "content_hash": p.content_hash,
                     "duplicate_of": p.duplicate_of,
+                    "production": p.production,
                 }
             )
             for p in pages
         ],
+        productions=[
+            r.sha256
+            for r in session.scalars(
+                select(ProductionRow)
+                .where(ProductionRow.matter_id == matter_id)
+                .order_by(ProductionRow.production_no)
+            )
+        ]
+        or [matter.source_sha256],
         spans=[
             Span(
                 span_id=s.span_id,
@@ -133,9 +147,21 @@ def load_ingested(session: Session, matter_id: str) -> IngestedCase:
     )
 
 
+REVIEW_FIELDS = ("review_status", "reviewer_note", "edited_summary", "edited_date",
+                 "reviewed_by", "reviewed_at")  # fmt: skip
+
+
 def save_chronology(session: Session, chron: Chronology) -> None:
-    """Replace a matter's documents, events and flags with a new pipeline result."""
+    """Replace a matter's documents, events and flags with a new pipeline result.
+
+    Reviewer decisions are kept: an event whose ID survives the re-run (event
+    IDs are stable across productions) keeps its review status, note and edits.
+    """
     m = chron.case_id
+    kept = {
+        r.event_id: {f: getattr(r, f) for f in REVIEW_FIELDS}
+        for r in session.scalars(select(EventRow).where(EventRow.matter_id == m))
+    }
     for table in (DocumentRow, EventRow, CaseFlagRow):
         session.execute(delete(table).where(table.matter_id == m))
     session.add_all(
@@ -155,6 +181,7 @@ def save_chronology(session: Session, chron: Chronology) -> None:
             confidence=e.confidence.value,
             flags=e.flags,
             sources=[s.model_dump() for s in e.sources],
+            **kept.get(e.event_id, {}),
         )
         for e in chron.events
     )
@@ -215,24 +242,139 @@ def load_chronology(session: Session, matter_id: str) -> Chronology:
     return chron
 
 
+TRIAGE_FIELDS = ("triage_status", "triage_note", "triaged_by", "triaged_at")
+
+
+def _issue_key(category: str, citations: list[dict[str, Any]]) -> str:
+    return category + "|" + ",".join(sorted(str(c.get("span_id", "")) for c in citations))
+
+
 def save_issues(session: Session, matter_id: str, issues: list[Issue]) -> None:
-    """Replace the analyst's issues for a matter (triage starts again from pending)."""
+    """Replace the analyst's issues for a matter.
+
+    Attorney triage is kept for an issue that comes back with the same category
+    and the same cited spans; new or changed issues start again from pending.
+    """
+    kept = {
+        _issue_key(r.category, r.citations): {f: getattr(r, f) for f in TRIAGE_FIELDS}
+        for r in session.scalars(select(IssueRow).where(IssueRow.matter_id == matter_id))
+    }
     session.execute(delete(IssueRow).where(IssueRow.matter_id == matter_id))
-    session.add_all(
-        IssueRow(
-            matter_id=matter_id,
-            issue_id=i.issue_id,
-            category=i.category,
-            description=i.description,
-            event_ids=i.event_ids,
-            citations=[c.model_dump() for c in i.citations],
-            severity_hint=i.severity_hint,
-            verdict=i.verdict,
-            verdict_reason=i.verdict_reason,
+    rows = []
+    for i in issues:
+        citations = [c.model_dump() for c in i.citations]
+        rows.append(
+            IssueRow(
+                matter_id=matter_id,
+                issue_id=i.issue_id,
+                category=i.category,
+                description=i.description,
+                event_ids=i.event_ids,
+                citations=citations,
+                severity_hint=i.severity_hint,
+                verdict=i.verdict,
+                verdict_reason=i.verdict_reason,
+                **kept.get(_issue_key(i.category, citations), {}),
+            )
         )
-        for i in issues
+    session.add_all(rows)
+    session.flush()
+
+
+# ---------------------------------------------------------------------- productions
+def add_production(
+    session: Session, matter_id: str, sha256: str, storage_key: str, created_by: str
+) -> ProductionRow:
+    """Register the next production for a matter (numbered 1, 2, ...)."""
+    last = session.scalar(
+        select(func.max(ProductionRow.production_no)).where(ProductionRow.matter_id == matter_id)
+    )
+    row = ProductionRow(
+        matter_id=matter_id,
+        production_no=(last or 0) + 1,
+        sha256=sha256,
+        storage_key=storage_key,
+        created_by=created_by,
+    )
+    session.add(row)
+    session.flush()
+    return row
+
+
+def list_productions(session: Session, matter_id: str) -> list[ProductionRow]:
+    return list(
+        session.scalars(
+            select(ProductionRow)
+            .where(ProductionRow.matter_id == matter_id)
+            .order_by(ProductionRow.production_no)
+        )
+    )
+
+
+def record_page_ranges(session: Session, case: IngestedCase) -> None:
+    """Store each production's page offset and count after ingestion."""
+    for row in list_productions(session, case.case_id):
+        pages = [p.page_no for p in case.pages if p.production == row.production_no]
+        if pages:
+            row.page_offset, row.page_count = min(pages) - 1, len(pages)
+    session.flush()
+
+
+# ---------------------------------------------------------------------- versions
+def save_version(
+    session: Session, chron: Chronology, *, job_id: str | None, productions: int
+) -> int | None:
+    """Snapshot the chronology as a new version if it changed. Returns the new version."""
+    from medchron.chronology.diff import diff_chronologies
+
+    latest = session.scalars(
+        select(ChronologyVersionRow)
+        .where(ChronologyVersionRow.matter_id == chron.case_id)
+        .order_by(ChronologyVersionRow.version.desc())
+        .limit(1)
+    ).first()
+    snapshot = chron.model_dump(mode="json")
+    if latest is not None and latest.snapshot == snapshot:
+        return None
+    previous = Chronology.model_validate(latest.snapshot) if latest is not None else None
+    version = (latest.version if latest else 0) + 1
+    diff = diff_chronologies(previous, chron) if previous is not None else None
+    session.add(
+        ChronologyVersionRow(
+            matter_id=chron.case_id,
+            version=version,
+            job_id=job_id,
+            productions=productions,
+            events=len(chron.events),
+            snapshot=snapshot,
+            diff_summary=(
+                {
+                    "added": len(diff.added),
+                    "changed": len(diff.changed),
+                    "removed": len(diff.removed),
+                }
+                if diff is not None
+                else None
+            ),
+        )
     )
     session.flush()
+    return version
+
+
+def list_versions(session: Session, matter_id: str) -> list[ChronologyVersionRow]:
+    return list(
+        session.scalars(
+            select(ChronologyVersionRow)
+            .where(ChronologyVersionRow.matter_id == matter_id)
+            .order_by(ChronologyVersionRow.version)
+        )
+    )
+
+
+def load_version(session: Session, matter_id: str, version: int) -> Chronology | None:
+    row = session.get(ChronologyVersionRow, (matter_id, version))
+    return Chronology.model_validate(row.snapshot) if row is not None else None
 
 
 def issue_from_row(r: IssueRow) -> Issue:

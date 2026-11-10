@@ -1,6 +1,7 @@
 """Code-owned orchestration of the case pipeline (a fixed DAG).
 
-    ingest -> classify -> segment -> extract (fan-out per document) -> chronology
+    ingest (per production) -> classify -> segment -> extract (fan-out per document)
+        -> chronology -> version + diff -> analyze -> verify
 
 Design choices (see docs/plan.md and the ADRs):
 - **The DAG is code, not an agent.** Autonomy lives only inside bounded
@@ -13,6 +14,11 @@ Design choices (see docs/plan.md and the ADRs):
   reviewer flag (dead letter) instead of failing the whole case.
 - **Budget.** The metered provider stops the run cleanly when the per-case
   budget is spent. Completed work is kept.
+- **Incremental productions.** A matter can receive more records later. Pages
+  are numbered across productions, and extraction is keyed by each document's
+  own content, so a second production reuses every first-production document
+  and only new documents are extracted. Each run that changes the chronology
+  stores a new version with a diff against the previous one.
 """
 
 from __future__ import annotations
@@ -21,7 +27,7 @@ import hashlib
 import json
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -34,6 +40,7 @@ from medchron.agents.classifier import PageLabel, classify_pages, segment
 from medchron.agents.extractor import ExtractionResult, extract_document
 from medchron.agents.verifier import verify_issues
 from medchron.chronology.builder import build_chronology
+from medchron.chronology.diff import ChronologyDiff, diff_chronologies
 from medchron.chronology.export import issues_markdown, to_csv, to_markdown
 from medchron.chronology.models import (
     CaseFlag,
@@ -42,7 +49,10 @@ from medchron.chronology.models import (
     ExtractedEvent,
     Issue,
 )
-from medchron.ingestion import IngestedCase, ingest_pdf
+from medchron.ingestion import IngestedCase
+from medchron.ingestion.identity import find_misfiled
+from medchron.ingestion.models import Page
+from medchron.ingestion.pipeline import assemble_case, extract_production
 from medchron.llm.config import effort_for, model_for
 from medchron.llm.prompts import load_prompt
 from medchron.llm.providers import CallRecord, LLMProvider, MeteredProvider
@@ -66,6 +76,10 @@ class _Labels(BaseModel):
     labels: list[PageLabel]
 
 
+class _Pages(BaseModel):
+    pages: list[Page]
+
+
 class _Issues(BaseModel):
     issues: list[Issue]
     rejected: int
@@ -86,6 +100,8 @@ class RunSummary(BaseModel):
     issues: int = 0
     rejected_issues: int = 0
     seconds: float
+    productions: int = 1
+    reused_documents: int = 0  # extraction loaded from a checkpoint (e.g. an earlier production)
 
 
 @dataclass
@@ -104,6 +120,8 @@ class RunResult:
     case: IngestedCase
     issues: list[Issue] = field(default_factory=list)
     calls: list[CallRecord] = field(default_factory=list)
+    version: int = 1
+    diff: ChronologyDiff | None = None  # against the previous version, when there is one
 
 
 class Checkpoints:
@@ -134,7 +152,7 @@ def _settings(route: str, *prompts: str) -> str:
 
 
 def run_case(
-    pdf: Path,
+    pdf: Path | Sequence[Path],
     case_id: str,
     provider: LLMProvider,
     config: RunConfig,
@@ -150,7 +168,7 @@ def run_case(
 
 
 def _run_case(
-    pdf: Path,
+    pdf: Path | Sequence[Path],
     case_id: str,
     provider: LLMProvider,
     config: RunConfig,
@@ -164,28 +182,59 @@ def _run_case(
     llm = metered
     status = "completed"
 
-    # 1. Ingest (deterministic)
-    data = pdf.read_bytes()
-    ingest_key = cp.key(hashlib.sha256(data).hexdigest(), case_id, f"ocr={config.ocr}")
-    case = cp.load("ingest", ingest_key, IngestedCase)
-    if case is None:
-        say("ingest: OCR, de-duplication and chunking")
-        case = ingest_pdf(data, case_id, ocr=config.ocr)
-        cp.save("ingest", ingest_key, case)
+    # 1. Ingest each production (deterministic; OCR is the expensive part)
+    pdfs = [pdf] if isinstance(pdf, Path) else list(pdf)
+    pages: list[Page] = []
+    shas: list[str] = []
+    for n, path in enumerate(pdfs, start=1):
+        data = path.read_bytes()
+        sha = hashlib.sha256(data).hexdigest()
+        shas.append(sha)
+        p_key = cp.key(sha, case_id, f"ocr={config.ocr}", f"production={n}", f"offset={len(pages)}")
+        extracted = cp.load("ingest", p_key, _Pages)
+        if extracted is None:
+            say(f"ingest: production {n}: OCR and text extraction")
+            extracted = _Pages(
+                pages=extract_production(data, production=n, page_offset=len(pages), ocr=config.ocr)
+            )
+            cp.save("ingest", p_key, extracted)
+        pages += extracted.pages
+    case_key = cp.key(*shas, case_id, f"ocr={config.ocr}")
+    case = assemble_case(case_id, pages, shas)  # cross-production de-duplication, chunking
+    cp.save("case", case_key, case)
     review_flags = [
         CaseFlag(kind="page_needs_review", page_no=p.page_no, note=f"text source={p.source.value}")
         for p in case.pages
         if p.needs_review and p.duplicate_of is None
     ]
+    misfiled = set(find_misfiled(case.pages))
+    review_flags += [
+        CaseFlag(
+            kind="possible_misfiled_page",
+            page_no=n,
+            note="The patient name or date of birth in this page's header differs from the "
+            "rest of the records. It was left out of extraction; review it before relying on "
+            "or producing it.",
+        )
+        for n in sorted(misfiled)
+    ]
 
-    # 2. Classify pages -> 3. segment into documents
-    cls_key = cp.key(ingest_key, _settings("classify", "system_base", "classify_pages"))
-    labels = cp.load("classify", cls_key, _Labels)
-    if labels is None:
-        say("classify: indexing pages into documents")
-        labels = _Labels(labels=classify_pages(llm, case))
-        cp.save("classify", cls_key, labels)
-    documents = segment(labels.labels)
+    # 2. Classify pages -> 3. segment into documents (per production: a document never
+    # spans two uploads)
+    cls_settings = _settings("classify", "system_base", "classify_pages")
+    documents: list[DocumentSegment] = []
+    for n, sha in enumerate(shas, start=1):
+        prod_pages = [p for p in case.pages if p.production == n]
+        offset = prod_pages[0].page_no - 1 if prod_pages else 0
+        dup_sig = ",".join(f"{p.page_no}:{p.duplicate_of or 0}" for p in prod_pages)
+        cls_key = cp.key(sha, case_id, f"offset={offset}", dup_sig, cls_settings)
+        prod_labels = cp.load("classify", cls_key, _Labels)
+        if prod_labels is None:
+            say(f"classify: indexing production {n} into documents")
+            view = case.model_copy(update={"pages": prod_pages})
+            prod_labels = _Labels(labels=classify_pages(llm, view))
+            cp.save("classify", cls_key, prod_labels)
+        documents += segment(prod_labels.labels)
 
     # 4. Extract events per document (fan-out with bounded concurrency)
     ext_settings = _settings("extract", "system_base", "extract_events")
@@ -193,17 +242,29 @@ def _run_case(
     failed: list[str] = []
     flags: list[CaseFlag] = list(review_flags)
 
+    reused: list[str] = []  # list.append is thread-safe
+
+    def doc_key(doc: DocumentSegment) -> str:
+        """Keyed by the document's own content, so later productions reuse it."""
+        spans = [s for s in case.spans if doc.start_page <= s.page_no <= doc.end_page]
+        content = hashlib.sha256(
+            "\x1e".join(f"{s.span_id}\x1f{s.text}" for s in spans).encode()
+        ).hexdigest()
+        skipped = ",".join(str(p) for p in sorted(misfiled) if doc.start_page <= p <= doc.end_page)
+        return cp.key(case_id, doc.model_dump_json(), content, f"skip={skipped}", ext_settings)
+
     def work(doc: DocumentSegment) -> tuple[str, ExtractionResult]:
-        key = cp.key(ingest_key, doc.model_dump_json(), ext_settings)
+        key = doc_key(doc)
         hit = cp.load("extract", key, _ExtractionCheckpoint)
         if hit is not None:
+            reused.append(doc.doc_id)
             return doc.doc_id, ExtractionResult(
                 events=[ExtractedEvent.model_validate(e) for e in hit.events],
                 flags=hit.flags,
                 rejected=hit.rejected,
                 turns=hit.turns,
             )
-        res = extract_document(llm, case, doc)
+        res = extract_document(llm, case, doc, exclude_pages=misfiled)
         cp.save(
             "extract",
             key,
@@ -245,13 +306,19 @@ def _run_case(
     events = [e for d in documents if d.doc_id in results for e in results[d.doc_id].events]
     flags += [f for d in documents if d.doc_id in results for f in results[d.doc_id].flags]
     chron = build_chronology(case_id, documents, events, flags)
+    version, diff = _record_version(config.out_dir, chron)
+    if diff is not None and not diff.is_empty:
+        say(
+            f"version {version}: {len(diff.added)} events added, {len(diff.changed)} changed, "
+            f"{len(diff.removed)} removed"
+        )
 
     # 6. Issue analyst (agent loop) -> 7. verifier (independent support check)
     issues: list[Issue] = []
     rejected_issues = 0
     if config.analyze and status != "budget_exceeded":
         an_key = cp.key(
-            ingest_key,
+            case_key,
             chron.model_dump_json(),
             _settings("analyze", "system_base", "analyze_issues"),
             _settings("verify", "system_base", "verify_claims"),
@@ -294,6 +361,8 @@ def _run_case(
         output_tokens=usage.output_tokens,
         cache_read_input_tokens=usage.cache_read_input_tokens,
         rejected_events=sum(r.rejected for r in results.values()),
+        productions=len(shas),
+        reused_documents=len(reused),
         issues=len(issues),
         rejected_issues=rejected_issues,
         seconds=round(time.perf_counter() - start, 2),
@@ -304,8 +373,46 @@ def _run_case(
         f"cost=${summary.cost_usd:.4f}"
     )
     return RunResult(
-        chronology=chron, summary=summary, case=case, issues=issues, calls=list(metered.records)
+        chronology=chron,
+        summary=summary,
+        case=case,
+        issues=issues,
+        calls=list(metered.records),
+        version=version,
+        diff=diff,
     )
+
+
+def _record_version(out: Path, chron: Chronology) -> tuple[int, ChronologyDiff | None]:
+    """Store the chronology as a new version when it differs from the latest one.
+
+    Returns the version number and the diff against the previous version (None
+    for the first version). Re-running with an unchanged result keeps the
+    latest version and its diff.
+    """
+    folder = out / "versions"
+    folder.mkdir(parents=True, exist_ok=True)
+    existing = sorted(int(p.stem[1:]) for p in folder.glob("v*.json") if p.stem[1:].isdigit())
+    latest = (
+        Chronology.model_validate_json((folder / f"v{existing[-1]}.json").read_text("utf-8"))
+        if existing
+        else None
+    )
+    if latest is not None and latest.model_dump_json() == chron.model_dump_json():
+        diff_path = folder / f"diff-v{existing[-1]}.json"
+        prior = (
+            ChronologyDiff.model_validate_json(diff_path.read_text("utf-8"))
+            if diff_path.exists()
+            else None
+        )
+        return existing[-1], prior
+    version = existing[-1] + 1 if existing else 1
+    (folder / f"v{version}.json").write_text(chron.model_dump_json(indent=2), encoding="utf-8")
+    if latest is None:
+        return version, None
+    diff = diff_chronologies(latest, chron, from_version=version - 1, to_version=version)
+    (folder / f"diff-v{version}.json").write_text(diff.model_dump_json(indent=2), "utf-8")
+    return version, diff
 
 
 def _write_outputs(

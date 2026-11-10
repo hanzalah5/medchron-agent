@@ -1,7 +1,8 @@
 """Gold-label schema for the synthetic benchmark.
 
-Every case consists of one PDF "record production" plus a gold JSON file
-described by :class:`CaseGold`. Page numbers are 1-based positions in the PDF.
+Every case consists of one or more PDF "record productions" plus a gold JSON
+file described by :class:`CaseGold`. Page numbers are 1-based and run across
+productions: the second production's first page follows the first's last page.
 Quotes are verbatim text from the page; matching is whitespace-normalized
 because line wrapping changes whitespace.
 """
@@ -27,7 +28,7 @@ __all__ = [
     "SyntheticPatient",
 ]
 
-GENERATOR_VERSION = "0.1.0"
+GENERATOR_VERSION = "0.2.0"
 
 
 class SourceRef(BaseModel):
@@ -78,6 +79,11 @@ class GoldPage(BaseModel):
     text_layer: bool = Field(description="False when rendered as a scanned image (needs OCR)")
     duplicate_of: int | None = None
     text: str = Field(description="Ground-truth page text, before any rendering noise")
+    scan: str | None = Field(
+        default=None, description="Scan distortion: tilt, skew, rot90 or rot180 (scans only)"
+    )
+    production: int = Field(default=1, ge=1, description="Which production the page is in")
+    misfiled: bool = Field(default=False, description="Belongs to a different patient")
 
 
 class CaseGold(BaseModel):
@@ -91,3 +97,4 @@ class CaseGold(BaseModel):
     events: list[GoldEvent]
     issues: list[PlantedIssue]
     pages: list[GoldPage]
+    productions: int = Field(default=1, ge=1, description="Number of productions (PDF files)")

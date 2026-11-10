@@ -1,9 +1,10 @@
 """Render laid-out pages to a PDF.
 
-Text pages get a real text layer. "Scanned" pages are rasterized to a slightly
-rotated, speckled grayscale image with no text layer, so the ingestion
-pipeline has to OCR them. Output is byte-for-byte deterministic for a given
-seed and library version.
+Text pages get a real text layer. "Scanned" pages are rasterized to a speckled
+grayscale image with no text layer, so the ingestion pipeline has to OCR them.
+A scan is slightly tilted, noticeably skewed (2-4 degrees), fed sideways
+(rot90, on a landscape page) or upside down (rot180). Output is byte-for-byte
+deterministic for a given seed and library version.
 """
 
 from __future__ import annotations
@@ -39,7 +40,14 @@ def _scan_image(page: LaidPage, rng: random.Random) -> Image.Image:
     for _ in range(900):  # scanner speckle
         x, yy = rng.randrange(width), rng.randrange(height)
         draw.point((x, yy), fill=rng.randint(0, 140))
-    angle = rng.uniform(-1.2, 1.2)
+    if page.scan == "rot90":
+        return img.rotate(90, expand=True, fillcolor=255)
+    if page.scan == "rot180":
+        return img.rotate(180, fillcolor=255)
+    if page.scan == "skew":
+        angle = rng.uniform(2.0, 4.0) * rng.choice([-1, 1])
+    else:
+        angle = rng.uniform(-1.2, 1.2)
     return img.rotate(angle, resample=Image.Resampling.BILINEAR, fillcolor=255)
 
 
@@ -61,7 +69,12 @@ def render_pdf(pages: list[LaidPage], seed: int) -> bytes:
             png = io.BytesIO()
             _scan_image(page, rng).save(png, format="PNG", optimize=True)
             png.seek(0)
-            c.drawImage(ImageReader(png), 0, 0, width=page_w, height=page_h)
+            if page.scan == "rot90":  # fed sideways: a landscape page
+                c.setPageSize((page_h, page_w))
+                c.drawImage(ImageReader(png), 0, 0, width=page_h, height=page_w)
+            else:
+                c.drawImage(ImageReader(png), 0, 0, width=page_w, height=page_h)
         c.showPage()
+        c.setPageSize(letter)
     c.save()
     return buf.getvalue()

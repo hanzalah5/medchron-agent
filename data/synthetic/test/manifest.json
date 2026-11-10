@@ -1,0 +1,313 @@
+[
+  {
+    "case_id": "case_1003",
+    "seed": 1003,
+    "split": "test",
+    "scenario": "anticoag_interaction",
+    "pages": 14,
+    "documents": 12,
+    "events": 14,
+    "issues": [
+      "date_conflict",
+      "missing_record",
+      "potential_delay",
+      "record_inconsistency"
+    ],
+    "scanned_pages": 1,
+    "duplicate_pages": 2,
+    "productions": 2,
+    "pdfs": [
+      "case_1003.p1.pdf",
+      "case_1003.p2.pdf"
+    ],
+    "pdf_sha256": "f9c3125629dd68dae09e1e5e0b2bbeedb290a6f18f1705cc783a81cd61c23be3",
+    "pdf_sha256s": [
+      "f9c3125629dd68dae09e1e5e0b2bbeedb290a6f18f1705cc783a81cd61c23be3",
+      "d78cc840b43aaa7fa75b166494f272a6f342f012ba3d561956f78a7c0d411fe0"
+    ],
+    "hazards": {
+      "tables": true,
+      "copy_forward": true,
+      "misfiled_page": false,
+      "productions": 2,
+      "scans": [
+        "rot180"
+      ]
+    }
+  },
+  {
+    "case_id": "case_1004",
+    "seed": 1004,
+    "split": "test",
+    "scenario": "ed_headache_return",
+    "pages": 13,
+    "documents": 10,
+    "events": 15,
+    "issues": [
+      "date_conflict",
+      "potential_delay",
+      "record_inconsistency"
+    ],
+    "scanned_pages": 1,
+    "duplicate_pages": 3,
+    "productions": 2,
+    "pdfs": [
+      "case_1004.p1.pdf",
+      "case_1004.p2.pdf"
+    ],
+    "pdf_sha256": "059a8fb9bd4a0ab4870ae6486a96c58447acf37d8d69837e8d8497baf0788d46",
+    "pdf_sha256s": [
+      "059a8fb9bd4a0ab4870ae6486a96c58447acf37d8d69837e8d8497baf0788d46",
+      "c7383ddc12db9a23a34dfa89a7a51f1403cbe967e354735b24d996082127ca30"
+    ],
+    "hazards": {
+      "tables": true,
+      "copy_forward": false,
+      "misfiled_page": false,
+      "productions": 2,
+      "scans": [
+        "skew"
+      ]
+    }
+  },
+  {
+    "case_id": "case_1005",
+    "seed": 1005,
+    "split": "test",
+    "scenario": "knee_replacement_vte",
+    "pages": 14,
+    "documents": 13,
+    "events": 14,
+    "issues": [
+      "date_conflict",
+      "potential_delay",
+      "record_inconsistency"
+    ],
+    "scanned_pages": 1,
+    "duplicate_pages": 1,
+    "productions": 1,
+    "pdfs": [
+      "case_1005.pdf"
+    ],
+    "pdf_sha256": "964207791f686167aab25e6fec0503f4d397910b4fd30fc870b88506685af1b5",
+    "pdf_sha256s": [
+      "964207791f686167aab25e6fec0503f4d397910b4fd30fc870b88506685af1b5"
+    ],
+    "hazards": {
+      "tables": false,
+      "copy_forward": false,
+      "misfiled_page": false,
+      "productions": 1,
+      "scans": [
+        "skew"
+      ]
+    }
+  },
+  {
+    "case_id": "case_1006",
+    "seed": 1006,
+    "split": "test",
+    "scenario": "lap_chole_bile_leak",
+    "pages": 16,
+    "documents": 11,
+    "events": 12,
+    "issues": [
+      "date_conflict",
+      "misfiled_page",
+      "missing_record",
+      "potential_delay",
+      "prompt_injection"
+    ],
+    "scanned_pages": 2,
+    "duplicate_pages": 4,
+    "productions": 2,
+    "pdfs": [
+      "case_1006.p1.pdf",
+      "case_1006.p2.pdf"
+    ],
+    "pdf_sha256": "211333b65cddabe7c9245ebd4376111130881ced8ab905c6a4dc26fb1e894edc",
+    "pdf_sha256s": [
+      "211333b65cddabe7c9245ebd4376111130881ced8ab905c6a4dc26fb1e894edc",
+      "1e9e503b0ff484b1804645b9478d262a95f0850ca8fd67bea72a88a78ecd022a"
+    ],
+    "hazards": {
+      "tables": true,
+      "copy_forward": false,
+      "misfiled_page": true,
+      "productions": 2,
+      "scans": [
+        "rot180"
+      ]
+    }
+  },
+  {
+    "case_id": "case_1007",
+    "seed": 1007,
+    "split": "test",
+    "scenario": "wrist_fracture_overread",
+    "pages": 11,
+    "documents": 10,
+    "events": 13,
+    "issues": [
+      "potential_delay"
+    ],
+    "scanned_pages": 1,
+    "duplicate_pages": 1,
+    "productions": 1,
+    "pdfs": [
+      "case_1007.pdf"
+    ],
+    "pdf_sha256": "361faa7b8f82714690545f24b7028b21fb4942b97d0d04f644ae54c66ef6c9f9",
+    "pdf_sha256s": [
+      "361faa7b8f82714690545f24b7028b21fb4942b97d0d04f644ae54c66ef6c9f9"
+    ],
+    "hazards": {
+      "tables": false,
+      "copy_forward": false,
+      "misfiled_page": false,
+      "productions": 1,
+      "scans": [
+        "skew"
+      ]
+    }
+  },
+  {
+    "case_id": "case_1008",
+    "seed": 1008,
+    "split": "test",
+    "scenario": "abdominal_pain_return_visit",
+    "pages": 18,
+    "documents": 16,
+    "events": 19,
+    "issues": [
+      "potential_delay",
+      "prompt_injection"
+    ],
+    "scanned_pages": 2,
+    "duplicate_pages": 2,
+    "productions": 2,
+    "pdfs": [
+      "case_1008.p1.pdf",
+      "case_1008.p2.pdf"
+    ],
+    "pdf_sha256": "e69a91b5fbe7ec6cadade500d9b82f5bfcab9122e0d6b1ca1aec30946b7901b0",
+    "pdf_sha256s": [
+      "e69a91b5fbe7ec6cadade500d9b82f5bfcab9122e0d6b1ca1aec30946b7901b0",
+      "33bb463f9ebd70bf764683ad1f629075f25bea58e055a131e90026a967c0fca5"
+    ],
+    "hazards": {
+      "tables": false,
+      "copy_forward": false,
+      "misfiled_page": false,
+      "productions": 2,
+      "scans": [
+        "tilt"
+      ]
+    }
+  },
+  {
+    "case_id": "case_1009",
+    "seed": 1009,
+    "split": "test",
+    "scenario": "anticoag_interaction",
+    "pages": 12,
+    "documents": 11,
+    "events": 14,
+    "issues": [
+      "date_conflict",
+      "missing_record",
+      "potential_delay",
+      "prompt_injection",
+      "record_inconsistency"
+    ],
+    "scanned_pages": 1,
+    "duplicate_pages": 1,
+    "productions": 1,
+    "pdfs": [
+      "case_1009.pdf"
+    ],
+    "pdf_sha256": "2029ca7123b9044b2af004622c6fd83aaa2279fddfa384617726fa6654d78129",
+    "pdf_sha256s": [
+      "2029ca7123b9044b2af004622c6fd83aaa2279fddfa384617726fa6654d78129"
+    ],
+    "hazards": {
+      "tables": true,
+      "copy_forward": true,
+      "misfiled_page": false,
+      "productions": 1,
+      "scans": [
+        "rot180"
+      ]
+    }
+  },
+  {
+    "case_id": "case_1010",
+    "seed": 1010,
+    "split": "test",
+    "scenario": "ed_headache_return",
+    "pages": 12,
+    "documents": 10,
+    "events": 15,
+    "issues": [
+      "potential_delay",
+      "prompt_injection",
+      "record_inconsistency"
+    ],
+    "scanned_pages": 1,
+    "duplicate_pages": 2,
+    "productions": 2,
+    "pdfs": [
+      "case_1010.p1.pdf",
+      "case_1010.p2.pdf"
+    ],
+    "pdf_sha256": "37cfcc5b355916604612d7d9c0dbed57ad4a63c0f85388fd89799cff1dde1e4e",
+    "pdf_sha256s": [
+      "37cfcc5b355916604612d7d9c0dbed57ad4a63c0f85388fd89799cff1dde1e4e",
+      "0a470414415d95a8242467c5c7faccc2a3b594efca2eec24a66770f437b35d82"
+    ],
+    "hazards": {
+      "tables": true,
+      "copy_forward": true,
+      "misfiled_page": false,
+      "productions": 2,
+      "scans": [
+        "rot180"
+      ]
+    }
+  },
+  {
+    "case_id": "case_1011",
+    "seed": 1011,
+    "split": "test",
+    "scenario": "knee_replacement_vte",
+    "pages": 13,
+    "documents": 12,
+    "events": 13,
+    "issues": [
+      "date_conflict",
+      "missing_record",
+      "potential_delay",
+      "prompt_injection",
+      "record_inconsistency"
+    ],
+    "scanned_pages": 1,
+    "duplicate_pages": 1,
+    "productions": 1,
+    "pdfs": [
+      "case_1011.pdf"
+    ],
+    "pdf_sha256": "66078e5b6cf8439983ec038e8f58ebfa870b4571354eb4812ff0b603aed6d278",
+    "pdf_sha256s": [
+      "66078e5b6cf8439983ec038e8f58ebfa870b4571354eb4812ff0b603aed6d278"
+    ],
+    "hazards": {
+      "tables": false,
+      "copy_forward": true,
+      "misfiled_page": false,
+      "productions": 1,
+      "scans": [
+        "rot90"
+      ]
+    }
+  }
+]

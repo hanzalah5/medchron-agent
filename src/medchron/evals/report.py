@@ -90,6 +90,24 @@ def issues_by_kind(r: EvalResult) -> list[str]:
     return lines
 
 
+def incremental(r: EvalResult) -> list[str]:
+    """One line on cases delivered in more than one production."""
+    a = r.aggregate
+    if not a.incremental_cases:
+        return []
+    cases = [c.incremental for c in r.cases if c.incremental]
+    added = sum(i.added for i in cases)
+    changed = sum(i.changed for i in cases)
+    return [
+        f"**Incremental productions:** {a.incremental_cases} case(s) arrived in two "
+        f"productions. When the second arrived, {a.incremental_reused} first-production "
+        f"documents were reused from checkpoints instead of being re-extracted; the new "
+        f"version added {added} event(s) and updated {changed} existing event(s) with new "
+        f"sources; {a.incremental_readded} event(s) were re-added instead of merged.",
+        "",
+    ]
+
+
 def error_analysis(r: EvalResult) -> list[str]:
     """Error counts per category with up to three examples each."""
     errors = [e for c in r.cases for e in c.errors]
@@ -139,7 +157,8 @@ def render(
         head,
         "",
         f"- Created {r.created} at commit `{r.git_sha}`. Dataset `{r.dataset}` "
-        f"(`{r.dataset_sha256}`), {r.aggregate.cases} cases, {o.pages} pages",
+        f"(`{r.dataset_sha256}`){f', **{r.split}** split' if r.split else ''}, "
+        f"{r.aggregate.cases} cases, {o.pages} pages",
         f"- Models: {', '.join(f'{k}={v} ({r.efforts[k]})' for k, v in r.models.items())}",
         f"- Prompts: {', '.join(f'`{p}`' for p in r.prompts)}",
         "",
@@ -147,6 +166,7 @@ def render(
         "",
         *issues_by_kind(r),
         "",
+        *incremental(r),
         "**Event recall by type:** "
         + ", ".join(f"{k} {_pct(v)}" for k, v in r.aggregate.per_type_recall.items()),
         "",

@@ -1,0 +1,455 @@
+{
+  "case_id": "case_1007",
+  "seed": 1007,
+  "scenario": "wrist_fracture_overread",
+  "generator_version": "0.2.0",
+  "synthetic": true,
+  "patient": {
+    "name": "Jordan Proxley",
+    "dob": "1962-09-02",
+    "sex": "F"
+  },
+  "documents": [
+    {
+      "doc_id": "F001",
+      "doc_type": "fax_cover",
+      "title": "Facsimile Transmittal - Release of Information",
+      "date": "2023-12-27",
+      "facility": "Maple Street Family Medicine",
+      "provider": "Health Information Management",
+      "start_page": 1,
+      "end_page": 1
+    },
+    {
+      "doc_id": "D003",
+      "doc_type": "office_visit",
+      "title": "Office Visit",
+      "date": "2023-10-17",
+      "facility": "Maple Street Family Medicine",
+      "provider": "L. Lindqvist, MD",
+      "start_page": 2,
+      "end_page": 2
+    },
+    {
+      "doc_id": "F003",
+      "doc_type": "fax_cover",
+      "title": "Facsimile Transmittal - Release of Information",
+      "date": "2024-02-21",
+      "facility": "Keystone Bone & Joint",
+      "provider": "Health Information Management",
+      "start_page": 3,
+      "end_page": 3
+    },
+    {
+      "doc_id": "D005",
+      "doc_type": "office_visit",
+      "title": "Hand Surgery Consultation",
+      "date": "2023-11-05",
+      "facility": "Keystone Bone & Joint",
+      "provider": "H. Okafor, MD",
+      "start_page": 4,
+      "end_page": 4
+    },
+    {
+      "doc_id": "D006",
+      "doc_type": "operative_report",
+      "title": "Operative Report",
+      "date": "2023-11-12",
+      "facility": "Keystone Bone & Joint",
+      "provider": "H. Okafor, MD",
+      "start_page": 5,
+      "end_page": 5
+    },
+    {
+      "doc_id": "D007",
+      "doc_type": "office_visit",
+      "title": "Post-operative Visit",
+      "date": "2023-11-25",
+      "facility": "Keystone Bone & Joint",
+      "provider": "H. Okafor, MD",
+      "start_page": 6,
+      "end_page": 6
+    },
+    {
+      "doc_id": "F007",
+      "doc_type": "fax_cover",
+      "title": "Facsimile Transmittal - Release of Information",
+      "date": "2024-02-24",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "Health Information Management",
+      "start_page": 7,
+      "end_page": 7
+    },
+    {
+      "doc_id": "D001",
+      "doc_type": "office_visit",
+      "title": "Urgent Care Visit",
+      "date": "2023-10-10",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "H. Mbeki, PA-C",
+      "start_page": 8,
+      "end_page": 8
+    },
+    {
+      "doc_id": "D002",
+      "doc_type": "radiology_report",
+      "title": "Radiology Report - Wrist 3 Views",
+      "date": "2023-10-11",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "A. Castellano, MD",
+      "start_page": 9,
+      "end_page": 9
+    },
+    {
+      "doc_id": "D004",
+      "doc_type": "telephone_note",
+      "title": "Telephone Encounter",
+      "date": "2023-10-31",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "H. Mbeki, PA-C",
+      "start_page": 10,
+      "end_page": 10
+    }
+  ],
+  "events": [
+    {
+      "event_id": "E001",
+      "date": "2023-10-10",
+      "type": "encounter",
+      "summary": "Urgent care visit after fall",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "H. Mbeki, PA-C",
+      "sources": [
+        {
+          "doc_id": "D001",
+          "page": 8,
+          "quote": "Seen on October 10, 2023 after a fall on an outstretched hand."
+        }
+      ]
+    },
+    {
+      "event_id": "E002",
+      "date": "2023-10-10",
+      "type": "complaint",
+      "summary": "Right wrist pain after fall",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "H. Mbeki, PA-C",
+      "sources": [
+        {
+          "doc_id": "D001",
+          "page": 8,
+          "quote": "Complains of right wrist pain, worse with gripping."
+        }
+      ]
+    },
+    {
+      "event_id": "E003",
+      "date": "2023-10-10",
+      "type": "imaging",
+      "summary": "Wrist x-ray, preliminary read negative",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "H. Mbeki, PA-C",
+      "sources": [
+        {
+          "doc_id": "D001",
+          "page": 8,
+          "quote": "Wrist x-ray preliminary read by provider: no acute fracture identified."
+        }
+      ]
+    },
+    {
+      "event_id": "E004",
+      "date": "2023-10-10",
+      "type": "diagnosis",
+      "summary": "Wrist sprain diagnosed",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "H. Mbeki, PA-C",
+      "sources": [
+        {
+          "doc_id": "D001",
+          "page": 8,
+          "quote": "Assessment: right wrist sprain. Placed in a wrist splint."
+        }
+      ]
+    },
+    {
+      "event_id": "E005",
+      "date": "2023-10-10",
+      "type": "instruction",
+      "summary": "Follow up with primary care in one week",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "H. Mbeki, PA-C",
+      "sources": [
+        {
+          "doc_id": "D001",
+          "page": 8,
+          "quote": "Follow up with primary care in 1 week if not improving."
+        }
+      ]
+    },
+    {
+      "event_id": "E006",
+      "date": "2023-10-11",
+      "type": "imaging",
+      "summary": "Final radiology read: nondisplaced scaphoid waist fracture",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "A. Castellano, MD",
+      "sources": [
+        {
+          "doc_id": "D002",
+          "page": 9,
+          "quote": "FINAL REPORT: Nondisplaced fracture of the scaphoid waist. Recommend clinical correlation and follow-up imaging."
+        }
+      ]
+    },
+    {
+      "event_id": "E007",
+      "date": "2023-10-17",
+      "type": "encounter",
+      "summary": "Primary care visit for persistent wrist pain",
+      "facility": "Maple Street Family Medicine",
+      "provider": "L. Lindqvist, MD",
+      "sources": [
+        {
+          "doc_id": "D003",
+          "page": 2,
+          "quote": "Visit date: 10/17/2023. Persistent wrist pain since a fall."
+        }
+      ]
+    },
+    {
+      "event_id": "E008",
+      "date": "2023-10-31",
+      "type": "communication",
+      "summary": "Patient notified of final radiology result",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "H. Mbeki, PA-C",
+      "sources": [
+        {
+          "doc_id": "D004",
+          "page": 10,
+          "quote": "Patient notified by phone of final radiology read showing scaphoid fracture."
+        }
+      ]
+    },
+    {
+      "event_id": "E009",
+      "date": "2023-10-31",
+      "type": "referral",
+      "summary": "Referred to orthopedics",
+      "facility": "QuickCare Urgent Care - Elm Plaza",
+      "provider": "H. Mbeki, PA-C",
+      "sources": [
+        {
+          "doc_id": "D004",
+          "page": 10,
+          "quote": "Referral placed to orthopedic hand surgery."
+        }
+      ]
+    },
+    {
+      "event_id": "E010",
+      "date": "2023-11-05",
+      "type": "imaging",
+      "summary": "Repeat x-ray shows displacement of scaphoid fracture",
+      "facility": "Keystone Bone & Joint",
+      "provider": "H. Okafor, MD",
+      "sources": [
+        {
+          "doc_id": "D005",
+          "page": 4,
+          "quote": "Repeat radiographs today show interval displacement of the scaphoid waist fracture."
+        }
+      ]
+    },
+    {
+      "event_id": "E011",
+      "date": "2023-11-05",
+      "type": "referral",
+      "summary": "Plan open reduction internal fixation",
+      "facility": "Keystone Bone & Joint",
+      "provider": "H. Okafor, MD",
+      "sources": [
+        {
+          "doc_id": "D005",
+          "page": 4,
+          "quote": "Plan: open reduction and internal fixation of the scaphoid."
+        }
+      ]
+    },
+    {
+      "event_id": "E012",
+      "date": "2023-11-12",
+      "type": "procedure",
+      "summary": "ORIF scaphoid with headless compression screw",
+      "facility": "Keystone Bone & Joint",
+      "provider": "H. Okafor, MD",
+      "sources": [
+        {
+          "doc_id": "D006",
+          "page": 5,
+          "quote": "Procedure: open reduction internal fixation of scaphoid with headless compression screw."
+        },
+        {
+          "doc_id": "D007",
+          "page": 6,
+          "quote": "Status post scaphoid ORIF on 12-Nov-2023."
+        }
+      ]
+    },
+    {
+      "event_id": "E013",
+      "date": "2023-11-25",
+      "type": "encounter",
+      "summary": "Post-operative hand surgery visit",
+      "facility": "Keystone Bone & Joint",
+      "provider": "H. Okafor, MD",
+      "sources": [
+        {
+          "doc_id": "D007",
+          "page": 6,
+          "quote": "Post-operative visit 25-Nov-2023. Incision healing well, sutures removed."
+        }
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "issue_id": "I001",
+      "kind": "potential_delay",
+      "description": "The final radiology report on 2023-10-11 identified a scaphoid fracture. Patient notification is documented on 2023-10-31. Is there earlier documentation of result follow-up?",
+      "event_ids": [
+        "E006",
+        "E008"
+      ],
+      "pages": [
+        9,
+        10
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "page": 1,
+      "doc_id": "F001",
+      "doc_page": 1,
+      "text_layer": false,
+      "duplicate_of": null,
+      "text": "FAX 12/27/2023 10:41 FROM HIM DEPT    P.001\nMAPLE STREET FAMILY MEDICINE\nFacsimile Transmittal - Release of Information\nPatient: Jordan Proxley   DOB: 09/02/1962   MRN: C3031479\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Health Information Management\n------------------------------------------------------------------------------------------\nTo: Records Requester, Synthetic Law Office (fictional).\n\nFrom: Maple Street Family Medicine, Health Information Management Department.\n\nRe: Medical records for Jordan Proxley. Pages: 2 including cover.\n\nDate sent: 12/27/2023.\n\nCONFIDENTIALITY NOTICE: This transmission contains confidential health information. If you\nreceived it in error, notify the sender and destroy all copies.\n\n\nPage 1 of 1",
+      "scan": "skew",
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 2,
+      "doc_id": "D003",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 12/27/2023 10:41 FROM HIM DEPT    P.002\nMAPLE STREET FAMILY MEDICINE\nOffice Visit\nPatient: Jordan Proxley   DOB: 09/02/1962   MRN: C3031479\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: L. Lindqvist, MD\n------------------------------------------------------------------------------------------\nVisit date: 10/17/2023. Persistent wrist pain since a fall.\n\nTenderness in the anatomic snuffbox noted. Urgent care records not available today.\n\nROS: 10-point review of systems performed and negative except as documented in the history\nof present illness. Patient denies headache, vision change, chest pain, shortness of\nbreath at rest, urinary symptoms, or new rash.\n\nVitals: BP 134/86, HR 78, RR 14, SpO2 97% on room air, Temp 37.0 C.\n\nDiscussed risks, benefits and alternatives of the plan of care. Patient verbalized\nunderstanding. Printed after-visit summary provided.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 3,
+      "doc_id": "F003",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "KEYSTONE BONE & JOINT\nFacsimile Transmittal - Release of Information\nPatient: Jordan Proxley   DOB: 02-Sep-1962   MRN: S5939241\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Health Information Management\n------------------------------------------------------------------------------------------\nTo: Records Requester, Synthetic Law Office (fictional).\n\nFrom: Keystone Bone & Joint, Health Information Management Department.\n\nRe: Medical records for Jordan Proxley. Pages: 4 including cover.\n\nDate sent: 21-Feb-2024.\n\nCONFIDENTIALITY NOTICE: This transmission contains confidential health information. If you\nreceived it in error, notify the sender and destroy all copies.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 4,
+      "doc_id": "D005",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "KEYSTONE BONE & JOINT\nHand Surgery Consultation\nPatient: Jordan Proxley   DOB: 02-Sep-1962   MRN: S5939241\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: H. Okafor, MD\n------------------------------------------------------------------------------------------\nRepeat radiographs today show interval displacement of the scaphoid waist fracture.\n\nPlan: open reduction and internal fixation of the scaphoid.\n\nPast medical history: hyperlipidemia, seasonal allergies. Past surgical history:\ntonsillectomy in childhood. Family history: father with hypertension. Social history:\nnever smoker, drinks alcohol socially, works in an office setting.\n\nDiscussed risks, benefits and alternatives of the plan of care. Patient verbalized\nunderstanding. Printed after-visit summary provided.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 5,
+      "doc_id": "D006",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "KEYSTONE BONE & JOINT\nOperative Report\nPatient: Jordan Proxley   DOB: 02-Sep-1962   MRN: S5939241\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: H. Okafor, MD\n------------------------------------------------------------------------------------------\nDate: 12-Nov-2023. Procedure: open reduction internal fixation of scaphoid with headless\ncompression screw.\n\nFluoroscopy confirmed screw position. No intraoperative complications.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 6,
+      "doc_id": "D007",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "KEYSTONE BONE & JOINT\nPost-operative Visit\nPatient: Jordan Proxley   DOB: 02-Sep-1962   MRN: S5939241\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: H. Okafor, MD\n------------------------------------------------------------------------------------------\nPost-operative visit 25-Nov-2023. Incision healing well, sutures removed.\n\nStatus post scaphoid ORIF on 12-Nov-2023.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 7,
+      "doc_id": "F007",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 02/24/2024 10:30 FROM HIM DEPT    P.001\nQUICKCARE URGENT CARE - ELM PLAZA\nFacsimile Transmittal - Release of Information\nPatient: Jordan Proxley   DOB: September 02, 1962   MRN: B8319606\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Health Information Management\n------------------------------------------------------------------------------------------\nTo: Records Requester, Synthetic Law Office (fictional).\n\nFrom: QuickCare Urgent Care - Elm Plaza, Health Information Management Department.\n\nRe: Medical records for Jordan Proxley. Pages: 4 including cover.\n\nDate sent: February 24, 2024.\n\nCONFIDENTIALITY NOTICE: This transmission contains confidential health information. If you\nreceived it in error, notify the sender and destroy all copies.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 8,
+      "doc_id": "D001",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 02/24/2024 10:30 FROM HIM DEPT    P.002\nQUICKCARE URGENT CARE - ELM PLAZA\nUrgent Care Visit\nPatient: Jordan Proxley   DOB: September 02, 1962   MRN: B8319606\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: H. Mbeki, PA-C\n------------------------------------------------------------------------------------------\nSeen on October 10, 2023 after a fall on an outstretched hand.\n\nComplains of right wrist pain, worse with gripping.\n\nWrist x-ray preliminary read by provider: no acute fracture identified.\n\nAssessment: right wrist sprain. Placed in a wrist splint.\n\nFollow up with primary care in 1 week if not improving.\n\nVitals: BP 122/76, HR 90, RR 18, SpO2 98% on room air, Temp 36.9 C.\n\nElectronically signed. This note may contain transcription errors; please contact the\nauthor with any questions regarding its content.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 9,
+      "doc_id": "D002",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 02/24/2024 10:30 FROM HIM DEPT    P.003\nQUICKCARE URGENT CARE - ELM PLAZA\nRadiology Report - Wrist 3 Views\nPatient: Jordan Proxley   DOB: September 02, 1962   MRN: B8319606\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: A. Castellano, MD\n------------------------------------------------------------------------------------------\nReport finalized October 11, 2023. FINAL REPORT: Nondisplaced fracture of the scaphoid\nwaist. Recommend clinical correlation and follow-up imaging.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 10,
+      "doc_id": "D004",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": null,
+      "text": "FAX 02/24/2024 10:30 FROM HIM DEPT    P.004\nQUICKCARE URGENT CARE - ELM PLAZA\nTelephone Encounter\nPatient: Jordan Proxley   DOB: September 02, 1962   MRN: B8319606\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: H. Mbeki, PA-C\n------------------------------------------------------------------------------------------\nOctober 31, 2023: Patient notified by phone of final radiology read showing scaphoid\nfracture.\n\nReferral placed to orthopedic hand surgery.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    },
+    {
+      "page": 11,
+      "doc_id": "D001",
+      "doc_page": 1,
+      "text_layer": true,
+      "duplicate_of": 8,
+      "text": "FAX 02/24/2024 10:30 FROM HIM DEPT    P.005\nQUICKCARE URGENT CARE - ELM PLAZA\nUrgent Care Visit\nPatient: Jordan Proxley   DOB: September 02, 1962   MRN: B8319606\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: H. Mbeki, PA-C\n------------------------------------------------------------------------------------------\nSeen on October 10, 2023 after a fall on an outstretched hand.\n\nComplains of right wrist pain, worse with gripping.\n\nWrist x-ray preliminary read by provider: no acute fracture identified.\n\nAssessment: right wrist sprain. Placed in a wrist splint.\n\nFollow up with primary care in 1 week if not improving.\n\nVitals: BP 122/76, HR 90, RR 18, SpO2 98% on room air, Temp 36.9 C.\n\nElectronically signed. This note may contain transcription errors; please contact the\nauthor with any questions regarding its content.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
+    }
+  ],
+  "productions": 1
+}

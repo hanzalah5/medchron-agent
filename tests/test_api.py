@@ -51,10 +51,10 @@ def client(engine: Engine, tmp_path_factory: pytest.TempPathFactory) -> Iterator
 
 @pytest.fixture(scope="module")
 def processed(client: TestClient, engine: Engine) -> dict[str, str]:
-    pdf = (ROOT / "data/synthetic/case_0003.pdf").read_bytes()
+    pdf = (ROOT / "data/synthetic/dev/case_0004.pdf").read_bytes()
     r = client.post(
         "/api/matters",
-        files={"file": ("case_0003.pdf", pdf, "application/pdf")},
+        files={"file": ("case_0004.pdf", pdf, "application/pdf")},
         data={"matter_id": "demo-0003", "title": "Synthetic case 3", "provider": "oracle"},
     )
     assert r.status_code == 202, r.text
@@ -93,9 +93,9 @@ def test_chronology_and_pages(client: TestClient, processed: dict[str, str]) -> 
 
 
 def test_hybrid_search(client: TestClient, processed: dict[str, str]) -> None:
-    hits = client.get("/api/matters/demo-0003/search", params={"q": "perforated appendicitis"})
+    hits = client.get("/api/matters/demo-0003/search", params={"q": "bile leak cystic duct stump"})
     assert hits.status_code == 200
-    assert "appendicitis" in hits.json()[0]["text"].lower()
+    assert "bile leak" in hits.json()[0]["text"].lower()
 
 
 def test_list_and_detail(client: TestClient, processed: dict[str, str]) -> None:
@@ -217,3 +217,86 @@ def test_issue_triage_and_memo_signoff(
     assert approved["status"] == "approved" and approved["approved_by"]
     exported = client.get(f"{url}/export.md")
     assert exported.status_code == 200 and "Approved by" in exported.text
+
+
+def test_second_production_creates_a_version_and_keeps_review_state(
+    client: TestClient, engine: Engine
+) -> None:
+    """Upload production 1, review an event, upload production 2: the chronology gets a
+    new version with a diff, earlier work is reused, and the review decision survives."""
+    dev = ROOT / "data/synthetic/dev"
+    manifest = json.loads((dev / "manifest.json").read_text())
+    case = next(m for m in manifest if m["productions"] == 2)
+    p1, p2 = ((dev / name).read_bytes() for name in case["pdfs"])
+    mid = "incremental-1"
+    r = client.post(
+        "/api/matters",
+        files={"file": ("p1.pdf", p1, "application/pdf")},
+        data={"matter_id": mid, "provider": "oracle"},
+    )
+    assert r.status_code == 202, r.text
+    assert work(engine, once=True) == 1
+    versions = client.get(f"/api/matters/{mid}/chronology/versions").json()
+    assert [v["version"] for v in versions] == [1] and versions[0]["diff"] is None
+    first_events = client.get(f"/api/matters/{mid}/chronology").json()["events"]
+    reviewed = first_events[0]["event_id"]
+    client.patch(f"/api/matters/{mid}/events/{reviewed}", json={"status": "accepted"})
+
+    dup = client.post(
+        f"/api/matters/{mid}/productions",
+        files={"file": ("again.pdf", p1, "application/pdf")},
+        data={"provider": "oracle"},
+    )
+    assert dup.status_code == 409  # the same file twice is refused
+    r = client.post(
+        f"/api/matters/{mid}/productions",
+        files={"file": ("p2.pdf", p2, "application/pdf")},
+        data={"provider": "oracle"},
+    )
+    assert r.status_code == 202 and r.json()["production_no"] == 2
+    assert work(engine, once=True) == 1
+    job = client.get(f"/api/jobs/{r.json()['job_id']}").json()
+    assert job["status"] == "completed", job["error"]
+    assert job["summary"]["reused_documents"] > 0 and job["summary"]["chronology_version"] == 2
+
+    detail = client.get(f"/api/matters/{mid}").json()
+    prods = detail["productions"]
+    assert [p["production_no"] for p in prods] == [1, 2]
+    assert prods[1]["page_offset"] == prods[0]["page_count"] > 0
+
+    versions = client.get(f"/api/matters/{mid}/chronology/versions").json()
+    assert [v["version"] for v in versions] == [1, 2] and versions[1]["diff"]["added"] > 0
+    diff = client.get(f"/api/matters/{mid}/chronology/diff").json()
+    assert diff["from_version"] == 1 and diff["to_version"] == 2
+    assert diff["added"] and not diff["removed"]
+    assert client.get(f"/api/matters/{mid}/chronology/diff", params={"to": 9}).status_code == 404
+    review = client.get(f"/api/matters/{mid}/review").json()
+    assert review["events"][reviewed]["status"] == "accepted"  # survived the re-run
+
+    audit_rows = client.get("/api/audit", params={"matter_id": mid},
+                            headers={"X-Dev-Roles": "auditor"}).json()  # fmt: skip
+    actions = {a["action"] for a in audit_rows}
+    assert {"production.add", "chronology.diff_view"} <= actions
+
+
+def test_productions_respect_matter_access(client: TestClient) -> None:
+    pdf = (ROOT / "data/synthetic/dev/case_0005.pdf").read_bytes()
+    other = {"X-Dev-User": "mallory", "X-Dev-Roles": "attorney"}
+    r = client.post(
+        "/api/matters/incremental-1/productions",
+        files={"file": ("x.pdf", pdf, "application/pdf")},
+        data={"provider": "oracle"},
+        headers=other,
+    )
+    assert r.status_code == 404  # not a member: the matter's existence is not revealed
+    assert (
+        client.get("/api/matters/incremental-1/chronology/versions", headers=other).status_code
+        == 404
+    )
+    auditor = {"X-Dev-User": "audrey", "X-Dev-Roles": "auditor"}
+    r = client.post(
+        "/api/matters/incremental-1/productions",
+        files={"file": ("x.pdf", pdf, "application/pdf")},
+        headers=auditor,
+    )
+    assert r.status_code == 403

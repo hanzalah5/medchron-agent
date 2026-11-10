@@ -25,7 +25,7 @@ from medchron.ingestion import ingest_pdf
 from medchron.synth.models import CaseGold, GoldEvent
 from medchron.taxonomy import EventType, IssueKind
 
-SMOKE = Path(__file__).resolve().parents[1] / "data" / "synthetic"
+SMOKE = Path(__file__).resolve().parents[1] / "data" / "synthetic" / "dev"
 
 
 def gold_event(eid: str, day: int, page: int, type_: EventType = EventType.PROCEDURE) -> GoldEvent:
@@ -92,7 +92,7 @@ def test_matching_is_one_to_one() -> None:
 
 
 def test_citation_validity_detects_bad_offsets() -> None:
-    case = ingest_pdf(SMOKE / "case_0002.pdf", "case_0002", ocr=False)
+    case = ingest_pdf(SMOKE / "case_0001.pdf", "case_0001", ocr=False)
     page = next(p for p in case.pages if "Urgent Care" in p.text and len(p.text) > 200)
     start = page.text.index("Urgent Care")
     good = pred("a", 10, page.page_no)
@@ -120,7 +120,7 @@ def test_empty_prediction_scores_zero_recall() -> None:
 def selfcheck(tmp_path_factory: pytest.TempPathFactory) -> Path:
     out = tmp_path_factory.mktemp("eval")
     code = main(
-        ["eval", "--label", "t", "--provider", "oracle", "--cases", "case_0002,case_0003",
+        ["eval", "--label", "t", "--provider", "oracle", "--cases", "case_0003,case_0004",
          "--out", str(out / "res"), "--work", str(out / "work")]
     )  # fmt: skip
     assert code == 0
@@ -160,7 +160,7 @@ def _smoke_case_with(*kinds: str) -> tuple[CaseGold, object]:
     """First smoke case whose planted issues include every kind in ``kinds``."""
     manifest = json.loads((SMOKE / "manifest.json").read_text())
     for m in manifest:
-        if set(kinds) <= set(m["issues"]):
+        if set(kinds) <= set(m["issues"]) and m["productions"] == 1:
             gold = CaseGold.model_validate_json((SMOKE / f"{m['case_id']}.gold.json").read_text())
             return gold, ingest_pdf(SMOKE / f"{m['case_id']}.pdf", m["case_id"], ocr=False)
     raise AssertionError(f"no smoke case plants {kinds}")

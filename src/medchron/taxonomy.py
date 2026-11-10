@@ -20,6 +20,7 @@ class DocType(StrEnum):
     DISCHARGE_SUMMARY = "discharge_summary"
     THERAPY_NOTE = "therapy_note"
     TELEPHONE_NOTE = "telephone_note"
+    MEDICATION_LIST = "medication_list"  # medication administration records and med lists
     OTHER = "other"
 
 
@@ -42,3 +43,4 @@ class IssueKind(StrEnum):
     RECORD_INCONSISTENCY = "record_inconsistency"
     POTENTIAL_DELAY = "potential_delay"
     PROMPT_INJECTION = "prompt_injection"
+    MISFILED_PAGE = "misfiled_page"  # a page that belongs to a different patient

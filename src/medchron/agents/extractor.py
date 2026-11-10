@@ -194,9 +194,18 @@ class _Recorder:
 
 
 def extract_document(
-    provider: LLMProvider, case: IngestedCase, doc: DocumentSegment
+    provider: LLMProvider,
+    case: IngestedCase,
+    doc: DocumentSegment,
+    *,
+    exclude_pages: set[int] | frozenset[int] = frozenset(),
 ) -> ExtractionResult:
-    spans = [s for s in case.spans if doc.start_page <= s.page_no <= doc.end_page]
+    """Extract events from one document. ``exclude_pages`` (e.g. misfiled pages) are skipped."""
+    spans = [
+        s
+        for s in case.spans
+        if doc.start_page <= s.page_no <= doc.end_page and s.page_no not in exclude_pages
+    ]
     if not spans:
         return ExtractionResult(
             flags=[

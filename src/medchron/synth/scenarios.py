@@ -13,7 +13,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from medchron.synth import names
-from medchron.synth.builder import CaseBuilder
+from medchron.synth.builder import CaseBuilder, Row
 from medchron.synth.models import DocType, EventType, IssueKind
 
 E = EventType
@@ -728,10 +728,669 @@ def wrist_fracture_overread(b: CaseBuilder, o: ScenarioOptions) -> None:
         b.para(doc, "Begin occupational therapy for range of motion; referral placed.", "ot_plan")
 
 
+# --------------------------------------------------------------------------- #
+# Scenario 4: ED headache treated as migraine, return with hemorrhage         #
+# --------------------------------------------------------------------------- #
+def ed_headache_return(b: CaseBuilder, o: ScenarioOptions) -> None:
+    t0 = _day(b)
+    hosp = b.facility(names.HOSPITALS)
+    pcp = b.facility(names.CLINICS)
+    ed1_md = b.clinician("MD")
+    ed2_md = b.clinician("DO")
+    nir_md = b.clinician("MD")
+    radiologist = b.clinician("MD")
+    intensivist = b.clinician("MD")
+    pcp_md = b.clinician("MD")
+    t1 = _shift(t0, b.rng.choice([2, 3, 4]))
+    t_coil = _shift(t1, 1)
+    t_dc = _shift(t1, b.rng.randint(9, 13))
+    f = b.fmt
+
+    doc = b.doc(DocType.ED_NOTE, "Emergency Department Provider Note", t0, hosp, ed1_md)
+    b.para(
+        doc,
+        "Triage: headache onset sudden while lifting weights, rated 9/10, per patient report.",
+        "triage_onset",
+    )
+    b.event(
+        "ed1_visit",
+        doc,
+        t0,
+        E.ENCOUNTER,
+        "Emergency department visit for headache",
+        f"Date of service: {f(hosp, t0)}. Patient presents with headache.",
+    )
+    b.event(
+        "ed1_complaint",
+        doc,
+        t0,
+        E.COMPLAINT,
+        "Severe headache with photophobia",
+        "HPI: headache of gradual onset over several hours with photophobia and nausea.",
+        tags=("hpi_onset",),
+    )
+    b.filler(doc, ["history", "vitals"])
+    b.para(doc, "Neuro exam: alert and oriented, cranial nerves intact, no focal deficit.")
+    b.event(
+        "ed1_meds",
+        doc,
+        t0,
+        E.MEDICATION,
+        "Metoclopramide and diphenhydramine given in the ED",
+        "Given metoclopramide 10 mg IV and diphenhydramine 25 mg IV with partial relief.",
+    )
+    b.event(
+        "ed1_dx",
+        doc,
+        t0,
+        E.DIAGNOSIS,
+        "Diagnosed with migraine headache",
+        "Impression: migraine without aura. No imaging obtained at this visit.",
+        tags=("ed1_impression",),
+    )
+    b.event(
+        "ed1_instructions",
+        doc,
+        t0,
+        E.INSTRUCTION,
+        "Return precautions and primary care follow-up",
+        "Return precautions for worsening headache, fever or neck stiffness. Follow up with "
+        "primary care within one week.",
+    )
+    b.filler(doc, ["attestation"])
+    b.issue(
+        IssueKind.RECORD_INCONSISTENCY,
+        "The triage note records a sudden onset of the headache, while the provider note "
+        "describes a gradual onset. Which account is correct, and was the difference noticed?",
+        ["ed1_complaint"],
+        ["triage_onset", "hpi_onset"],
+    )
+
+    d_call = _shift(t0, 1)
+    if o.missing_record:
+        b.issue(
+            IssueKind.MISSING_RECORD,
+            "The return ED note says the patient called the primary care office the day after "
+            "the first visit, but no telephone note from that office is in the production. "
+            "Request the office phone records.",
+            ["ed2_call_history"],
+            ["call_history"],
+        )
+    else:
+        doc = b.doc(DocType.TELEPHONE_NOTE, "Telephone Encounter", d_call, pcp, pcp_md)
+        b.event(
+            "pcp_call",
+            doc,
+            d_call,
+            E.COMMUNICATION,
+            "Primary care telephone call about persistent headache",
+            "Patient called reporting persistent headache since the ED visit; advised to "
+            "continue medications and return to the ED if worse.",
+        )
+
+    doc = b.doc(DocType.ED_NOTE, "Emergency Department Provider Note", t1, hosp, ed2_md)
+    b.event(
+        "ed2_visit",
+        doc,
+        t1,
+        E.ENCOUNTER,
+        "Return emergency department visit with worsening headache",
+        f"Date of service: {f(hosp, t1)}. Returns with worsening headache and vomiting.",
+        tags=("ed2_date",),
+    )
+    b.event(
+        "ed2_call_history",
+        doc,
+        t1,
+        E.COMMUNICATION,
+        "Patient reports calling primary care the day after the first visit",
+        "Patient reports calling the primary care office the day after the first visit.",
+        tags=("call_history",),
+    )
+    b.event(
+        "ed2_complaint",
+        doc,
+        t1,
+        E.COMPLAINT,
+        "Headache with neck stiffness and vomiting",
+        "Exam: meningismus present. Patient drowsy but arousable.",
+    )
+    b.filler(doc, ["vitals"])
+    b.event(
+        "ns_consult",
+        doc,
+        t1,
+        E.REFERRAL,
+        "Neurosurgery and neurointerventional consultation",
+        "Neurosurgery and neurointerventional radiology consulted emergently.",
+    )
+
+    doc = b.doc(DocType.RADIOLOGY_REPORT, "CT Head Without Contrast", t1, hosp, radiologist)
+    b.event(
+        "ct_sah",
+        doc,
+        t1,
+        E.IMAGING,
+        "CT head: subarachnoid hemorrhage",
+        "IMPRESSION: Diffuse subarachnoid hemorrhage in the basal cisterns.",
+        tags=("ct_impression",),
+    )
+    doc = b.doc(DocType.LAB_REPORT, "Laboratory Report - Coagulation and Chemistry", t1, hosp,
+                "Laboratory")  # fmt: skip
+    b.table(
+        doc,
+        ["Test", "Result", "Flag", "Reference", "Collected"],
+        [
+            Row(
+                ["Sodium", "131 mmol/L", "L", "135-145", f(hosp, t1)],
+                "ed2_sodium",
+                t1,
+                E.LAB_RESULT,
+                "Sodium 131 (low)",
+            ),
+            ["Potassium", "3.9 mmol/L", "", "3.5-5.1", f(hosp, t1)],
+            ["PT/INR", "1.0", "", "0.9-1.1", f(hosp, t1)],
+            ["Platelets", "241 x10^3/uL", "", "150-400", f(hosp, t1)],
+        ],
+    )
+
+    doc = b.doc(DocType.OPERATIVE_REPORT, "Neurointerventional Procedure Note", t_coil, hosp,
+                nir_md)  # fmt: skip
+    b.event(
+        "coiling",
+        doc,
+        t_coil,
+        E.PROCEDURE,
+        "Endovascular coiling of a cerebral aneurysm",
+        "Endovascular coil embolization of an anterior communicating artery aneurysm.",
+        prefix=f"Date of procedure: {f(hosp, t_coil)}. ",
+        tags=("coil_date",),
+    )
+    b.para(doc, "Complete occlusion achieved. No procedural complications.")
+
+    doc = b.doc(DocType.DISCHARGE_SUMMARY, "Discharge Summary", t_dc, hosp, intensivist)
+    b.event(
+        "sah_discharge",
+        doc,
+        t_dc,
+        E.ENCOUNTER,
+        "Discharged after treatment of subarachnoid hemorrhage",
+        f"Admission date: {f(hosp, t1)}. Discharge date: {f(hosp, t_dc)}.",
+    )
+    if o.date_conflict:
+        wrong = _shift(t_coil, b.rng.choice([-1, 1, 2]))
+        b.para(
+            doc,
+            f"Hospital course: aneurysm coiled on {f(hosp, wrong)}; nimodipine continued.",
+            "dc_coil_date",
+        )
+        b.issue(
+            IssueKind.DATE_CONFLICT,
+            "The discharge summary gives a different coiling date than the procedure note. "
+            "Which date is correct?",
+            ["coiling"],
+            ["coil_date", "dc_coil_date"],
+        )
+    else:
+        b.cite(
+            "coiling",
+            doc,
+            f"Hospital course: aneurysm coiled on {f(hosp, t_coil)}; nimodipine continued.",
+        )
+    b.event(
+        "nimodipine",
+        doc,
+        t_dc,
+        E.MEDICATION,
+        "Nimodipine at discharge",
+        "Discharge medications: nimodipine 60 mg by mouth every 4 hours to complete 21 days.",
+    )
+    b.filler(doc, ["plan_generic"])
+    b.issue(
+        IssueKind.POTENTIAL_DELAY,
+        f"The headache was attributed to migraine without imaging on {t0.isoformat()}, and a "
+        f"subarachnoid hemorrhage was found on CT at the return visit on {t1.isoformat()}. "
+        "Was neuro-imaging considered at the first visit?",
+        ["ed1_dx", "ct_sah"],
+        ["ed1_impression", "ct_impression"],
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Scenario 5: laparoscopic cholecystectomy, later bile leak                   #
+# --------------------------------------------------------------------------- #
+def lap_chole_bile_leak(b: CaseBuilder, o: ScenarioOptions) -> None:
+    t0 = _day(b)
+    hosp = b.facility(names.HOSPITALS)
+    clinic = b.facility(names.CLINICS)
+    surgeon = b.clinician("MD, FACS")
+    ed_md = b.clinician("MD")
+    radiologist = b.clinician("MD")
+    gi_md = b.clinician("MD")
+    hospitalist = b.clinician("DO")
+    f = b.fmt
+    surgeon_name = surgeon.split(",")[0]
+
+    d_consult = _shift(t0, -b.rng.randint(14, 40))
+    doc = b.doc(DocType.OFFICE_VISIT, "General Surgery Consultation", d_consult, clinic, surgeon)
+    b.event(
+        "gallstones",
+        doc,
+        d_consult,
+        E.DIAGNOSIS,
+        "Symptomatic cholelithiasis",
+        "Assessment: symptomatic cholelithiasis with recurrent postprandial pain.",
+    )
+    b.filler(doc, ["history", "exam"])
+    b.event(
+        "chole_plan",
+        doc,
+        d_consult,
+        E.REFERRAL,
+        "Plan for laparoscopic cholecystectomy",
+        "Plan: elective laparoscopic cholecystectomy.",
+    )
+
+    doc = b.doc(DocType.OPERATIVE_REPORT, "Operative Report", t0, hosp, surgeon)
+    b.event(
+        "chole",
+        doc,
+        t0,
+        E.PROCEDURE,
+        "Laparoscopic cholecystectomy",
+        "Procedure: laparoscopic cholecystectomy. Cystic duct clipped and divided.",
+        prefix=f"Date of operation: {f(hosp, t0)}. ",
+        tags=("op_date",),
+    )
+    b.para(doc, "Critical view of safety documented. Estimated blood loss minimal.")
+    b.event(
+        "chole_discharge",
+        doc,
+        t0,
+        E.INSTRUCTION,
+        "Same-day discharge with return precautions",
+        "Discharged home the same day. Return for fever, worsening abdominal pain or jaundice.",
+    )
+
+    d_call = _shift(t0, 2)
+    doc = b.doc(DocType.TELEPHONE_NOTE, "Telephone Encounter", d_call, clinic, surgeon)
+    b.event(
+        "postop_call",
+        doc,
+        d_call,
+        E.COMMUNICATION,
+        "Patient called reporting increasing abdominal pain and nausea",
+        "Patient called reporting increasing abdominal pain and nausea; advised to continue "
+        "pain medication and call back if worse.",
+        tags=("call_pain",),
+    )
+
+    t_ed = _shift(t0, b.rng.choice([4, 5, 6]))
+    doc = b.doc(DocType.ED_NOTE, "Emergency Department Provider Note", t_ed, hosp, ed_md)
+    b.event(
+        "ed_visit",
+        doc,
+        t_ed,
+        E.ENCOUNTER,
+        "Emergency department visit for abdominal pain and fever after cholecystectomy",
+        f"Date of service: {f(hosp, t_ed)}. Presents with right upper quadrant pain and fever.",
+        tags=("ed_date",),
+    )
+    b.filler(doc, ["vitals", "ros"])
+    doc = b.doc(DocType.LAB_REPORT, "Laboratory Report - Hepatic Panel", t_ed, hosp, "Laboratory")
+    b.table(
+        doc,
+        ["Test", "Result", "Flag", "Reference"],
+        [
+            Row(
+                ["Total bilirubin", "3.4 mg/dL", "H", "0.2-1.2"],
+                "bili",
+                t_ed,
+                E.LAB_RESULT,
+                "Total bilirubin 3.4 (high)",
+            ),
+            ["Alkaline phosphatase", "281 U/L", "H", "40-129"],
+            ["ALT", "96 U/L", "H", "7-56"],
+            Row(
+                ["WBC", "14.2 x10^3/uL", "H", "4.0-11.0"],
+                "ed_wbc",
+                t_ed,
+                E.LAB_RESULT,
+                "WBC 14.2 (high)",
+            ),
+        ],
+    )
+    doc = b.doc(DocType.RADIOLOGY_REPORT, "Hepatobiliary Scan", t_ed, hosp, radiologist)
+    b.event(
+        "hida",
+        doc,
+        t_ed,
+        E.IMAGING,
+        "Hepatobiliary scan: bile leak",
+        "IMPRESSION: Bile leak from the region of the cystic duct stump.",
+    )
+
+    t_ercp = _shift(t_ed, 1)
+    doc = b.doc(DocType.OPERATIVE_REPORT, "ERCP Procedure Note", t_ercp, hosp, gi_md)
+    b.event(
+        "ercp",
+        doc,
+        t_ercp,
+        E.PROCEDURE,
+        "ERCP with biliary stent placement",
+        "ERCP with sphincterotomy and placement of a plastic biliary stent.",
+        prefix=f"Procedure date: {f(hosp, t_ercp)}. ",
+        tags=("ercp_date",),
+    )
+
+    t_dc = _shift(t_ercp, b.rng.randint(2, 3))
+    doc = b.doc(DocType.DISCHARGE_SUMMARY, "Discharge Summary", t_dc, hosp, hospitalist)
+    b.event(
+        "leak_discharge",
+        doc,
+        t_dc,
+        E.ENCOUNTER,
+        "Discharged after treatment of bile leak",
+        f"Admission date: {f(hosp, t_ed)}. Discharge date: {f(hosp, t_dc)}.",
+    )
+    if o.date_conflict:
+        wrong = _shift(t_ercp, b.rng.choice([-1, 1]))
+        b.para(doc, f"Hospital course: ERCP with stent on {f(hosp, wrong)}.", "dc_ercp_date")
+        b.issue(
+            IssueKind.DATE_CONFLICT,
+            "The discharge summary gives a different ERCP date than the procedure note. Which "
+            "date is correct?",
+            ["ercp"],
+            ["ercp_date", "dc_ercp_date"],
+        )
+    else:
+        b.cite("ercp", doc, f"Hospital course: ERCP with stent on {f(hosp, t_ercp)}.")
+    b.event(
+        "fu_surgery",
+        doc,
+        t_dc,
+        E.REFERRAL,
+        "Follow up in surgery clinic in 2 weeks",
+        f"Follow up in surgery clinic with {surgeon_name} in 2 weeks; repeat ERCP for stent "
+        "removal in 6 weeks.",
+        tags=("fu_instruction",),
+    )
+    b.filler(doc, ["plan_generic"])
+
+    d_fu = _shift(t_dc, 14 + b.rng.randint(-2, 2))
+    fu = b.doc(DocType.OFFICE_VISIT, "Post-operative Visit", d_fu, clinic, surgeon)
+    b.para(fu, f"Post-operative visit on {f(clinic, d_fu)}. Incisions healed.")
+    if o.missing_record:
+        b.remove_doc(fu)
+        b.issue(
+            IssueKind.MISSING_RECORD,
+            "The discharge summary directs a surgery clinic follow-up in about 2 weeks, but no "
+            "post-operative clinic record appears in the production. Request the records.",
+            ["fu_surgery"],
+            ["fu_instruction"],
+        )
+    else:
+        b.event(
+            "postop_visit",
+            fu,
+            d_fu,
+            E.ENCOUNTER,
+            "Post-operative surgery clinic visit",
+            "Pain resolved. Tolerating a regular diet. Stent removal scheduled.",
+        )
+
+    b.issue(
+        IssueKind.POTENTIAL_DELAY,
+        f"The patient called on {d_call.isoformat()} reporting increasing pain after surgery, "
+        f"and the next evaluation was the ED visit on {t_ed.isoformat()}. How was the call "
+        "triaged?",
+        ["postop_call", "ed_visit"],
+        ["call_pain", "ed_date"],
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Scenario 6: warfarin, new antibiotic, unmonitored INR, bleeding             #
+# --------------------------------------------------------------------------- #
+def anticoag_interaction(b: CaseBuilder, o: ScenarioOptions) -> None:
+    t0 = _day(b)
+    clinic = b.facility(names.CLINICS)
+    uc = b.facility(names.URGENT_CARES)
+    hosp = b.facility(names.HOSPITALS)
+    pcp_md = b.clinician("MD")
+    uc_np = b.clinician("NP")
+    ed_md = b.clinician("MD")
+    gi_md = b.clinician("MD")
+    hospitalist = b.clinician("DO")
+    f = b.fmt
+    dose = b.rng.choice(["5 mg", "6 mg", "7.5 mg"])
+
+    d_base = _shift(t0, -b.rng.randint(20, 40))
+    doc = b.doc(DocType.OFFICE_VISIT, "Anticoagulation Clinic Visit", d_base, clinic, pcp_md)
+    b.event(
+        "afib",
+        doc,
+        d_base,
+        E.DIAGNOSIS,
+        "Atrial fibrillation on long-term warfarin",
+        "Indication for anticoagulation: atrial fibrillation.",
+    )
+    b.table(
+        doc,
+        ["Date", "INR", "Warfarin dose", "Next check"],
+        [
+            [f(clinic, _shift(d_base, -28)), "2.6", f"{dose} daily", "4 weeks"],
+            Row(
+                [f(clinic, d_base), "2.4", f"{dose} daily", "4 weeks"],
+                "inr_base",
+                d_base,
+                E.LAB_RESULT,
+                "INR 2.4 (in range)",
+            ),
+        ],
+    )
+    b.event(
+        "warfarin",
+        doc,
+        d_base,
+        E.MEDICATION,
+        f"Warfarin {dose} daily continued",
+        f"Plan: continue warfarin {dose} daily. Recheck INR in 4 weeks.",
+    )
+
+    doc = b.doc(DocType.OFFICE_VISIT, "Urgent Care Visit", t0, uc, uc_np)
+    b.event(
+        "uc_visit",
+        doc,
+        t0,
+        E.ENCOUNTER,
+        "Urgent care visit for urinary symptoms",
+        f"Visit date: {f(uc, t0)}. Dysuria and urinary frequency for two days.",
+    )
+    b.event(
+        "uti",
+        doc,
+        t0,
+        E.DIAGNOSIS,
+        "Diagnosed with urinary tract infection",
+        "Assessment: acute cystitis.",
+    )
+    b.event(
+        "tmp_smx",
+        doc,
+        t0,
+        E.MEDICATION,
+        "Trimethoprim-sulfamethoxazole prescribed",
+        "Prescribed trimethoprim-sulfamethoxazole DS one tablet twice daily for 7 days.",
+        tags=("uc_rx",),
+    )
+    b.event(
+        "uc_inr_instruction",
+        doc,
+        t0,
+        E.INSTRUCTION,
+        "Follow up with anticoagulation clinic for INR check",
+        "Follow up with anticoagulation clinic for an INR check within 3 days.",
+        tags=("inr_instruction",),
+    )
+    doc = b.doc(DocType.MEDICATION_LIST, "Medication List - Reconciled", t0, uc, uc_np)
+    b.table(
+        doc,
+        ["Medication", "Dose", "Route", "Frequency", "Status"],
+        [
+            Row(
+                ["Warfarin", dose, "PO", "daily", "active"],
+                "warfarin",
+                tags=("medlist_warfarin",),
+            ),
+            ["Metoprolol tartrate", "25 mg", "PO", "twice daily", "active"],
+            ["Trimethoprim-sulfamethoxazole DS", "1 tab", "PO", "twice daily", "new"],
+        ],
+    )
+
+    if o.missing_record:
+        b.issue(
+            IssueKind.MISSING_RECORD,
+            "Urgent care directed an INR check at the anticoagulation clinic within 3 days, but "
+            "no anticoagulation clinic record after that date appears in the production. "
+            "Request the clinic records.",
+            ["uc_inr_instruction"],
+            ["inr_instruction"],
+        )
+    else:
+        d_chk = _shift(t0, 3)
+        doc = b.doc(DocType.OFFICE_VISIT, "Anticoagulation Clinic Visit", d_chk, clinic, pcp_md)
+        b.event(
+            "inr_check",
+            doc,
+            d_chk,
+            E.ENCOUNTER,
+            "Anticoagulation clinic INR check",
+            f"Seen on {f(clinic, d_chk)} for INR check while on antibiotic.",
+        )
+        b.para(doc, "INR 3.6. Warfarin dose held for one day, then resumed.")
+
+    t_ed = _shift(t0, b.rng.randint(7, 9))
+    doc = b.doc(DocType.ED_NOTE, "Emergency Department Provider Note", t_ed, hosp, ed_md)
+    b.event(
+        "ed_visit",
+        doc,
+        t_ed,
+        E.ENCOUNTER,
+        "Emergency department visit for black stools and dizziness",
+        f"Date of service: {f(hosp, t_ed)}. Black stools and lightheadedness for one day.",
+    )
+    b.filler(doc, ["vitals"])
+    b.para(doc, "Order: vitamin K 5 mg IV once.", "vk_order")
+    doc = b.doc(DocType.LAB_REPORT, "Laboratory Report - Hematology and Coagulation", t_ed,
+                hosp, "Laboratory")  # fmt: skip
+    b.table(
+        doc,
+        ["Test", "Result", "Flag", "Reference"],
+        [
+            Row(
+                ["PT/INR", "7.8", "H", "0.9-1.1"],
+                "inr_high",
+                t_ed,
+                E.LAB_RESULT,
+                "INR 7.8 (high)",
+                tags=("inr_high",),
+            ),
+            Row(
+                ["Hemoglobin", "7.9 g/dL", "L", "12.0-16.0"],
+                "hgb_low",
+                t_ed,
+                E.LAB_RESULT,
+                "Hemoglobin 7.9 (low)",
+            ),
+            ["Platelets", "212 x10^3/uL", "", "150-400"],
+        ],
+    )
+    doc = b.doc(DocType.MEDICATION_LIST, "Medication Administration Record", t_ed, hosp,
+                "Nursing")  # fmt: skip
+    b.table(
+        doc,
+        ["Medication", "Dose", "Route", "Given", "By"],
+        [
+            Row(
+                ["Phytonadione (vitamin K)", "10 mg", "IV", f(hosp, t_ed), "RN"],
+                "vitk",
+                t_ed,
+                E.MEDICATION,
+                "Vitamin K given IV",
+                tags=("vk_mar",),
+            ),
+            ["Pantoprazole", "80 mg", "IV", f(hosp, t_ed), "RN"],
+        ],
+    )
+    b.issue(
+        IssueKind.RECORD_INCONSISTENCY,
+        "The ED order lists vitamin K 5 mg IV, but the medication administration record shows "
+        "10 mg given. Which dose was given, and is the difference explained?",
+        ["vitk"],
+        ["vk_order", "vk_mar"],
+    )
+
+    t_egd = _shift(t_ed, 1)
+    doc = b.doc(DocType.OPERATIVE_REPORT, "Upper Endoscopy Report", t_egd, hosp, gi_md)
+    b.event(
+        "egd",
+        doc,
+        t_egd,
+        E.PROCEDURE,
+        "Upper endoscopy: gastric ulcer treated",
+        "Findings: clean-based gastric ulcer; no active bleeding. Biopsies taken.",
+        prefix=f"Procedure date: {f(hosp, t_egd)}. ",
+        tags=("egd_date",),
+    )
+    t_dc = _shift(t_egd, b.rng.randint(1, 3))
+    doc = b.doc(DocType.DISCHARGE_SUMMARY, "Discharge Summary", t_dc, hosp, hospitalist)
+    b.event(
+        "gib_discharge",
+        doc,
+        t_dc,
+        E.ENCOUNTER,
+        "Discharged after gastrointestinal bleeding",
+        f"Admission date: {f(hosp, t_ed)}. Discharge date: {f(hosp, t_dc)}.",
+    )
+    if o.date_conflict:
+        wrong = _shift(t_egd, b.rng.choice([-1, 1]))
+        b.para(doc, f"Hospital course: endoscopy on {f(hosp, wrong)} showed an ulcer.",
+               "dc_egd_date")  # fmt: skip
+        b.issue(
+            IssueKind.DATE_CONFLICT,
+            "The discharge summary gives a different endoscopy date than the endoscopy report. "
+            "Which date is correct?",
+            ["egd"],
+            ["egd_date", "dc_egd_date"],
+        )
+    else:
+        b.cite("egd", doc, f"Hospital course: endoscopy on {f(hosp, t_egd)} showed an ulcer.")
+    b.event(
+        "warfarin_held",
+        doc,
+        t_dc,
+        E.MEDICATION,
+        "Warfarin held at discharge",
+        "Warfarin held; resume only after review at the anticoagulation clinic.",
+    )
+    b.issue(
+        IssueKind.POTENTIAL_DELAY,
+        f"Trimethoprim-sulfamethoxazole was started on {t0.isoformat()} while the medication "
+        f"list shows warfarin, and the INR was 7.8 on {t_ed.isoformat()}. Was INR monitoring "
+        "arranged in between?",
+        ["tmp_smx", "inr_high"],
+        ["uc_rx", "inr_high"],
+    )
+
+
 Scenario = Callable[[CaseBuilder, ScenarioOptions], None]
 
 SCENARIOS: dict[str, Scenario] = {
     "abdominal_pain_return_visit": abdominal_pain_return_visit,
     "knee_replacement_vte": knee_replacement_vte,
     "wrist_fracture_overread": wrist_fracture_overread,
+    "ed_headache_return": ed_headache_return,
+    "lap_chole_bile_leak": lap_chole_bile_leak,
+    "anticoag_interaction": anticoag_interaction,
 }

@@ -2,7 +2,7 @@
   "case_id": "case_0005",
   "seed": 5,
   "scenario": "wrist_fracture_overread",
-  "generator_version": "0.1.0",
+  "generator_version": "0.2.0",
   "synthetic": true,
   "patient": {
     "name": "Parker Fauxley",
@@ -335,7 +335,10 @@
       "doc_page": 1,
       "text_layer": true,
       "duplicate_of": null,
-      "text": "FAX 09/10/2022 10:48 FROM HIM DEPT    P.001\nKEYSTONE BONE & JOINT\nFacsimile Transmittal - Release of Information\nPatient: Parker Fauxley   DOB: January 06, 1991   MRN: F7533673\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Health Information Management\n------------------------------------------------------------------------------------------\nTo: Records Requester, Synthetic Law Office (fictional).\n\nFrom: Keystone Bone & Joint, Health Information Management Department.\n\nRe: Medical records for Parker Fauxley. Pages: 4 including cover.\n\nDate sent: September 10, 2022.\n\nCONFIDENTIALITY NOTICE: This transmission contains confidential health information. If you\nreceived it in error, notify the sender and destroy all copies.\n\n\nPage 1 of 1"
+      "text": "FAX 09/10/2022 10:48 FROM HIM DEPT    P.001\nKEYSTONE BONE & JOINT\nFacsimile Transmittal - Release of Information\nPatient: Parker Fauxley   DOB: January 06, 1991   MRN: F7533673\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Health Information Management\n------------------------------------------------------------------------------------------\nTo: Records Requester, Synthetic Law Office (fictional).\n\nFrom: Keystone Bone & Joint, Health Information Management Department.\n\nRe: Medical records for Parker Fauxley. Pages: 4 including cover.\n\nDate sent: September 10, 2022.\n\nCONFIDENTIALITY NOTICE: This transmission contains confidential health information. If you\nreceived it in error, notify the sender and destroy all copies.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
     },
     {
       "page": 2,
@@ -343,7 +346,10 @@
       "doc_page": 1,
       "text_layer": true,
       "duplicate_of": null,
-      "text": "FAX 09/10/2022 10:48 FROM HIM DEPT    P.002\nKEYSTONE BONE & JOINT\nHand Surgery Consultation\nPatient: Parker Fauxley   DOB: January 06, 1991   MRN: F7533673\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: A. Delacroix, MD\n------------------------------------------------------------------------------------------\nRepeat radiographs today show interval displacement of the scaphoid waist fracture.\n\nPlan: open reduction and internal fixation of the scaphoid.\n\nPMH: mild intermittent asthma, GERD. PSH: none reported. Allergies: no known drug\nallergies. Social: former smoker, quit over ten years ago. Lives with family.\n\nDiscussed risks, benefits and alternatives of the plan of care. Patient verbalized\nunderstanding. Printed after-visit summary provided.\n\n\nPage 1 of 1"
+      "text": "FAX 09/10/2022 10:48 FROM HIM DEPT    P.002\nKEYSTONE BONE & JOINT\nHand Surgery Consultation\nPatient: Parker Fauxley   DOB: January 06, 1991   MRN: F7533673\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: A. Delacroix, MD\n------------------------------------------------------------------------------------------\nRepeat radiographs today show interval displacement of the scaphoid waist fracture.\n\nPlan: open reduction and internal fixation of the scaphoid.\n\nPMH: mild intermittent asthma, GERD. PSH: none reported. Allergies: no known drug\nallergies. Social: former smoker, quit over ten years ago. Lives with family.\n\nDiscussed risks, benefits and alternatives of the plan of care. Patient verbalized\nunderstanding. Printed after-visit summary provided.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
     },
     {
       "page": 3,
@@ -351,7 +357,10 @@
       "doc_page": 1,
       "text_layer": true,
       "duplicate_of": null,
-      "text": "FAX 09/10/2022 10:48 FROM HIM DEPT    P.003\nKEYSTONE BONE & JOINT\nOperative Report\nPatient: Parker Fauxley   DOB: January 06, 1991   MRN: F7533673\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: A. Delacroix, MD\n------------------------------------------------------------------------------------------\nDate: July 12, 2022. Procedure: open reduction internal fixation of scaphoid with headless\ncompression screw.\n\nFluoroscopy confirmed screw position. No intraoperative complications.\n\n\nPage 1 of 1"
+      "text": "FAX 09/10/2022 10:48 FROM HIM DEPT    P.003\nKEYSTONE BONE & JOINT\nOperative Report\nPatient: Parker Fauxley   DOB: January 06, 1991   MRN: F7533673\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: A. Delacroix, MD\n------------------------------------------------------------------------------------------\nDate: July 12, 2022. Procedure: open reduction internal fixation of scaphoid with headless\ncompression screw.\n\nFluoroscopy confirmed screw position. No intraoperative complications.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
     },
     {
       "page": 4,
@@ -359,7 +368,10 @@
       "doc_page": 1,
       "text_layer": true,
       "duplicate_of": null,
-      "text": "FAX 09/10/2022 10:48 FROM HIM DEPT    P.004\nKEYSTONE BONE & JOINT\nPost-operative Visit\nPatient: Parker Fauxley   DOB: January 06, 1991   MRN: F7533673\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: A. Delacroix, MD\n------------------------------------------------------------------------------------------\nPost-operative visit July 24, 2022. Incision healing well, sutures removed.\n\nStatus post scaphoid ORIF on July 12, 2022.\n\n\nPage 1 of 1"
+      "text": "FAX 09/10/2022 10:48 FROM HIM DEPT    P.004\nKEYSTONE BONE & JOINT\nPost-operative Visit\nPatient: Parker Fauxley   DOB: January 06, 1991   MRN: F7533673\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: A. Delacroix, MD\n------------------------------------------------------------------------------------------\nPost-operative visit July 24, 2022. Incision healing well, sutures removed.\n\nStatus post scaphoid ORIF on July 12, 2022.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
     },
     {
       "page": 5,
@@ -367,7 +379,10 @@
       "doc_page": 1,
       "text_layer": true,
       "duplicate_of": 3,
-      "text": "FAX 09/10/2022 10:48 FROM HIM DEPT    P.005\nKEYSTONE BONE & JOINT\nOperative Report\nPatient: Parker Fauxley   DOB: January 06, 1991   MRN: F7533673\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: A. Delacroix, MD\n------------------------------------------------------------------------------------------\nDate: July 12, 2022. Procedure: open reduction internal fixation of scaphoid with headless\ncompression screw.\n\nFluoroscopy confirmed screw position. No intraoperative complications.\n\n\nPage 1 of 1"
+      "text": "FAX 09/10/2022 10:48 FROM HIM DEPT    P.005\nKEYSTONE BONE & JOINT\nOperative Report\nPatient: Parker Fauxley   DOB: January 06, 1991   MRN: F7533673\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: A. Delacroix, MD\n------------------------------------------------------------------------------------------\nDate: July 12, 2022. Procedure: open reduction internal fixation of scaphoid with headless\ncompression screw.\n\nFluoroscopy confirmed screw position. No intraoperative complications.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
     },
     {
       "page": 6,
@@ -375,7 +390,10 @@
       "doc_page": 1,
       "text_layer": true,
       "duplicate_of": null,
-      "text": "QUICKCARE URGENT CARE - ELM PLAZA\nFacsimile Transmittal - Release of Information\nPatient: Parker Fauxley   DOB: 01-06-91   MRN: R2710846\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Health Information Management\n------------------------------------------------------------------------------------------\nTo: Records Requester, Synthetic Law Office (fictional).\n\nFrom: QuickCare Urgent Care - Elm Plaza, Health Information Management Department.\n\nRe: Medical records for Parker Fauxley. Pages: 4 including cover.\n\nDate sent: 11-06-22.\n\nCONFIDENTIALITY NOTICE: This transmission contains confidential health information. If you\nreceived it in error, notify the sender and destroy all copies.\n\n\nPage 1 of 1"
+      "text": "QUICKCARE URGENT CARE - ELM PLAZA\nFacsimile Transmittal - Release of Information\nPatient: Parker Fauxley   DOB: 01-06-91   MRN: R2710846\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Health Information Management\n------------------------------------------------------------------------------------------\nTo: Records Requester, Synthetic Law Office (fictional).\n\nFrom: QuickCare Urgent Care - Elm Plaza, Health Information Management Department.\n\nRe: Medical records for Parker Fauxley. Pages: 4 including cover.\n\nDate sent: 11-06-22.\n\nCONFIDENTIALITY NOTICE: This transmission contains confidential health information. If you\nreceived it in error, notify the sender and destroy all copies.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
     },
     {
       "page": 7,
@@ -383,7 +401,10 @@
       "doc_page": 1,
       "text_layer": true,
       "duplicate_of": null,
-      "text": "QUICKCARE URGENT CARE - ELM PLAZA\nUrgent Care Visit\nPatient: Parker Fauxley   DOB: 01-06-91   MRN: R2710846\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: C. Ramanathan, PA-C\n------------------------------------------------------------------------------------------\nSeen on 06-16-22 after a fall on an outstretched hand.\n\nComplains of right wrist pain, worse with gripping.\n\nWrist x-ray preliminary read by provider: no acute fracture identified.\n\nAssessment: right wrist sprain. Placed in a wrist splint.\n\nFollow up with primary care in 1 week if not improving.\n\nVitals: BP 128/82, HR 84, RR 16, SpO2 98% on room air, Temp 36.8 C.\n\nI personally evaluated the patient and reviewed the available records. Documentation\ncompleted with the assistance of templated text and reviewed for accuracy.\n\n\nPage 1 of 1"
+      "text": "QUICKCARE URGENT CARE - ELM PLAZA\nUrgent Care Visit\nPatient: Parker Fauxley   DOB: 01-06-91   MRN: R2710846\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: C. Ramanathan, PA-C\n------------------------------------------------------------------------------------------\nSeen on 06-16-22 after a fall on an outstretched hand.\n\nComplains of right wrist pain, worse with gripping.\n\nWrist x-ray preliminary read by provider: no acute fracture identified.\n\nAssessment: right wrist sprain. Placed in a wrist splint.\n\nFollow up with primary care in 1 week if not improving.\n\nVitals: BP 128/82, HR 84, RR 16, SpO2 98% on room air, Temp 36.8 C.\n\nI personally evaluated the patient and reviewed the available records. Documentation\ncompleted with the assistance of templated text and reviewed for accuracy.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
     },
     {
       "page": 8,
@@ -391,7 +412,10 @@
       "doc_page": 1,
       "text_layer": true,
       "duplicate_of": null,
-      "text": "QUICKCARE URGENT CARE - ELM PLAZA\nRadiology Report - Wrist 3 Views\nPatient: Parker Fauxley   DOB: 01-06-91   MRN: R2710846\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: R. Ramanathan, MD\n------------------------------------------------------------------------------------------\nReport finalized 06-17-22. FINAL REPORT: Nondisplaced fracture of the scaphoid waist.\nRecommend clinical correlation and follow-up imaging.\n\n\nPage 1 of 1"
+      "text": "QUICKCARE URGENT CARE - ELM PLAZA\nRadiology Report - Wrist 3 Views\nPatient: Parker Fauxley   DOB: 01-06-91   MRN: R2710846\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: R. Ramanathan, MD\n------------------------------------------------------------------------------------------\nReport finalized 06-17-22. FINAL REPORT: Nondisplaced fracture of the scaphoid waist.\nRecommend clinical correlation and follow-up imaging.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
     },
     {
       "page": 9,
@@ -399,7 +423,10 @@
       "doc_page": 1,
       "text_layer": true,
       "duplicate_of": null,
-      "text": "QUICKCARE URGENT CARE - ELM PLAZA\nTelephone Encounter\nPatient: Parker Fauxley   DOB: 01-06-91   MRN: R2710846\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: C. Ramanathan, PA-C\n------------------------------------------------------------------------------------------\n07-03-22: Patient notified by phone of final radiology read showing scaphoid fracture.\n\nReferral placed to orthopedic hand surgery.\n\n\nPage 1 of 1"
+      "text": "QUICKCARE URGENT CARE - ELM PLAZA\nTelephone Encounter\nPatient: Parker Fauxley   DOB: 01-06-91   MRN: R2710846\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: C. Ramanathan, PA-C\n------------------------------------------------------------------------------------------\n07-03-22: Patient notified by phone of final radiology read showing scaphoid fracture.\n\nReferral placed to orthopedic hand surgery.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
     },
     {
       "page": 10,
@@ -407,7 +434,10 @@
       "doc_page": 1,
       "text_layer": true,
       "duplicate_of": 9,
-      "text": "QUICKCARE URGENT CARE - ELM PLAZA\nTelephone Encounter\nPatient: Parker Fauxley   DOB: 01-06-91   MRN: R2710846\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: C. Ramanathan, PA-C\n------------------------------------------------------------------------------------------\n07-03-22: Patient notified by phone of final radiology read showing scaphoid fracture.\n\nReferral placed to orthopedic hand surgery.\n\n\nPage 1 of 1"
+      "text": "QUICKCARE URGENT CARE - ELM PLAZA\nTelephone Encounter\nPatient: Parker Fauxley   DOB: 01-06-91   MRN: R2710846\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: C. Ramanathan, PA-C\n------------------------------------------------------------------------------------------\n07-03-22: Patient notified by phone of final radiology read showing scaphoid fracture.\n\nReferral placed to orthopedic hand surgery.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
     },
     {
       "page": 11,
@@ -415,7 +445,10 @@
       "doc_page": 1,
       "text_layer": true,
       "duplicate_of": null,
-      "text": "FAX 08/31/2022 10:29 FROM HIM DEPT    P.001\nMAPLE STREET FAMILY MEDICINE\nFacsimile Transmittal - Release of Information\nPatient: Parker Fauxley   DOB: 1991-01-06   MRN: A4636122\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Health Information Management\n------------------------------------------------------------------------------------------\nTo: Records Requester, Synthetic Law Office (fictional).\n\nFrom: Maple Street Family Medicine, Health Information Management Department.\n\nRe: Medical records for Parker Fauxley. Pages: 2 including cover.\n\nDate sent: 2022-08-31.\n\nCONFIDENTIALITY NOTICE: This transmission contains confidential health information. If you\nreceived it in error, notify the sender and destroy all copies.\n\n\nPage 1 of 1"
+      "text": "FAX 08/31/2022 10:29 FROM HIM DEPT    P.001\nMAPLE STREET FAMILY MEDICINE\nFacsimile Transmittal - Release of Information\nPatient: Parker Fauxley   DOB: 1991-01-06   MRN: A4636122\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: Health Information Management\n------------------------------------------------------------------------------------------\nTo: Records Requester, Synthetic Law Office (fictional).\n\nFrom: Maple Street Family Medicine, Health Information Management Department.\n\nRe: Medical records for Parker Fauxley. Pages: 2 including cover.\n\nDate sent: 2022-08-31.\n\nCONFIDENTIALITY NOTICE: This transmission contains confidential health information. If you\nreceived it in error, notify the sender and destroy all copies.\n\n\nPage 1 of 1",
+      "scan": null,
+      "production": 1,
+      "misfiled": false
     },
     {
       "page": 12,
@@ -423,7 +456,11 @@
       "doc_page": 1,
       "text_layer": false,
       "duplicate_of": null,
-      "text": "FAX 08/31/2022 10:29 FROM HIM DEPT    P.002\nMAPLE STREET FAMILY MEDICINE\nOffice Visit\nPatient: Parker Fauxley   DOB: 1991-01-06   MRN: A4636122\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: E. Okafor, MD\n------------------------------------------------------------------------------------------\nVisit date: 2022-06-25. Persistent wrist pain since a fall.\n\nTenderness in the anatomic snuffbox noted. Urgent care records not available today.\n\nROS: 10-point review of systems performed and negative except as documented in the history\nof present illness. Patient denies headache, vision change, chest pain, shortness of\nbreath at rest, urinary symptoms, or new rash.\n\nVitals: BP 128/82, HR 84, RR 16, SpO2 98% on room air, Temp 36.8 C.\n\nMedication reconciliation completed and reviewed with the patient. Patient given\nopportunity to ask questions; all questions answered. Patient agrees with plan.\n\n\nPage 1 of 1"
+      "text": "FAX 08/31/2022 10:29 FROM HIM DEPT    P.002\nMAPLE STREET FAMILY MEDICINE\nOffice Visit\nPatient: Parker Fauxley   DOB: 1991-01-06   MRN: A4636122\n*** SYNTHETIC RECORD - NOT A REAL PATIENT ***\nAuthor: E. Okafor, MD\n------------------------------------------------------------------------------------------\nVisit date: 2022-06-25. Persistent wrist pain since a fall.\n\nTenderness in the anatomic snuffbox noted. Urgent care records not available today.\n\nROS: 10-point review of systems performed and negative except as documented in the history\nof present illness. Patient denies headache, vision change, chest pain, shortness of\nbreath at rest, urinary symptoms, or new rash.\n\nVitals: BP 128/82, HR 84, RR 16, SpO2 98% on room air, Temp 36.8 C.\n\nMedication reconciliation completed and reviewed with the patient. Patient given\nopportunity to ask questions; all questions answered. Patient agrees with plan.\n\n\nPage 1 of 1",
+      "scan": "rot90",
+      "production": 1,
+      "misfiled": false
     }
-  ]
+  ],
+  "productions": 1
 }

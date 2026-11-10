@@ -2,21 +2,39 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 import re
 from pathlib import Path
 
 import pytest
 
-from medchron.ingestion import IngestedCase, TextSource, ingest_pdf
+from medchron.ingestion import IngestedCase, TextSource, ingest_productions
 from medchron.ingestion.chunking import chunk_page
 from medchron.ingestion.dedupe import comparable_text
+from medchron.ingestion.identity import find_misfiled, page_identity
 from medchron.ingestion.pdf import ocr_available
 from medchron.retrieval.embeddings import HashingEmbedder
 from medchron.synth import CaseGold
 
-SMOKE = Path(__file__).resolve().parents[1] / "data" / "synthetic"
-CASES = [m["case_id"] for m in json.loads((SMOKE / "manifest.json").read_text())]
+DATA = Path(__file__).resolve().parents[1] / "data" / "synthetic"
+# Ingestion is not tuned on any split, so it is checked on both committed splits.
+MANIFEST = {
+    m["case_id"]: (DATA / split, m)
+    for split in ("dev", "test")
+    for m in json.loads((DATA / split / "manifest.json").read_text())
+}
+CASES = list(MANIFEST)
+
+
+def _files(cid: str) -> list[Path]:
+    folder, m = MANIFEST[cid]
+    return [folder / name for name in m["pdfs"]]
+
+
+def _gold(cid: str) -> CaseGold:
+    folder, _ = MANIFEST[cid]
+    return CaseGold.model_validate_json((folder / f"{cid}.gold.json").read_text())
 
 
 def _norm(t: str) -> str:
@@ -26,8 +44,7 @@ def _norm(t: str) -> str:
 @pytest.fixture(scope="module", params=CASES)
 def pair(request: pytest.FixtureRequest) -> tuple[IngestedCase, CaseGold]:
     cid = request.param
-    gold = CaseGold.model_validate_json((SMOKE / f"{cid}.gold.json").read_text())
-    return ingest_pdf(SMOKE / f"{cid}.pdf", cid), gold
+    return ingest_productions(_files(cid), cid), _gold(cid)
 
 
 def test_page_count_matches(pair: tuple[IngestedCase, CaseGold]) -> None:
@@ -99,8 +116,8 @@ def test_scanned_pages_are_ocred(pair: tuple[IngestedCase, CaseGold]) -> None:
 
 def test_without_ocr_scans_are_flagged_for_review() -> None:
     cid = CASES[0]
-    ic = ingest_pdf(SMOKE / f"{cid}.pdf", cid, ocr=False)
-    gold = CaseGold.model_validate_json((SMOKE / f"{cid}.gold.json").read_text())
+    ic = ingest_productions(_files(cid), cid, ocr=False)
+    gold = _gold(cid)
     for gp in gold.pages:
         if not gp.text_layer:
             assert ic.page(gp.page).source == TextSource.NONE
@@ -134,3 +151,35 @@ def test_hashing_embedder_is_normalized_and_deterministic() -> None:
     assert a == b and len(a) == e.dim
     assert abs(sum(v * v for v in a) - 1.0) < 1e-9
     assert a != c
+
+
+def test_misfiled_pages_are_detected(pair: tuple[IngestedCase, CaseGold]) -> None:
+    ic, gold = pair
+    assert find_misfiled(ic.pages) == [p.page for p in gold.pages if p.misfiled]
+
+
+def test_patient_header_parsing() -> None:
+    h = page_identity("CLINIC\nPatient: Riley Samplefield   DOB: 18-Jul-1951   MRN: P56419")
+    assert h is not None and h.name == "riley samplefield" and h.dob == dt.date(1951, 7, 18)
+    assert page_identity("No header on this page") is None
+
+
+def test_orientation_and_deskew_helpers() -> None:
+    from PIL import Image, ImageDraw
+
+    from medchron.ingestion.pdf import _unrotate_quarter, estimate_skew
+
+    img = Image.new("L", (400, 300), 255)
+    draw = ImageDraw.Draw(img)
+    for y in range(40, 260, 20):
+        draw.line((40, y, 360, y), fill=0, width=3)  # stand-in for lines of text
+    assert abs(estimate_skew(img)) < 0.3
+    assert abs(estimate_skew(img.rotate(3, fillcolor=255)) + 3) < 0.5
+    # A point in an upright copy maps back to the same place on the rotated scan.
+    w, h = 400, 300
+    for rot in (90, 180, 270):
+        upright = img.rotate(-rot, expand=True)
+        x, y = 30.0, 50.0  # a point in the upright image
+        ox, oy = _unrotate_quarter(x, y, w, h, rot)
+        back = upright.rotate(rot, expand=True)
+        assert back.size == (w, h) and 0 <= ox <= w and 0 <= oy <= h

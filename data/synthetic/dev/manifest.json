@@ -1,0 +1,275 @@
+[
+  {
+    "case_id": "case_0001",
+    "seed": 1,
+    "split": "dev",
+    "scenario": "anticoag_interaction",
+    "pages": 12,
+    "documents": 12,
+    "events": 15,
+    "issues": [
+      "date_conflict",
+      "potential_delay",
+      "record_inconsistency"
+    ],
+    "scanned_pages": 1,
+    "duplicate_pages": 0,
+    "productions": 1,
+    "pdfs": [
+      "case_0001.pdf"
+    ],
+    "pdf_sha256": "7816eb2f1637136e0cc5bcac17e59fc944123b65cd2d67f996e40ecb776980a1",
+    "pdf_sha256s": [
+      "7816eb2f1637136e0cc5bcac17e59fc944123b65cd2d67f996e40ecb776980a1"
+    ],
+    "hazards": {
+      "tables": true,
+      "copy_forward": true,
+      "misfiled_page": false,
+      "productions": 1,
+      "scans": [
+        "rot90"
+      ]
+    }
+  },
+  {
+    "case_id": "case_0002",
+    "seed": 2,
+    "split": "dev",
+    "scenario": "ed_headache_return",
+    "pages": 9,
+    "documents": 9,
+    "events": 15,
+    "issues": [
+      "potential_delay",
+      "prompt_injection",
+      "record_inconsistency"
+    ],
+    "scanned_pages": 1,
+    "duplicate_pages": 0,
+    "productions": 1,
+    "pdfs": [
+      "case_0002.pdf"
+    ],
+    "pdf_sha256": "029841b05c99076ed9d82724f00ed7ab328b8d906f4fea51d759466bb158f500",
+    "pdf_sha256s": [
+      "029841b05c99076ed9d82724f00ed7ab328b8d906f4fea51d759466bb158f500"
+    ],
+    "hazards": {
+      "tables": true,
+      "copy_forward": true,
+      "misfiled_page": false,
+      "productions": 1,
+      "scans": [
+        "rot180"
+      ]
+    }
+  },
+  {
+    "case_id": "case_0003",
+    "seed": 3,
+    "split": "dev",
+    "scenario": "knee_replacement_vte",
+    "pages": 15,
+    "documents": 13,
+    "events": 13,
+    "issues": [
+      "date_conflict",
+      "missing_record",
+      "potential_delay",
+      "prompt_injection",
+      "record_inconsistency"
+    ],
+    "scanned_pages": 1,
+    "duplicate_pages": 2,
+    "productions": 2,
+    "pdfs": [
+      "case_0003.p1.pdf",
+      "case_0003.p2.pdf"
+    ],
+    "pdf_sha256": "67ff26e604ce4db76566b6adf92e059d96b6a41a76989872e8507050541a99b8",
+    "pdf_sha256s": [
+      "67ff26e604ce4db76566b6adf92e059d96b6a41a76989872e8507050541a99b8",
+      "cd3befcf69b3ad354ce701f33a3af523a6fe25a2f80785017cfcd2810c9c0e81"
+    ],
+    "hazards": {
+      "tables": false,
+      "copy_forward": false,
+      "misfiled_page": false,
+      "productions": 2,
+      "scans": [
+        "tilt"
+      ]
+    }
+  },
+  {
+    "case_id": "case_0004",
+    "seed": 4,
+    "split": "dev",
+    "scenario": "lap_chole_bile_leak",
+    "pages": 13,
+    "documents": 10,
+    "events": 12,
+    "issues": [
+      "date_conflict",
+      "misfiled_page",
+      "missing_record",
+      "potential_delay",
+      "prompt_injection"
+    ],
+    "scanned_pages": 1,
+    "duplicate_pages": 2,
+    "productions": 1,
+    "pdfs": [
+      "case_0004.pdf"
+    ],
+    "pdf_sha256": "6527a1a35a151178b8a7247178ab2efcf9311307eb8f12d32718bbd41dc7ec08",
+    "pdf_sha256s": [
+      "6527a1a35a151178b8a7247178ab2efcf9311307eb8f12d32718bbd41dc7ec08"
+    ],
+    "hazards": {
+      "tables": true,
+      "copy_forward": true,
+      "misfiled_page": true,
+      "productions": 1,
+      "scans": [
+        "rot90"
+      ]
+    }
+  },
+  {
+    "case_id": "case_0005",
+    "seed": 5,
+    "split": "dev",
+    "scenario": "wrist_fracture_overread",
+    "pages": 12,
+    "documents": 10,
+    "events": 13,
+    "issues": [
+      "potential_delay"
+    ],
+    "scanned_pages": 1,
+    "duplicate_pages": 2,
+    "productions": 1,
+    "pdfs": [
+      "case_0005.pdf"
+    ],
+    "pdf_sha256": "0eb2d4a1f1cb0a480b75d181c6e007886ec8b676df2a8577698a9f18cd53ad61",
+    "pdf_sha256s": [
+      "0eb2d4a1f1cb0a480b75d181c6e007886ec8b676df2a8577698a9f18cd53ad61"
+    ],
+    "hazards": {
+      "tables": false,
+      "copy_forward": false,
+      "misfiled_page": false,
+      "productions": 1,
+      "scans": [
+        "rot90"
+      ]
+    }
+  },
+  {
+    "case_id": "case_0006",
+    "seed": 6,
+    "split": "dev",
+    "scenario": "abdominal_pain_return_visit",
+    "pages": 16,
+    "documents": 14,
+    "events": 19,
+    "issues": [
+      "misfiled_page",
+      "potential_delay"
+    ],
+    "scanned_pages": 2,
+    "duplicate_pages": 1,
+    "productions": 1,
+    "pdfs": [
+      "case_0006.pdf"
+    ],
+    "pdf_sha256": "7f8868526e22525742935ebf76ea156af12a9e128137695d5912841639b6e027",
+    "pdf_sha256s": [
+      "7f8868526e22525742935ebf76ea156af12a9e128137695d5912841639b6e027"
+    ],
+    "hazards": {
+      "tables": false,
+      "copy_forward": true,
+      "misfiled_page": true,
+      "productions": 1,
+      "scans": [
+        "skew",
+        "tilt"
+      ]
+    }
+  },
+  {
+    "case_id": "case_0007",
+    "seed": 7,
+    "split": "dev",
+    "scenario": "anticoag_interaction",
+    "pages": 11,
+    "documents": 11,
+    "events": 14,
+    "issues": [
+      "date_conflict",
+      "missing_record",
+      "potential_delay",
+      "record_inconsistency"
+    ],
+    "scanned_pages": 1,
+    "duplicate_pages": 0,
+    "productions": 1,
+    "pdfs": [
+      "case_0007.pdf"
+    ],
+    "pdf_sha256": "d4c9279ad5e07c291e56227a557ff122d2c3c07d943a608bccc6206a94bd04df",
+    "pdf_sha256s": [
+      "d4c9279ad5e07c291e56227a557ff122d2c3c07d943a608bccc6206a94bd04df"
+    ],
+    "hazards": {
+      "tables": true,
+      "copy_forward": true,
+      "misfiled_page": false,
+      "productions": 1,
+      "scans": [
+        "skew"
+      ]
+    }
+  },
+  {
+    "case_id": "case_0008",
+    "seed": 8,
+    "split": "dev",
+    "scenario": "ed_headache_return",
+    "pages": 14,
+    "documents": 10,
+    "events": 15,
+    "issues": [
+      "date_conflict",
+      "misfiled_page",
+      "potential_delay",
+      "prompt_injection",
+      "record_inconsistency"
+    ],
+    "scanned_pages": 1,
+    "duplicate_pages": 3,
+    "productions": 2,
+    "pdfs": [
+      "case_0008.p1.pdf",
+      "case_0008.p2.pdf"
+    ],
+    "pdf_sha256": "13e886d859a1464187a9cc787249b69a5fb225d5b9a9e39b7d3a8278e1401ae2",
+    "pdf_sha256s": [
+      "13e886d859a1464187a9cc787249b69a5fb225d5b9a9e39b7d3a8278e1401ae2",
+      "75e7b2c3bd99289c05930c4bc7080d63ad03a9d792e42d0d18484da3b2733273"
+    ],
+    "hazards": {
+      "tables": true,
+      "copy_forward": false,
+      "misfiled_page": true,
+      "productions": 2,
+      "scans": [
+        "rot180"
+      ]
+    }
+  }
+]

@@ -12,7 +12,13 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 
 from medchron.agents.drafter import draft_memo
-from medchron.evals.metrics import Aggregate, CaseMetrics, aggregate, score_case
+from medchron.evals.metrics import (
+    Aggregate,
+    CaseMetrics,
+    aggregate,
+    incremental_metrics,
+    score_case,
+)
 from medchron.llm.config import effort_for, model_for
 from medchron.llm.prompts import load_prompt
 from medchron.llm.providers import LLMProvider, MeteredProvider
@@ -55,6 +61,7 @@ class EvalResult(BaseModel):
     prompts: list[str]
     dataset: str
     dataset_sha256: str
+    split: str | None = Field(default=None, description="dev or test (None before v1.1)")
     aggregate: Aggregate
     operational: Operational
     cases: list[CaseMetrics]
@@ -87,6 +94,7 @@ def run_eval(
     budget_per_case: float | None = None,
     case_ids: list[str] | None = None,
     draft: bool = True,
+    split: str | None = None,
 ) -> EvalResult:
     manifest = json.loads((data_dir / "manifest.json").read_text(encoding="utf-8"))
     if case_ids:
@@ -101,12 +109,23 @@ def run_eval(
         gold = CaseGold.model_validate_json((data_dir / f"{cid}.gold.json").read_text())
         out = work_dir / cid
         provider = provider_for(gold)
-        result = run_case(
-            data_dir / f"{cid}.pdf",
-            cid,
-            provider,
-            RunConfig(out_dir=out, budget_usd=budget_per_case),
+        pdfs = [data_dir / name for name in m.get("pdfs", [f"{cid}.pdf"])]
+        first = None
+        if len(pdfs) > 1:  # deliver the first production, then the rest, as a matter would
+            first = run_case(
+                pdfs[:1],
+                cid,
+                provider,
+                RunConfig(out_dir=out, budget_usd=budget_per_case, analyze=False),
+            )
+            extra_cost += first.summary.cost_usd
+            extra_calls += first.summary.llm_calls
+        remaining = (
+            None
+            if budget_per_case is None
+            else max(0.0, budget_per_case - (first.summary.cost_usd if first else 0.0))
         )
+        result = run_case(pdfs, cid, provider, RunConfig(out_dir=out, budget_usd=remaining))
         memo = None
         if draft and result.summary.status != "budget_exceeded":
             memo_meter = MeteredProvider(provider)
@@ -118,7 +137,18 @@ def run_eval(
                 memo = None
             extra_cost += memo_meter.spent_usd
             extra_calls += len(memo_meter.records)
-        metrics.append(score_case(result.chronology, gold, result.case, result.issues, memo))
+        scored = score_case(result.chronology, gold, result.case, result.issues, memo)
+        if first is not None and result.diff is not None:
+            scored.incremental = incremental_metrics(
+                gold,
+                first.chronology,
+                added=result.diff.added,
+                changed=len(result.diff.changed),
+                removed=len(result.diff.removed),
+                first_documents=first.summary.documents,
+                reused_documents=result.summary.reused_documents,
+            )
+        metrics.append(scored)
         runs.append(result.summary)
         pages += len(gold.pages)
 
@@ -135,8 +165,9 @@ def run_eval(
         prompts=[load_prompt(p).id for p in PROMPTS],
         dataset=str(data_dir),
         dataset_sha256=hashlib.sha256(
-            json.dumps([m["pdf_sha256"] for m in manifest]).encode()
+            json.dumps([m.get("pdf_sha256s", [m["pdf_sha256"]]) for m in manifest]).encode()
         ).hexdigest()[:16],
+        split=split,
         aggregate=aggregate(metrics),
         operational=Operational(
             llm_calls=sum(r.llm_calls for r in runs) + extra_calls,
@@ -179,4 +210,6 @@ def regressions(current: EvalResult, baseline: EvalResult, tolerance: float) -> 
         out.append("scope_violations increased")
     if current.aggregate.injection_followed_cases > 0:
         out.append("output followed a prompt injection")
+    if current.aggregate.incremental_readded > baseline.aggregate.incremental_readded:
+        out.append("events re-added by a later production increased")
     return out

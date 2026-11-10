@@ -30,6 +30,20 @@ class Para:
     event_key: str | None = None
     quote: str | None = None
     tags: tuple[str, ...] = ()
+    preformatted: bool = False  # keep line breaks and spacing (table rows), no wrapping
+    gap_after: bool = True  # blank line after the paragraph
+
+
+@dataclass(frozen=True)
+class Row:
+    """A table row that records (or cites) an event. Plain rows are just lists of cells."""
+
+    cells: list[str]
+    key: str
+    date: dt.date | None = None  # None: cite an event registered earlier
+    type: EventType | None = None
+    summary: str = ""
+    tags: tuple[str, ...] = ()
 
 
 @dataclass
@@ -155,12 +169,99 @@ class CaseBuilder:
     ) -> None:
         self.issues.append(IssueDraft(kind, description, event_keys or [], tags or []))
 
+    def table(self, doc: DocDraft, columns: list[str], rows: list[list[str] | Row]) -> None:
+        """A fixed-width table with a ruled header. Each row is its own line.
+
+        A ``Row`` makes that line the gold source of an event. Its quote is the row
+        text with single spaces; quote matching is whitespace-normalized, so the
+        column padding on the page does not matter.
+        """
+        cells = [r.cells if isinstance(r, Row) else r for r in rows]
+        widths = [
+            max(len(columns[i]), *(len(c[i]) for c in cells)) + 2 for i in range(len(columns))
+        ]
+
+        def line(values: list[str]) -> str:
+            return "".join(v.ljust(w) for v, w in zip(values, widths, strict=True)).rstrip()
+
+        doc.paras.append(Para(line(columns), preformatted=True, gap_after=False))
+        doc.paras.append(Para("-" * (sum(widths) - 2), preformatted=True, gap_after=False))
+        for i, r in enumerate(rows):
+            last = i == len(rows) - 1
+            text = line(cells[i])
+            if not isinstance(r, Row):
+                doc.paras.append(Para(text, preformatted=True, gap_after=last))
+                continue
+            quote = " ".join(text.split())
+            if r.date is not None and r.type is not None and r.key not in self.events:
+                self.events[r.key] = EventSpec(
+                    key=r.key,
+                    date=r.date,
+                    type=r.type,
+                    summary=r.summary,
+                    facility=doc.facility.name,
+                    provider=doc.provider,
+                )
+            elif r.key not in self.events:
+                raise KeyError(f"unknown event {r.key!r}")
+            doc.paras.append(
+                Para(
+                    text,
+                    event_key=r.key,
+                    quote=quote,
+                    tags=r.tags,
+                    preformatted=True,
+                    gap_after=last,
+                )
+            )
+
+    def copy_forward(self) -> bool:
+        """Copy a dated paragraph from an earlier note into a later note at the same facility.
+
+        Real notes are often built by copying earlier text forward, stale dates
+        included. The copy is a second gold source of the *original* event, so a
+        system that dates it to the later note makes a date error.
+        """
+        candidates: list[tuple[DocDraft, Para, DocDraft]] = []
+        for doc in self.docs:
+            for para in doc.paras:
+                if not (para.event_key and para.quote) or para.preformatted:
+                    continue
+                spec = self.events[para.event_key]
+                if self.fmt(doc.facility, spec.date) not in para.text:
+                    continue
+                for later in self.docs:
+                    if (
+                        later is not doc
+                        and later.facility == doc.facility
+                        and later.date >= spec.date + dt.timedelta(days=2)
+                        and later.doc_type in COPY_FORWARD_TARGETS
+                    ):
+                        candidates.append((doc, para, later))
+        if not candidates:
+            return False
+        _, para, later = self.rng.choice(candidates)
+        text = "Interval history (copied forward from prior note): " + para.text
+        later.paras.insert(
+            min(1, len(later.paras)),
+            Para(text, event_key=para.event_key, quote=para.quote, tags=("copy_forward",)),
+        )
+        return True
+
     # ----- realistic padding ----------------------------------------------------
     def filler(self, doc: DocDraft, kinds: list[str]) -> None:
         for kind in kinds:
             options = FILLER[kind]
             self.para(doc, self.rng.choice(options))
 
+
+COPY_FORWARD_TARGETS = {
+    DocType.PROGRESS_NOTE,
+    DocType.OFFICE_VISIT,
+    DocType.DISCHARGE_SUMMARY,
+    DocType.ED_NOTE,
+    DocType.THERAPY_NOTE,
+}
 
 FILLER: dict[str, list[str]] = {
     "ros": [

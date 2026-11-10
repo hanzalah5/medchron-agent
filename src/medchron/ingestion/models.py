@@ -51,6 +51,7 @@ class Page(BaseModel):
     height: float
     content_hash: str = Field(description="SHA-256 of whitespace-normalized text")
     duplicate_of: int | None = Field(default=None, description="Earlier page this duplicates")
+    production: int = Field(default=1, ge=1, description="Which production (upload) it came in")
 
     @property
     def needs_review(self) -> bool:
@@ -74,10 +75,15 @@ class Span(BaseModel):
 
 
 class IngestedCase(BaseModel):
+    """One matter's record set. Pages are numbered across all productions, in order."""
+
     case_id: str
-    file_sha256: str
+    file_sha256: str = Field(description="SHA-256 of the first production")
     pages: list[Page]
     spans: list[Span]
+    productions: list[str] = Field(
+        default_factory=list, description="SHA-256 of each production, in upload order"
+    )
 
     def page(self, page_no: int) -> Page:
         return self.pages[page_no - 1]

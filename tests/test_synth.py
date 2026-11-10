@@ -15,7 +15,8 @@ from medchron.synth.models import DocType, IssueKind
 from medchron.synth.scenarios import SCENARIOS
 
 SEEDS = list(range(1, 13))
-SMOKE_DIR = Path(__file__).resolve().parents[1] / "data" / "synthetic"
+DATA = Path(__file__).resolve().parents[1] / "data" / "synthetic"
+SPLIT_DIRS = {"dev": DATA / "dev", "test": DATA / "test"}
 
 
 def _norm(text: str) -> str:
@@ -38,7 +39,8 @@ def test_different_seeds_differ() -> None:
 
 
 def test_every_scenario_is_reachable() -> None:
-    assert {generate_case(s).gold.scenario for s in range(3)} == set(SCENARIOS)
+    reached = {generate_case(s).gold.scenario for s in range(len(SCENARIOS))}
+    assert reached == set(SCENARIOS) and len(SCENARIOS) >= 6
 
 
 def test_unknown_scenario_rejected() -> None:
@@ -47,9 +49,12 @@ def test_unknown_scenario_rejected() -> None:
 
 
 def test_pdf_page_count_matches_gold() -> None:
-    case = generate_case(3)
-    assert case.pdf.startswith(b"%PDF")
-    assert len(re.findall(rb"/Type /Page[^s]", case.pdf)) == len(case.gold.pages)
+    for seed in (3, 8):  # seed 8 is delivered in two productions
+        case = generate_case(seed)
+        assert all(pdf.startswith(b"%PDF") for pdf in case.pdfs)
+        pages = sum(len(re.findall(rb"/Type /Page[^s]", pdf)) for pdf in case.pdfs)
+        assert pages == len(case.gold.pages)
+        assert len(case.pdfs) == case.gold.productions
 
 
 def test_every_source_quote_is_on_its_page(gold: CaseGold) -> None:
@@ -71,8 +76,12 @@ def test_duplicates_match_their_original(gold: CaseGold) -> None:
             orig = by_page[p.duplicate_of]
             assert orig.duplicate_of is None
             assert (orig.doc_id, orig.doc_page) == (p.doc_id, p.doc_page)
+
             # Body identical; only the fax transmission line may differ.
-            assert p.text.splitlines()[1:] == orig.text.splitlines()[1:] or p.text == orig.text
+            def body(text: str) -> list[str]:
+                return [ln for ln in text.splitlines() if not ln.startswith("FAX ")]
+
+            assert body(p.text) == body(orig.text)
 
 
 def test_documents_tile_the_non_duplicate_pages(gold: CaseGold) -> None:
@@ -88,6 +97,11 @@ def test_documents_tile_the_non_duplicate_pages(gold: CaseGold) -> None:
 def test_each_production_starts_with_a_fax_cover(gold: CaseGold) -> None:
     assert gold.documents[0].doc_type == DocType.FAX_COVER
     assert gold.documents[0].start_page == 1
+    for n in range(2, gold.productions + 1):
+        first = min(p.page for p in gold.pages if p.production == n)
+        assert any(
+            d.start_page == first and d.doc_type == DocType.FAX_COVER for d in gold.documents
+        )
 
 
 def test_issues_reference_real_pages_and_events(gold: CaseGold) -> None:
@@ -121,20 +135,98 @@ def test_some_pages_need_ocr(gold: CaseGold) -> None:
 
 
 def test_cli_writes_dataset(tmp_path: Path) -> None:
-    assert main(["synth", "--cases", "2", "--start-seed", "5", "--out", str(tmp_path)]) == 0
+    args = ["synth", "--split", "dev", "--cases", "2", "--start-seed", "7", "--out", str(tmp_path)]
+    assert main(args) == 0
     manifest = json.loads((tmp_path / "manifest.json").read_text())
-    assert [m["case_id"] for m in manifest] == ["case_0005", "case_0006"]
+    assert [m["case_id"] for m in manifest] == ["case_0007", "case_0008"]
     for m in manifest:
-        assert (tmp_path / f"{m['case_id']}.pdf").exists()
+        assert m["split"] == "dev" and m["pdfs"]
+        assert all((tmp_path / name).exists() for name in m["pdfs"])
         CaseGold.model_validate_json((tmp_path / f"{m['case_id']}.gold.json").read_text())
 
 
-def test_committed_smoke_set_matches_generator() -> None:
-    """Gold labels in data/synthetic must be reproducible from their seeds."""
-    manifest = json.loads((SMOKE_DIR / "manifest.json").read_text())
-    assert len(manifest) >= 5
+def test_split_seed_ranges_never_overlap(tmp_path: Path) -> None:
+    from medchron.synth.generate import SPLITS
+
+    assert not set(SPLITS["dev"]) & set(range(SPLITS["test"].start, SPLITS["test"].start + 10))
+    with pytest.raises(SystemExit):
+        main(["synth", "--split", "test", "--start-seed", "5", "--out", str(tmp_path)])
+    with pytest.raises(SystemExit):
+        main(["synth", "--split", "dev", "--start-seed", "998", "--cases", "3", "--out",
+              str(tmp_path)])  # fmt: skip
+
+
+@pytest.mark.parametrize("split", ["dev", "test"])
+def test_committed_smoke_set_matches_generator(split: str) -> None:
+    """Gold labels in data/synthetic/<split> must be reproducible from their seeds."""
+    from medchron.synth.generate import SPLITS
+
+    folder = SPLIT_DIRS[split]
+    manifest = json.loads((folder / "manifest.json").read_text())
+    assert len(manifest) >= 6
     for m in manifest:
-        committed = CaseGold.model_validate_json(
-            (SMOKE_DIR / f"{m['case_id']}.gold.json").read_text()
-        )
+        assert m["seed"] in SPLITS[split] and m["split"] == split
+        committed = CaseGold.model_validate_json((folder / f"{m['case_id']}.gold.json").read_text())
         assert committed == generate_case(m["seed"]).gold
+
+
+@pytest.mark.parametrize("split", ["dev", "test"])
+def test_committed_splits_cover_every_scenario_and_hazard(split: str) -> None:
+    manifest = json.loads((SPLIT_DIRS[split] / "manifest.json").read_text())
+    assert {m["scenario"] for m in manifest} == set(SCENARIOS)
+    hazards = [m["hazards"] for m in manifest]
+    for name in ("tables", "copy_forward", "misfiled_page"):
+        assert any(h[name] for h in hazards), name
+    assert any(h["productions"] > 1 for h in hazards)
+    assert {k for h in hazards for k in h["scans"]} == {"tilt", "skew", "rot90", "rot180"}
+    kinds = {k for m in manifest for k in m["issues"]}
+    assert kinds == {k.value for k in IssueKind}
+
+
+def test_copy_forward_cites_the_original_event() -> None:
+    case = next(c for s in SEEDS if (c := generate_case(s)).hazards["copy_forward"])
+    by_page = {p.page: p.text for p in case.gold.pages}
+    marker = "copied forward from prior note):"
+
+    def in_copy(page: int, quote: str) -> bool:
+        text = by_page[page]
+        at = text.find(marker)
+        end = text.find("\n\n", at)
+        return at >= 0 and _norm(quote) in _norm(text[at : end if end > 0 else None])
+
+    copied = [
+        (ev, src) for ev in case.gold.events for src in ev.sources if in_copy(src.page, src.quote)
+    ]
+    assert copied
+    for ev, src in copied:  # the copy is a second source of the earlier event
+        assert len(ev.sources) >= 2 and src != ev.sources[0]
+
+
+def test_misfiled_page_belongs_to_someone_else() -> None:
+    case = next(c for s in SEEDS if (c := generate_case(s)).hazards["misfiled_page"])
+    g = case.gold
+    misfiled = [p for p in g.pages if p.misfiled]
+    assert len(misfiled) == 1
+    page = misfiled[0]
+    assert g.patient.name not in page.text
+    assert not any(src.page == page.page for ev in g.events for src in ev.sources)
+    issue = next(i for i in g.issues if i.kind == IssueKind.MISFILED_PAGE)
+    assert issue.pages == [page.page]
+
+
+def test_sideways_scans_are_landscape_pages() -> None:
+    import pymupdf
+
+    case = next(
+        c
+        for s in range(1, 30)
+        if "rot90" in (c := generate_case(s)).hazards["scans"]  # type: ignore[operator]
+    )
+    sideways = {p.page for p in case.gold.pages if p.scan == "rot90"}
+    offset = 0
+    for pdf in case.pdfs:
+        with pymupdf.open(stream=pdf, filetype="pdf") as doc:
+            for i, page in enumerate(doc, start=offset + 1):
+                landscape = page.rect.width > page.rect.height
+                assert landscape == (i in sideways)
+            offset += doc.page_count

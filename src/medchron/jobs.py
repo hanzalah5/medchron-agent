@@ -28,11 +28,14 @@ from medchron.agents.drafter import draft_memo
 from medchron.db.models import IssueRow, Job, JobEvent, Matter, MemoRow
 from medchron.db.store import (
     issue_from_row,
+    list_productions,
     load_ingested,
+    record_page_ranges,
     reviewed_chronology,
     save_chronology,
     save_ingested,
     save_issues,
+    save_version,
 )
 from medchron.llm.providers import CallRecord, LLMProvider, MeteredProvider
 from medchron.observability import setup_tracing
@@ -135,12 +138,13 @@ def _provider(name: str, pdf_sha256: str) -> LLMProvider:
     from medchron.synth import CaseGold
 
     gold_dir = Path(os.environ.get("MEDCHRON_GOLD_DIR", "data/synthetic"))
-    manifest = json.loads((gold_dir / "manifest.json").read_text(encoding="utf-8"))
-    match = next((m for m in manifest if m["pdf_sha256"] == pdf_sha256), None)
-    if match is None:
-        raise LookupError("oracle mode only works on the bundled synthetic cases")
-    gold = CaseGold.model_validate_json((gold_dir / f"{match['case_id']}.gold.json").read_text())
-    return OracleProvider(gold)
+    for manifest_path in sorted(gold_dir.rglob("manifest.json")):  # dev/, test/, ...
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        match = next((m for m in manifest if m["pdf_sha256"] == pdf_sha256), None)
+        if match is not None:
+            gold_path = manifest_path.parent / f"{match['case_id']}.gold.json"
+            return OracleProvider(CaseGold.model_validate_json(gold_path.read_text()))
+    raise LookupError("oracle mode only works on the bundled synthetic cases")
 
 
 def process(engine: Engine, job_id: str, storage: Storage | None = None) -> None:
@@ -160,7 +164,8 @@ def process(engine: Engine, job_id: str, storage: Storage | None = None) -> None
         matter = s.get(Matter, job.matter_id)
         assert matter is not None
         provider_name, budget, kind = job.provider, job.budget_usd, job.kind
-        matter_id, key, sha = matter.matter_id, matter.source_path, matter.source_sha256
+        matter_id, sha = matter.matter_id, matter.source_sha256
+        keys = [r.storage_key for r in list_productions(s, matter_id)] or [matter.source_path]
 
     summary: dict[str, Any] | None = None
     try:
@@ -169,7 +174,9 @@ def process(engine: Engine, job_id: str, storage: Storage | None = None) -> None
             summary = _draft(engine, matter_id, provider, budget, note)
             status, error = "completed", None
         else:
-            summary = _pipeline(engine, storage, matter_id, key, provider, budget, note)
+            summary = _pipeline(
+                engine, storage, matter_id, keys, provider, budget, note, job_id=job_id
+            )
             status, error = str(summary["status"]), None
     except Exception as e:  # the job records the failure; the worker keeps running
         log.exception("job %s failed", job_id)
@@ -196,24 +203,33 @@ def _pipeline(
     engine: Engine,
     storage: Storage,
     matter_id: str,
-    key: str,
+    keys: list[str],
     provider: LLMProvider,
     budget: float | None,
     note: Callable[[str], None],
+    job_id: str | None = None,
 ) -> dict[str, Any]:
+    """Run every production of the matter, in order. Earlier work is reused from checkpoints."""
     with tempfile.TemporaryDirectory() as tmp:
-        pdf = Path(tmp) / "production.pdf"
-        pdf.write_bytes(storage.get(key))
+        pdfs = []
+        for n, key in enumerate(keys, start=1):
+            pdf = Path(tmp) / f"production-{n}.pdf"
+            pdf.write_bytes(storage.get(key))
+            pdfs.append(pdf)
         out = Path(os.environ.get("MEDCHRON_RUNS_DIR", "runs")) / matter_id
         result = run_case(
-            pdf, matter_id, provider, RunConfig(out_dir=out, budget_usd=budget), progress=note
+            pdfs, matter_id, provider, RunConfig(out_dir=out, budget_usd=budget), progress=note
         )
     with Session(engine) as s, s.begin():
         save_ingested(s, result.case, get_embedder())
+        record_page_ranges(s, result.case)
         save_chronology(s, result.chronology)
         save_issues(s, matter_id, result.issues)
+        version = save_version(s, result.chronology, job_id=job_id, productions=len(keys))
         _audit_calls(s, matter_id, result.calls)
-    return result.summary.model_dump(mode="json")
+    summary = result.summary.model_dump(mode="json")
+    summary["chronology_version"] = version
+    return summary
 
 
 def _audit_calls(session: Session, matter_id: str, calls: list[CallRecord]) -> None:

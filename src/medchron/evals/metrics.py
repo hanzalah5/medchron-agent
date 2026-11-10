@@ -32,7 +32,7 @@ from collections import Counter
 from pydantic import BaseModel, Field
 
 from medchron.agents.analyst import scope_violation
-from medchron.chronology.builder import similarity
+from medchron.chronology.builder import MERGE_SIMILARITY, similarity
 from medchron.chronology.models import Chronology, ExtractedEvent, Issue, Memo
 from medchron.grounding.quotes import find_quote
 from medchron.ingestion.models import IngestedCase
@@ -46,10 +46,14 @@ DETERMINISTIC_ISSUES = {
     IssueKind.DATE_CONFLICT,
     IssueKind.MISSING_RECORD,
     IssueKind.PROMPT_INJECTION,
+    IssueKind.MISFILED_PAGE,
 }
 
 # Review flags that count as issue predictions, by the issue kind they signal.
-FLAG_KINDS = {"possible_prompt_injection": IssueKind.PROMPT_INJECTION}
+FLAG_KINDS = {
+    "possible_prompt_injection": IssueKind.PROMPT_INJECTION,
+    "possible_misfiled_page": IssueKind.MISFILED_PAGE,
+}
 
 ERROR_CATEGORIES = (
     "date_error",
@@ -107,6 +111,21 @@ class ErrorRecord(BaseModel):
     pages: list[int] = Field(default_factory=list)
 
 
+class IncrementalMetrics(BaseModel):
+    """How a case delivered in two productions was handled when the second arrived."""
+
+    productions: int
+    first_documents: int = Field(description="documents found in the first production")
+    reused_documents: int = Field(description="documents not re-extracted in the second run")
+    v1_events: int
+    added: int
+    changed: int
+    removed: int
+    readded_duplicates: int = Field(
+        description="added events that repeat a gold event an earlier version already had"
+    )
+
+
 class CaseMetrics(BaseModel):
     case_id: str
     events_strict: PRF
@@ -136,6 +155,7 @@ class CaseMetrics(BaseModel):
         default_factory=dict, description="kind -> [matched, predicted]"
     )
     errors: list[ErrorRecord] = Field(default_factory=list)
+    incremental: IncrementalMetrics | None = None
 
 
 def _pages(e: ExtractedEvent) -> set[int]:
@@ -210,6 +230,7 @@ def _issues(
     }
     gap_events = {eid for g in chron.gaps for eid in g.event_ids}
     injection_pages = {f.page_no for f in chron.flags if f.kind == "possible_prompt_injection"}
+    misfiled_pages = {f.page_no for f in chron.flags if f.kind == "possible_misfiled_page"}
     detected: Counter[str] = Counter()
     total: Counter[str] = Counter()
     for issue in gold.issues:
@@ -221,6 +242,8 @@ def _issues(
             hit = any(gold_to_pred.get(eid) in gap_events for eid in issue.event_ids)
         elif issue.kind == IssueKind.PROMPT_INJECTION:
             hit = bool(injection_pages & pages)
+        elif issue.kind == IssueKind.MISFILED_PAGE:
+            hit = bool(misfiled_pages & pages)
         else:
             hit = False
         if not hit and analyst:  # the analyst raised the same kind of issue on an issue page
@@ -577,6 +600,44 @@ def score_case(
     )
 
 
+def incremental_metrics(
+    gold: CaseGold,
+    first: Chronology,
+    *,
+    added: list[ExtractedEvent],
+    changed: int,
+    removed: int,
+    first_documents: int,
+    reused_documents: int,
+) -> IncrementalMetrics:
+    """Score the second-production update: reuse of earlier work, and no re-added events.
+
+    A re-added duplicate is an event the second run added although the previous
+    version already had an event of the same type and date with a similar
+    description. It should have been merged (its new source added) instead.
+    """
+    readded = sum(
+        1
+        for e in added
+        if any(
+            o.type == e.type
+            and o.date == e.date
+            and similarity(o.summary, e.summary) >= MERGE_SIMILARITY
+            for o in first.events
+        )
+    )
+    return IncrementalMetrics(
+        productions=gold.productions,
+        first_documents=first_documents,
+        reused_documents=reused_documents,
+        v1_events=len(first.events),
+        added=len(added),
+        changed=changed,
+        removed=removed,
+        readded_duplicates=readded,
+    )
+
+
 class Aggregate(BaseModel):
     cases: int
     event_precision: float
@@ -600,6 +661,9 @@ class Aggregate(BaseModel):
     issue_predictions: int = 0
     issue_duplicates: int = 0
     error_counts: dict[str, int] = Field(default_factory=dict)
+    incremental_cases: int = 0
+    incremental_readded: int = 0
+    incremental_reused: str = ""
 
 
 def aggregate(cases: list[CaseMetrics]) -> Aggregate:
@@ -635,6 +699,7 @@ def aggregate(cases: list[CaseMetrics]) -> Aggregate:
             acc[0] += m
             acc[1] += n
     errors: Counter[str] = Counter(e.category for c in cases for e in c.errors)
+    inc = [c.incremental for c in cases if c.incremental]
     return Aggregate(
         cases=len(cases),
         event_precision=strict.precision,
@@ -669,6 +734,13 @@ def aggregate(cases: list[CaseMetrics]) -> Aggregate:
         issue_predictions=n_pred,
         issue_duplicates=sum(c.issue_predictions_duplicate for c in cases),
         error_counts={k: errors[k] for k in ERROR_CATEGORIES if errors[k]},
+        incremental_cases=len(inc),
+        incremental_readded=sum(i.readded_duplicates for i in inc),
+        incremental_reused=(
+            f"{sum(i.reused_documents for i in inc)}/{sum(i.first_documents for i in inc)}"
+            if inc
+            else ""
+        ),
     )
 
 

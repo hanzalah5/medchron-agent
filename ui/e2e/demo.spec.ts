@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 // Captures frames for the README demo GIF. Runs only when GIF_DIR is set:
 //   GIF_DIR=../docs/images/frames E2E_DATABASE_URL=... npx playwright test demo.spec.ts
 const DIR = process.env.GIF_DIR;
-const SAMPLE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../data/synthetic/case_0003.pdf");
+const SAMPLE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../data/synthetic/dev/case_0004.pdf");
 
 test.skip(!DIR, "set GIF_DIR to record demo frames");
 test.use({ viewport: { width: 1280, height: 760 }, deviceScaleFactor: 1 });
@@ -22,7 +22,7 @@ test("demo frames", async ({ page, context, baseURL }) => {
   await page.goto("/");
   await page.locator('input[name="file"]').setInputFiles(SAMPLE);
   await page.locator('input[name="matter_id"]').fill("demo-case-3");
-  await page.locator('input[name="title"]').fill("Synthetic case 3: abdominal pain, return visit");
+  await page.locator('input[name="title"]').fill("Synthetic case 4: bile leak after cholecystectomy");
   await page.locator('select[name="provider"]').selectOption("oracle");
   await shot();
   await page.getByRole("button", { name: "Upload and run" }).click();
@@ -32,7 +32,7 @@ test("demo frames", async ({ page, context, baseURL }) => {
   await shot();
 
   // Click to source: the cited CT impression is highlighted on the page.
-  const ct = rows.filter({ hasText: "perforated appendicitis" }).first();
+  const ct = rows.filter({ hasText: "Hepatobiliary scan: bile leak" }).first();
   await ct.scrollIntoViewIfNeeded();
   await ct.getByTestId("cite").first().click();
   await page.locator(".page-frame img").evaluate((img: HTMLImageElement) => img.decode());

@@ -32,7 +32,7 @@ from pathlib import Path
 from typing import Annotated, Any, Literal
 
 import pymupdf
-from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -41,6 +41,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from medchron import __version__
+from medchron.chronology.diff import diff_chronologies
 from medchron.chronology.export import to_markdown
 from medchron.chronology.models import Chronology
 from medchron.db.models import (
@@ -54,7 +55,15 @@ from medchron.db.models import (
     MemoRow,
     PageRow,
 )
-from medchron.db.store import load_chronology, make_engine, reviewed_chronology
+from medchron.db.store import (
+    add_production,
+    list_productions,
+    list_versions,
+    load_chronology,
+    load_version,
+    make_engine,
+    reviewed_chronology,
+)
 from medchron.ingestion.models import Page
 from medchron.jobs import PROVIDERS, enqueue, notify_worker
 from medchron.observability import setup_tracing
@@ -167,6 +176,7 @@ def create_app(engine: Engine | None = None, storage: Storage | None = None) -> 
         session.flush()
         session.add(MatterMember(matter_id=mid, user_id=user.user_id, added_by=user.user_id))
         session.flush()
+        add_production(session, mid, sha, key, user.user_id)
         job = enqueue(session, mid, provider, budget_usd)
         log(session, "matter.create", mid, object_type="file", object_id=sha,
             details={"bytes": len(data), "provider": provider})  # fmt: skip
@@ -212,7 +222,88 @@ def create_app(engine: Engine | None = None, storage: Storage | None = None) -> 
             "title": m.title,
             "pages": pages or 0,
             "jobs": [_job_json(j) for j in jobs],
+            "productions": [
+                {
+                    "production_no": r.production_no,
+                    "sha256": r.sha256,
+                    "page_offset": r.page_offset,
+                    "page_count": r.page_count,
+                    "created_by": r.created_by,
+                    "created_at": r.created_at.isoformat() if r.created_at else None,
+                }
+                for r in list_productions(session, matter_id)
+            ],
         }
+
+    @app.post("/api/matters/{matter_id}/productions", status_code=202)
+    async def add_matter_production(
+        session: DB,
+        matter_id: str,
+        file: Annotated[UploadFile, File()],
+        provider: Annotated[str, Form()] = "anthropic",
+        budget_usd: Annotated[float | None, Form()] = None,
+        access_code: Annotated[str | None, Form()] = None,
+    ) -> dict[str, Any]:
+        """A later production for an existing matter. The whole matter is re-run; work on
+        earlier productions is reused, and the chronology gets a new version and a diff."""
+        user = who(session)
+        require(user, "matter.create")
+        get_matter(session, matter_id)
+        data = await file.read(MAX_UPLOAD_BYTES + 1)
+        if len(data) > MAX_UPLOAD_BYTES:
+            raise HTTPException(413, "file too large")
+        if not data.startswith(b"%PDF"):
+            raise HTTPException(415, "only PDF uploads are accepted")
+        if provider not in PROVIDERS:
+            raise HTTPException(422, f"provider must be one of {sorted(PROVIDERS)}")
+        budget_usd = demo_policy(provider, budget_usd, access_code)
+        sha = hashlib.sha256(data).hexdigest()
+        if any(r.sha256 == sha for r in list_productions(session, matter_id)):
+            raise HTTPException(409, "this file was already produced for the matter")
+        key = request_storage(app).put(data)
+        row = add_production(session, matter_id, sha, key, user.user_id)
+        job = enqueue(session, matter_id, provider, budget_usd)
+        log(session, "production.add", matter_id, object_type="file", object_id=sha,
+            details={"production_no": row.production_no, "bytes": len(data)})  # fmt: skip
+        session.commit()
+        notify_worker()
+        return {"matter_id": matter_id, "production_no": row.production_no, "job_id": job.job_id}
+
+    @app.get("/api/matters/{matter_id}/chronology/versions")
+    def chronology_versions(session: DB, matter_id: str) -> list[dict[str, Any]]:
+        get_matter(session, matter_id)
+        return [
+            {
+                "version": v.version,
+                "created_at": v.created_at.isoformat() if v.created_at else None,
+                "job_id": v.job_id,
+                "productions": v.productions,
+                "events": v.events,
+                "diff": v.diff_summary,
+            }
+            for v in list_versions(session, matter_id)
+        ]
+
+    @app.get("/api/matters/{matter_id}/chronology/diff")
+    def chronology_diff(
+        session: DB, matter_id: str, from_: Annotated[int | None, Query(alias="from")] = None,
+        to: int | None = None,
+    ) -> dict[str, Any]:  # fmt: skip
+        get_matter(session, matter_id)
+        versions = [v.version for v in list_versions(session, matter_id)]
+        if not versions:
+            raise HTTPException(404, "no chronology versions yet")
+        to_v = to if to is not None else versions[-1]
+        from_v = from_ if from_ is not None else (to_v - 1 if to_v > 1 else None)
+        new = load_version(session, matter_id, to_v)
+        old = load_version(session, matter_id, from_v) if from_v is not None else None
+        if new is None or (from_v is not None and old is None):
+            raise HTTPException(404, "version not found")
+        diff = diff_chronologies(old, new, from_version=from_v, to_version=to_v)
+        log(session, "chronology.diff_view", matter_id, object_type="version",
+            object_id=f"{from_v}->{to_v}")  # fmt: skip
+        session.commit()
+        return diff.model_dump(mode="json")
 
     @app.get("/api/matters/{matter_id}/members")
     def members(session: DB, matter_id: str) -> list[dict[str, Any]]:

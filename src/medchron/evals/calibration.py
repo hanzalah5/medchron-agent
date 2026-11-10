@@ -89,7 +89,7 @@ def write_jsonl(records: list[ClaimRecord], path: Path) -> None:
 
 # ---------------------------------------------------------------------- sampling
 def _load_ingested(case_dir: Path) -> IngestedCase | None:
-    found = sorted((case_dir / "checkpoints" / "ingest").glob("*.json"))
+    found = sorted((case_dir / "checkpoints" / "case").glob("*.json"))
     if not found:
         return None
     return IngestedCase.model_validate_json(found[-1].read_text(encoding="utf-8"))

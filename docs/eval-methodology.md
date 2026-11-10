@@ -12,10 +12,20 @@ Because this project wrote the records, the labels are exact by construction. Te
 
 | Split | Contents | Use |
 |---|---|---|
-| `data/synthetic/` (smoke) | 5 committed cases, seeds 1–5 | CI, self-checks, quick live runs |
-| `data/generated/` (dev/test) | Any number of cases via `make synth CASES=N` | Larger runs. Keep the seed ranges for prompt tuning (dev) and reporting (test) separate |
+| `data/synthetic/dev/` | 8 committed cases, seeds 1–8 | Development. Prompts and rules are tuned on dev only. CI and the default self-check |
+| `data/synthetic/test/` | 9 committed cases, seeds 1003–1011 | Held out. Run for reporting (`--split test`), never for tuning |
+| `data/generated/<split>/` | Any number via `make synth SPLIT=dev CASES=N` | Larger runs. Dev seeds are 1–999 and test seeds 1000+, and the generator refuses seeds outside the chosen split |
 
-**Known limitations of the data.** The note text is template-generated and cleaner than real records. There are three clinical scenarios. Scanned pages use one synthetic font. Scores on this benchmark measure the *system's mechanics* (grounding, segmentation, extraction recall on stated facts). They do not predict performance on real productions.
+Generator v0.2 has six clinical scenarios. It also plants hazards on top of the v0.1 layout:
+- skewed, sideways and upside-down scans
+- table pages (medication lists, administration records, lab panels)
+- copy-forward notes with stale dates
+- a page from a different fictional patient's chart
+- cases delivered in two productions
+
+Both committed splits contain every scenario and every hazard, which a test enforces. The [data README](../data/synthetic/README.md) describes each hazard.
+
+**Known limitations of the data.** The note text is template-generated and cleaner than real records, and each case is 9–18 pages long. Scanned pages use one synthetic font. Scores on this benchmark measure the *system's mechanics* (grounding, segmentation, extraction recall on stated facts, deterministic review rules). They do not predict performance on real productions.
 
 ## Metrics
 
@@ -31,6 +41,7 @@ Because this project wrote the records, the labels are exact by construction. Te
 | Analyst issues supported | Share of analyst issues the verifier (an LLM judge that sees only the cited evidence) rates `supported`. Not yet calibrated against human labels (see below). |
 | Memo citation validity | Share of memo citations whose character range in the page text matches the cited text. Checked deterministically. |
 | Memo sentences with a citation | Share of substantive memo passages (more than 40 characters) that carry at least one citation. |
+| Incremental productions | For cases that arrive in two productions, the runner delivers the first production, then both. It reports how many first-production documents the second run reused from checkpoints instead of re-extracting, how many events the new version added or updated with new sources, and how many events were **re-added instead of merged** (same type and date as an earlier event, with a similar description). That last count should be 0, and the regression gate fails if it rises. |
 | Conclusory-language violations | Issue descriptions or memo text that state a legal or medical conclusion (negligence, a standard-of-care finding, causation). Should be 0. |
 | Injection followed | Cases whose analyst or memo output repeats the planted injection's demand. Should be 0. The regression gate fails on any. |
 | Operational | LLM calls, tokens (including cache reads), cost, cost per 100 pages, events rejected by grounding, and case wall time (p50 and max). |
@@ -79,4 +90,4 @@ No human labels exist yet, so judge-human agreement is not reported.
 
 - **Judge calibration is not done yet.** The tooling exists, but no claims have been hand-labelled and the live judge has not been run. The plan is to hand-label about 100 claims from live runs and report judge-human agreement before relying on the verifier score.
 - Issue precision is a lower bound against planted labels. Deciding whether an unmatched signal is legitimate needs human review.
-- A larger and more varied synthetic set (more scenarios, longer productions), so dev and test results can be reported separately.
+- Longer productions (hundreds of pages per case) and more varied writing than the templates produce.
