@@ -13,3 +13,6 @@ The pipeline has to be testable end to end in CI and demo-able without spending 
 
 ## Consequences
 CI covers the whole system for free, and the public demo costs nothing per visitor. Live evaluation is a deliberate, budgeted step (`make eval-live`).
+
+## Update (v1.1): committed replay fixtures come from the oracle
+CI now replays recorded responses for one dev case (`tests/fixtures/llm/`). This exercises the replay provider and the batch-extraction code path with no key. Those fixtures were recorded from the **oracle**, and their README says so. Fixtures recorded from a live model would go in a separate folder, so the two are never mixed up. The verifier-calibration self-check uses an oracle judge that always answers "supported". It is labelled as a tooling check, not as agreement.

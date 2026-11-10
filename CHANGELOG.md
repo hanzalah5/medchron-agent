@@ -28,6 +28,7 @@ This is a portfolio reference implementation that runs on synthetic data only. "
 - **Bates-style page IDs** are assigned at ingestion.
 - **Batch extraction mode** through the Message Batches API: half price, resumable after a crash, with a synchronous fallback for refused requests. It is not exercised against the live API.
 - Tesseract is limited to one thread per call. The load test found that concurrent workers oversubscribed the CPU through its OpenMP threads.
+- Pages are never treated as duplicates when their header identity (MRN, author, date of service) differs. The load test found templated notes from different encounters being merged: 76 of 2,029 pages, down to 5 after the fix.
 
 ### Product
 - **DOCX and XLSX chronology export** in the conventional layout: date, provider / facility, event, and source (document, page, Bates). Export is gated by attorney approval of the current version, and any later review edit requires approval again. Approvals and exports are audited.
@@ -37,7 +38,10 @@ This is a portfolio reference implementation that runs on synthetic data only. "
 ### Engineering
 - Hypothesis **property tests** for quote matching (OCR noise tolerated, fabricated additions rejected) and date parsing.
 - Worker **heartbeat thread**, a configurable stale-job timeout, worker IDs, and a guard against a reassigned job being overwritten.
-- **Load test** script: a ~2,000-page production, several workers, and a worker killed mid-run. Results are in `docs/loadtest.md`.
+- **Load test** script and measured results ([docs/loadtest.md](docs/loadtest.md); oracle provider, 4 vCPUs):
+  - 2,029 pages: an 84.8 s uninterrupted reference, and a 132.6 s run on 3 workers in which the worker holding the big job was SIGKILLed after 69.7 s
+  - the job resumed on another worker, reusing all 618 checkpointed documents
+  - the chronology was identical to the reference, with no duplicated rows and a verified audit chain
 - **Non-owner database roles.** The API and worker connect as `medchron_api` and `medchron_worker`. The system bypass requires membership in `medchron_system`, so the API role cannot enable it. Compose, CI and the end-to-end tests run this way (migration 0008, ADR-0009 update).
 - Playwright feature tests, and **axe** accessibility checks on every matter tab. A colour-contrast failure that axe found is fixed.
 

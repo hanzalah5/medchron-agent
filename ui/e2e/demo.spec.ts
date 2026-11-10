@@ -21,7 +21,7 @@ test("demo frames", async ({ page, context, baseURL }) => {
 
   await page.goto("/");
   await page.locator('input[name="file"]').setInputFiles(SAMPLE);
-  await page.locator('input[name="matter_id"]').fill("demo-case-3");
+  await page.locator('input[name="matter_id"]').fill("demo-case-4");
   await page.locator('input[name="title"]').fill("Synthetic case 4: bile leak after cholecystectomy");
   await page.locator('select[name="provider"]').selectOption("oracle");
   await shot();
@@ -38,10 +38,10 @@ test("demo frames", async ({ page, context, baseURL }) => {
   await page.locator(".page-frame img").evaluate((img: HTMLImageElement) => img.decode());
   await shot();
 
-  // The WBC event has two sources, one on a scanned (OCR) page.
-  const wbc = rows.filter({ hasText: "White blood cell" }).first();
-  await wbc.scrollIntoViewIfNeeded();
-  await wbc.getByTestId("cite").last().click();
+  // A lab value cited from a table row (hepatic panel).
+  const bili = rows.filter({ hasText: "Total bilirubin" }).first();
+  await bili.scrollIntoViewIfNeeded();
+  await bili.getByTestId("cite").first().click();
   await page.locator(".page-frame img").evaluate((img: HTMLImageElement) => img.decode());
   await shot();
   await ct.getByRole("button", { name: "Accept" }).click();
@@ -65,10 +65,24 @@ test("demo frames", async ({ page, context, baseURL }) => {
   const memo = page.getByTestId("memo-body");
   await expect(memo).toContainText("DRAFT", { timeout: 60_000 });
   await page.getByTestId("memo").scrollIntoViewIfNeeded();
-  await memo.locator(".cite").filter({ hasText: "p8" }).first().click();
+  await memo.locator(".cite").first().click();
   await page.locator(".page-frame img").evaluate((img: HTMLImageElement) => img.decode());
   await shot();
   await page.getByTestId("approve-memo").click();
   await expect(page.getByTestId("memo")).toContainText("Approved by");
+  await shot();
+
+  // Provider and facility index, gaps in treatment, and the gated chronology export.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.getByTestId("tab-providers").click();
+  await expect(page.getByTestId("provider-row").first()).toBeVisible();
+  await shot();
+  await page.getByTestId("tab-gaps").click();
+  await page.getByTestId("gap-days").fill("1");
+  await expect(page.getByTestId("gap-interval").first()).toBeVisible();
+  await shot();
+  await page.getByTestId("tab-export").click();
+  await page.getByTestId("approve-chronology").click();
+  await expect(page.getByTestId("export-docx")).toBeVisible();
   await shot();
 });

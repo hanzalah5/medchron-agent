@@ -11,3 +11,10 @@ Agents work only from the current matter's structured state (pages, spans, chron
 
 ## Consequences
 Every case starts from the same baseline, which makes evaluations comparable. Improvements ship as reviewed prompt or code changes with evaluation deltas, not as silent drift.
+
+## Update (v1.1): reuse within a matter, never across
+Incremental productions (ADR-0012) reuse extraction work. The reuse is scoped to one matter:
+- checkpoints live under that matter's run directory
+- the checkpoint key includes the matter ID as well as the document's content
+
+Two matters whose records contain identical pages still extract them separately. The MCP server (ADR-0011) gives assistants per-call, membership-checked access to one matter at a time. It holds no memory between calls.
