@@ -27,7 +27,8 @@ Because this project wrote the records, the labels are exact by construction. Te
 | Segmentation F1 | Predicted document start pages compared with gold start pages. |
 | Document type accuracy | Type agreement on documents whose start page matches. |
 | Planted-issue recall | A gold issue counts as detected when the pipeline raises a matching signal: a deterministic conflict, gap or injection flag, or an analyst issue of the same category citing one of the issue's pages. |
-| Analyst issues supported | Share of analyst issues the verifier (an LLM judge that sees only the cited evidence) rates `supported`. |
+| Planted-issue precision | Every raised review signal is a prediction: analyst issues, deterministic date conflicts, follow-up gaps and injection flags. A prediction is a true positive when it matches a planted issue of the **same kind** on an **overlapping page**. Conflicts and gaps also match through a strict-matched event. Unmatched predictions are false positives. A second signal that finds an issue already found counts as a duplicate, not a false positive. Planted labels are not exhaustive, so this is a **lower bound**: an unmatched signal may still be worth a reviewer's time. |
+| Analyst issues supported | Share of analyst issues the verifier (an LLM judge that sees only the cited evidence) rates `supported`. Not yet calibrated against human labels (see below). |
 | Memo citation validity | Share of memo citations whose character range in the page text matches the cited text. Checked deterministically. |
 | Memo sentences with a citation | Share of substantive memo passages (more than 40 characters) that carry at least one citation. |
 | Conclusory-language violations | Issue descriptions or memo text that state a legal or medical conclusion (negligence, a standard-of-care finding, causation). Should be 0. |
@@ -40,7 +41,7 @@ Because this project wrote the records, the labels are exact by construction. Te
 |---|---|---|
 | Harness self-check | `make eval-selfcheck` | Runs the pipeline with the **gold-label oracle** (a test double). The clean run should hit the ceiling, and the noisy run shows the metrics react. **Not model performance.** |
 | Live evaluation | `make eval-live` (needs `ANTHROPIC_API_KEY`) | Real model results on the smoke set, with a per-case spend cap. |
-| Regression gate | `medchron eval ... --baseline <results.json>` | Exits non-zero when recall, precision, citation validity or segmentation F1 drops by more than `--tolerance` (default 0.02). |
+| Regression gate | `medchron eval ... --baseline <results.json>` | Exits non-zero when event recall or precision, citation validity, segmentation F1, planted-issue recall or planted-issue precision drops by more than `--tolerance` (default 0.02), when conclusory-language violations increase, or when any output follows the planted injection. Metrics missing from an older results file are skipped. |
 
 Every results file records the git SHA (`-dirty` when there are uncommitted changes), the model and effort per route, the exact prompt versions (`name@vN+sha`) and a dataset hash. That makes every number traceable to the code, prompts and data that produced it.
 
@@ -49,8 +50,33 @@ Every results file records the git SHA (`-dirty` when there are uncommitted chan
 - **Every push or pull request**: unit and integration tests, including end-to-end pipeline runs with the oracle. No LLM spend.
 - **The `evals` workflow** runs on a manual trigger, on pull requests labeled `run-evals`, or nightly. It runs `eval-live` on the smoke set with a spend cap, writes the scorecard to the job summary and uploads the results. It skips cleanly when the `ANTHROPIC_API_KEY` repository secret is not set.
 
+## Error analysis
+
+Every report sorts each missed gold event, unmatched predicted event, missed planted issue and unmatched issue signal into one category. The first matching rule wins (`categorize_errors` in [`evals/metrics.py`](../src/medchron/evals/metrics.py)):
+
+| Category | Missed gold event | Unmatched prediction |
+|---|---|---|
+| `date_error` | An unmatched prediction of the same type on a source page, dated within 7 days | Same type and page as a gold event, wrong or missing date |
+| `merge_error` | Its evidence was merged into a prediction matched to another gold event (over-merge) | It would match a gold event another prediction already matched (an unmerged duplicate) |
+| `wrong_span` | A prediction of the same type and date cites other pages | Same type and date as a gold event, other pages. For issue signals: a planted issue of that kind exists on other pages |
+| `ocr_miss` | Every source page is a scanned page, and no prediction cites any of them | – |
+| `scope_violation` | – | Issue or memo text with conclusory language |
+| `other` | Not extracted | No planted counterpart (may be legitimate) |
+
+The categories are heuristics for triage, not root causes. For example, an `ocr_miss` means the evidence was only on scanned pages, not that OCR was proven to fail. Up to three examples per category are shown in the report.
+
+## Verifier calibration
+
+`medchron calib` holds the tooling. The protocol and current status are in [`evals/calibration/`](../evals/calibration/README.md).
+
+- `sample` draws judged claims from pipeline runs, stratified by verdict, into a JSONL file with blank labels for hand labelling.
+- `seed` builds a **gold-derived** set from the synthetic gold. A planted issue's description shown with evidence from its own pages is `supported`. The same description shown with evidence from an unrelated page is `unsupported`. These labels hold by construction. They are not human judgements and are always reported separately.
+- `judge` runs the verifier over a file. `score` reports accuracy, per-class precision and recall, a confusion matrix and Cohen's kappa, separately for each label source.
+
+No human labels exist yet, so judge-human agreement is not reported.
+
 ## Known gaps and planned additions
 
-- **Judge calibration is not done yet.** The verifier is an LLM judge, and its agreement with human labels has not been measured. The plan is to hand-label about 100 claims from live runs and report judge–human agreement before relying on the verifier score.
-- Issue *precision* is not scored. Analyst issues that match no planted issue may still be legitimate, and judging them needs human review.
+- **Judge calibration is not done yet.** The tooling exists, but no claims have been hand-labelled and the live judge has not been run. The plan is to hand-label about 100 claims from live runs and report judge-human agreement before relying on the verifier score.
+- Issue precision is a lower bound against planted labels. Deciding whether an unmatched signal is legitimate needs human review.
 - A larger and more varied synthetic set (more scenarios, longer productions), so dev and test results can be reported separately.

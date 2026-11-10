@@ -180,8 +180,8 @@ class OracleProvider:
             return self._text("Recorded all supported issues.")
         calls = []
         for issue in self.gold.issues:
-            cites = [c for p in issue.pages if p in pages for c in [self._cite(pages[p], issue)]]
-            cites = [c for c in cites if c is not None]
+            found = [self._cite(pages[p], issue) for p in issue.pages if p in pages]
+            cites = [c for c in found if c is not None]
             if cites:
                 calls.append(
                     (
@@ -195,7 +195,21 @@ class OracleProvider:
                         },
                     )
                 )
+                if self.noise and self._rng.random() < self.noise:
+                    calls.append(("record_issue", self._decoy(issue.kind, cites)))
         return self._tools(calls) if calls else self._text("No supportable issues.")
+
+    @staticmethod
+    def _decoy(kind: IssueKind, cites: list[dict[str, str]]) -> dict[str, Any]:
+        """A deliberately wrong-kind issue on real evidence, so precision has something to catch."""
+        wrong = next(k for k in IssueKind if k not in (kind, IssueKind.PROMPT_INJECTION))
+        return {
+            "category": wrong.value,
+            "description": "Harness noise: is there a separate question on this page for review?",
+            "event_ids": [],
+            "citations": cites,
+            "severity_hint": "low",
+        }
 
     def _cite(self, page: dict[str, Any], issue: Any) -> dict[str, str] | None:
         text: str = page["text"]
@@ -284,3 +298,27 @@ class OracleProvider:
             text_parts=[TextPart(text=text)],
             usage=Usage(),
         )
+
+
+class OracleJudge(OracleProvider):
+    """The oracle's verify route on its own: answers ``supported`` for every claim.
+
+    Used to self-check the calibration tooling without a gold case. It is not a
+    judge and its agreement numbers say nothing about the real verifier.
+    """
+
+    def __init__(self) -> None:
+        self._ids = itertools.count(1)
+
+    def complete(self, req: LLMRequest) -> LLMResponse:
+        if req.route != "verify":
+            raise ValueError("OracleJudge only answers the verify route")
+        last = req.messages[-1]
+        if last["role"] == "user" and isinstance(last["content"], list):
+            return self._text("Recorded.")
+        n = len(re.findall(r"^Claim \d+:", str(last["content"]), re.M))
+        verdicts = [
+            {"claim": k, "verdict": "supported", "reason": "Oracle always answers supported."}
+            for k in range(1, n + 1)
+        ]
+        return self._tool("record_verdicts", {"verdicts": verdicts})

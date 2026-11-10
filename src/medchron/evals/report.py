@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from medchron.evals.metrics import ERROR_CATEGORIES
 from medchron.evals.runner import EvalResult
 
 
@@ -32,18 +33,92 @@ def scorecard(r: EvalResult, baseline: EvalResult | None = None) -> list[str]:
             b.issue_recall_attempted if b else None,
         ),
     ]
+    if a.issue_precision is not None:
+        rows.append(
+            (
+                "Planted-issue precision (all raised signals)",
+                a.issue_precision,
+                b.issue_precision if b else None,
+            )
+        )
     optional = [
         ("Analyst issues supported by verifier", a.analyst_supported_rate),
         ("Memo citation validity", a.memo_citation_validity),
         ("Memo sentences with a citation", a.memo_cited_ratio),
     ]
     lines = ["| Metric | Value |", "|---|---|"]
-    lines += [f"| {name} | {_pct(v)}{_delta(v, bv)} |" for name, v, bv in rows]
+    lines += [
+        f"| {name} | {_pct(v)}{_delta(v, bv)} |" if v is not None else f"| {name} | n/a |"
+        for name, v, bv in rows
+    ]
     lines += [f"| {name} | {_pct(v)} |" for name, v in optional if v is not None]
     lines += [
         f"| Conclusory-language violations | {a.scope_violations} |",
         f"| Cases where output followed the planted injection | {a.injection_followed_cases} |",
     ]
+    return lines
+
+
+EXAMPLES_PER_CATEGORY = 3
+ITEM_LABELS = {
+    "missed_event": "missed event",
+    "spurious_event": "unmatched event",
+    "missed_issue": "missed issue",
+    "spurious_issue": "unmatched issue signal",
+    "output": "output",
+}
+
+
+def issues_by_kind(r: EvalResult) -> list[str]:
+    """Recall and precision per planted-issue kind."""
+    a = r.aggregate
+    kinds = sorted(set(a.issue_recall_by_kind) | set(a.issue_precision_by_kind))
+    lines = [
+        "| Issue kind | Recall (detected/planted) | Precision (matched/raised) |",
+        "|---|---|---|",
+    ]
+    lines += [
+        f"| {k} | {a.issue_recall_by_kind.get(k, '-')} | {a.issue_precision_by_kind.get(k, '-')} |"
+        for k in kinds
+    ]
+    if a.issue_duplicates:
+        lines += [
+            "",
+            f"{a.issue_duplicates} raised signal(s) repeated an issue another signal had "
+            "already found. They count as matched, not as false positives.",
+        ]
+    return lines
+
+
+def error_analysis(r: EvalResult) -> list[str]:
+    """Error counts per category with up to three examples each."""
+    errors = [e for c in r.cases for e in c.errors]
+    if not errors:
+        return []
+    lines = [
+        "**Error analysis.** Every miss and unmatched prediction is put in one category "
+        "(rules in `evals/metrics.py::categorize_errors`).",
+        "",
+        "| Category | Missed events | Unmatched events | Issue misses / unmatched "
+        "| Other output | Total |",
+        "|---|---|---|---|---|---|",
+    ]
+    for cat in ERROR_CATEGORIES:
+        rows = [e for e in errors if e.category == cat]
+        if not rows:
+            continue
+        n = {i: sum(e.item == i for e in rows) for i in ITEM_LABELS}
+        lines.append(
+            f"| {cat} | {n['missed_event']} | {n['spurious_event']} | "
+            f"{n['missed_issue'] + n['spurious_issue']} | {n['output']} | {len(rows)} |"
+        )
+    lines += ["", "<details><summary>Examples (up to 3 per category)</summary>", ""]
+    for cat in ERROR_CATEGORIES:
+        rows = [e for e in errors if e.category == cat][:EXAMPLES_PER_CATEGORY]
+        for e in rows:
+            pages = f" p{','.join(map(str, e.pages))}" if e.pages else ""
+            lines.append(f"- **{cat}**, {ITEM_LABELS[e.item]} `{e.case_id}`{pages}: {e.text}")
+    lines += ["", "</details>", ""]
     return lines
 
 
@@ -70,8 +145,7 @@ def render(
         "",
         *scorecard(r, baseline),
         "",
-        "**Planted issues by kind:** "
-        + ", ".join(f"{k}: {v}" for k, v in r.aggregate.issue_recall_by_kind.items()),
+        *issues_by_kind(r),
         "",
         "**Event recall by type:** "
         + ", ".join(f"{k} {_pct(v)}" for k, v in r.aggregate.per_type_recall.items()),
@@ -83,13 +157,16 @@ def render(
         f"/ max {o.seconds_max}s.",
         "",
     ]
-    misses = [(c.case_id, m) for c in r.cases for m in c.missed_events][:8]
-    spurious = [(c.case_id, s) for c in r.cases for s in c.spurious_events][:8]
-    if misses or spurious:
-        lines += ["<details><summary>Error analysis (first examples)</summary>", ""]
-        lines += [f"- missed `{cid}`: {m}" for cid, m in misses]
-        lines += [f"- unmatched prediction `{cid}`: {s}" for cid, s in spurious]
-        lines += ["", "</details>", ""]
+    if any(c.errors for c in r.cases):
+        lines += error_analysis(r)
+    else:  # results files written before v1.1 have uncategorised examples only
+        misses = [(c.case_id, m) for c in r.cases for m in c.missed_events][:8]
+        spurious = [(c.case_id, s) for c in r.cases for s in c.spurious_events][:8]
+        if misses or spurious:
+            lines += ["<details><summary>Error analysis (first examples)</summary>", ""]
+            lines += [f"- missed `{cid}`: {m}" for cid, m in misses]
+            lines += [f"- unmatched prediction `{cid}`: {s}" for cid, s in spurious]
+            lines += ["", "</details>", ""]
     for x in extra or []:
         lines += ["", *render(x).splitlines()]
     return "\n".join(lines)
@@ -120,6 +197,16 @@ def render_report(results: list[EvalResult]) -> str:
             "(`make eval-report`). No model numbers are published until they have been measured.",
             "",
         ]
+    lines += [
+        "# Verifier calibration",
+        "",
+        "*Not measured yet.* The verifier is an LLM judge, and its agreement with human labels "
+        'has not been measured, so the "Analyst issues supported by verifier" rate is '
+        "uncalibrated. The tooling (`medchron calib sample | seed | judge | score`), the "
+        "hand-labelling protocol and a gold-derived seed set are in "
+        "[`evals/calibration/`](calibration/).",
+        "",
+    ]
     if checks:
         lines += [
             "# Harness self-checks (oracle test double)",

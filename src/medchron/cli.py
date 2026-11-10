@@ -169,6 +169,44 @@ def _cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_calib(args: argparse.Namespace) -> int:
+    from medchron.evals import calibration as cal
+
+    if args.calib_command == "sample":
+        records = cal.sample_claims(Path(args.runs), args.n, seed=args.seed)
+        cal.write_jsonl(records, Path(args.out))
+        print(f"Wrote {len(records)} claims with blank labels to {args.out}")
+        return 0
+    if args.calib_command == "seed":
+        records = cal.gold_seed_claims(Path(args.data), seed=args.seed)
+        cal.write_jsonl(records, Path(args.out))
+        print(
+            f"Wrote {len(records)} gold-derived claims to {args.out} "
+            "(labels by construction, not human judgement)"
+        )
+        return 0
+    if args.calib_command == "judge":
+        if args.provider == "oracle":
+            from medchron.evals.oracle import OracleJudge
+
+            print("NOTE: oracle judge always answers 'supported' (tooling self-check only).")
+            provider: Any = OracleJudge()
+        else:
+            provider = make_provider(args)
+        records = cal.judge_records(cal.read_jsonl(Path(args.file)), provider)
+        cal.write_jsonl(records, Path(args.out or args.file))
+        print(f"Judged {len(records)} claims -> {args.out or args.file}")
+        return 0
+    records = [r for f in args.files for r in cal.read_jsonl(Path(f))]
+    report = cal.score(records)
+    judges = {r.judge.provider for r in records if r.judge}
+    text = cal.render(report, judges=judges)
+    if args.out:
+        Path(args.out).write_text(text, encoding="utf-8")
+    print(text)
+    return 0
+
+
 def _add_provider_args(p: argparse.ArgumentParser) -> None:
     p.add_argument(
         "--provider",
@@ -238,6 +276,26 @@ def build_parser() -> argparse.ArgumentParser:
     worker = sub.add_parser("worker", help="Process queued pipeline jobs")
     worker.add_argument("--once", action="store_true", help="drain the queue, then exit")
     worker.set_defaults(func=_cmd_worker)
+
+    calib = sub.add_parser("calib", help="Verifier calibration: sample, seed, judge, score")
+    csub = calib.add_subparsers(dest="calib_command", required=True)
+    c_sample = csub.add_parser("sample", help="Sample judged claims from runs for hand labelling")
+    c_sample.add_argument("--runs", required=True, help="e.g. runs/evals/<label>")
+    c_sample.add_argument("--n", type=int, default=100)
+    c_sample.add_argument("--seed", type=int, default=0)
+    c_sample.add_argument("--out", required=True, help="JSONL labelling file")
+    c_seed = csub.add_parser("seed", help="Build gold-derived claims from synthetic gold")
+    c_seed.add_argument("--data", default="data/synthetic")
+    c_seed.add_argument("--seed", type=int, default=0)
+    c_seed.add_argument("--out", required=True)
+    c_judge = csub.add_parser("judge", help="Run the verifier over a labelling file")
+    c_judge.add_argument("file")
+    c_judge.add_argument("--out", help="write here instead of updating the file in place")
+    _add_provider_args(c_judge)
+    c_score = csub.add_parser("score", help="Judge vs label agreement")
+    c_score.add_argument("files", nargs="+")
+    c_score.add_argument("--out", help="also write the Markdown report here")
+    calib.set_defaults(func=_cmd_calib)
 
     mig = sub.add_parser("migrate", help="Apply database migrations (DATABASE_URL)")
     mig.add_argument("--root", default=".", help="directory containing alembic.ini")

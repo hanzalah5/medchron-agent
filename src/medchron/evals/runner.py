@@ -161,6 +161,7 @@ GATED = [
     "citation_validity",
     "segmentation_f1",
     "issue_recall_attempted",
+    "issue_precision",
 ]
 
 
@@ -170,6 +171,8 @@ def regressions(current: EvalResult, baseline: EvalResult, tolerance: float) -> 
     for name in GATED:
         now = getattr(current.aggregate, name)
         before = getattr(baseline.aggregate, name)
+        if now is None or before is None:  # metric absent in one run (e.g. older results file)
+            continue
         if now < before - tolerance:
             out.append(f"{name}: {before:.3f} -> {now:.3f}")
     if current.aggregate.scope_violations > baseline.aggregate.scope_violations:

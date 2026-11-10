@@ -56,14 +56,21 @@ def _evidence(case: IngestedCase, issue: Issue) -> str:
     return "\n".join(parts)
 
 
-def verify_issues(provider: LLMProvider, case: IngestedCase, issues: list[Issue]) -> list[Issue]:
-    if not issues:
+def judge_claims(
+    provider: LLMProvider, claims: list[tuple[str, str]]
+) -> list[tuple[str, str] | None]:
+    """Judge ``(claim, evidence)`` pairs. Returns ``(verdict, reason)`` per claim, or None.
+
+    This is the verifier's core. ``verify_issues`` builds the pairs from analyst
+    issues; the calibration tooling (``medchron calib``) calls it directly.
+    """
+    if not claims:
         return []
     system = load_prompt("system_base")
     task = load_prompt("verify_claims")
-    out = [i.model_copy(deep=True) for i in issues]
-    for start in range(0, len(out), BATCH):
-        batch = out[start : start + BATCH]
+    results: list[tuple[str, str] | None] = []
+    for start in range(0, len(claims), BATCH):
+        batch = claims[start : start + BATCH]
         got: dict[int, dict[str, Any]] = {}
 
         def record(args: dict[str, Any], n: int = len(batch), got: dict[int, Any] = got) -> str:
@@ -75,9 +82,9 @@ def verify_issues(provider: LLMProvider, case: IngestedCase, issues: list[Issue]
                 raise ToolInputError(f"missing verdicts for claims {missing}")
             return "ok"
 
-        claims = "\n\n".join(
-            f"Claim {k}: {issue.description}\n<evidence>\n{_evidence(case, issue)}\n</evidence>"
-            for k, issue in enumerate(batch, start=1)
+        text = "\n\n".join(
+            f"Claim {k}: {claim}\n<evidence>\n{evidence}\n</evidence>"
+            for k, (claim, evidence) in enumerate(batch, start=1)
         )
         run_tool_loop(
             provider,
@@ -86,15 +93,23 @@ def verify_issues(provider: LLMProvider, case: IngestedCase, issues: list[Issue]
                 system=system.text + "\n\n" + task.text,
                 prompt_version=f"{system.id},{task.id}",
                 tools=[RECORD_VERDICTS],
-                messages=[{"role": "user", "content": claims}],
+                messages=[{"role": "user", "content": text}],
                 max_tokens=4000,
             ),
             {"record_verdicts": record},
             max_turns=3,
             done=lambda got=got, n=len(batch): len(got) >= n,  # type: ignore[misc]  # noqa: B008
         )
-        for k, issue in enumerate(batch, start=1):
-            if k in got:
-                issue.verdict = got[k]["verdict"]
-                issue.verdict_reason = got[k]["reason"][:500]
+        for k in range(1, len(batch) + 1):
+            v = got.get(k)
+            results.append((v["verdict"], v["reason"][:500]) if v else None)
+    return results
+
+
+def verify_issues(provider: LLMProvider, case: IngestedCase, issues: list[Issue]) -> list[Issue]:
+    out = [i.model_copy(deep=True) for i in issues]
+    verdicts = judge_claims(provider, [(i.description, _evidence(case, i)) for i in out])
+    for issue, v in zip(out, verdicts, strict=True):
+        if v is not None:
+            issue.verdict, issue.verdict_reason = v
     return out

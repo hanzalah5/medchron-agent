@@ -1,4 +1,4 @@
-.PHONY: install lint format typecheck test check synth smoke-data db-up migrate eval-selfcheck eval-live eval-report
+.PHONY: install lint format typecheck test check synth smoke-data db-up migrate eval-selfcheck eval-live eval-report calib-seed calib-selfcheck
 
 install:  ## Create .venv and install the package with dev extras
 	uv venv --python 3.12 --allow-existing .venv || uv venv --allow-existing .venv
@@ -42,3 +42,10 @@ eval-live:  ## Live evaluation with Claude on the smoke set (needs ANTHROPIC_API
 
 eval-report:  ## Regenerate evals/REPORT.md from all results (newest first)
 	.venv/bin/medchron eval-report $(shell ls -t evals/results/*.json)
+
+calib-seed:  ## Rebuild the gold-derived verifier calibration seed set (labels by construction)
+	.venv/bin/medchron calib seed --data data/synthetic --out evals/calibration/gold-seed.jsonl
+
+calib-selfcheck:  ## Score the oracle judge on the seed set (tooling self-check, not calibration)
+	.venv/bin/medchron calib judge evals/calibration/gold-seed.jsonl --provider oracle --out runs/calib/oracle-judged.jsonl
+	.venv/bin/medchron calib score runs/calib/oracle-judged.jsonl --out evals/calibration/selfcheck.md
