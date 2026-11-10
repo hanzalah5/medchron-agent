@@ -14,6 +14,47 @@
 
 *Synthetic case, demo engine. Every statement links to the exact text on the source page, including scanned (OCR) pages, and nothing leaves the system without attorney approval.*
 
+## What's new in v1.1.0
+
+- **Measurement:**
+  - planted-issue precision alongside recall, in the regression gate
+  - error analysis by category (date error, OCR miss, merge error, wrong span, scope violation)
+  - verifier-calibration tooling. It is tooling only; no human labels exist yet
+- **Harder benchmark:**
+  - 6 clinical scenarios
+  - skewed, sideways and upside-down scans; table pages; copy-forward notes with stale dates; a page from another fictional patient
+  - cases delivered in two productions
+  - a dev split for tuning and a held-out test split for reporting
+- **Product:**
+  - Bates-style page IDs
+  - DOCX and XLSX chronology export, gated by attorney approval and audited
+  - chronology versions with a diff
+  - a provider and facility index, and a gaps-in-treatment view
+  - accessibility checked with axe
+- **Engineering:**
+  - property-based tests for grounding
+  - optional batch extraction (half price, resumes after a crash)
+  - a read-only MCP server with the app's access checks and audit
+  - non-owner database roles, so row-level security can't be bypassed
+  - a worker heartbeat
+  - a load test
+
+**Measured in this release.** The oracle is a gold-label test double, so these numbers measure the system's plumbing, not a model.
+
+| Source | Result |
+|---|---|
+| Oracle self-check, dev / test split | Event recall 100% / 100%, planted-issue precision 94.9% / 97.6% |
+| Oracle with 30% injected noise, dev | Event recall 38.8%, planted-issue precision 78.0% |
+| [Load test](docs/loadtest.md), 2,029 pages | 84.8 s uninterrupted. A run on 3 workers took 132.6 s, with the worker holding the big job SIGKILLed at 69.7 s. It resumed on another worker, reusing 618 checkpointed documents. The chronology was identical, with nothing duplicated and the audit chain verified |
+
+**Still pending:**
+- the live model scorecard (no API key was available)
+- verifier calibration against human labels
+- a live run of batch mode and of MCP over HTTP
+- split database credentials in Terraform
+
+Full release notes are in the [CHANGELOG](CHANGELOG.md).
+
 ## The problem
 
 Firms handling medical malpractice and personal-injury matters receive record productions that run to hundreds or thousands of pages: scanned, duplicated, out of order and spread across many providers. Paralegals and nurse consultants build a **medical chronology** by hand, which is slow, and a missed event or missing record can change a case. Generic "chat with your PDF" tools are not trustworthy here, because they paraphrase without verifiable citations and can invent dates.
