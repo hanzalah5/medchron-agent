@@ -1,4 +1,4 @@
-.PHONY: install lint format typecheck test check synth smoke-data db-up migrate eval-selfcheck eval-live eval-report calib-seed calib-selfcheck fixtures
+.PHONY: install lint format typecheck test check synth smoke-data db-up migrate eval-selfcheck eval-live eval-report calib-seed calib-selfcheck fixtures loadtest
 
 install:  ## Create .venv and install the package with dev extras
 	uv venv --python 3.12 --allow-existing .venv || uv venv --allow-existing .venv
@@ -56,3 +56,6 @@ fixtures:  ## Re-record replay fixtures from the oracle (needed after a prompt o
 	rm -rf tests/fixtures/llm runs/fixtures
 	.venv/bin/medchron run data/synthetic/dev/case_0005.pdf --matter case_0005 --out runs/fixtures \
 		--provider oracle --gold data/synthetic/dev/case_0005.gold.json --record --fixtures tests/fixtures/llm
+
+loadtest:  ## ~2,000 pages, 3 workers, one killed mid-run (LOADTEST_DATABASE_URL: a database it may reset)
+	.venv/bin/python scripts/loadtest.py --pages $(or $(PAGES),2000) --workers $(or $(WORKERS),3)

@@ -49,6 +49,33 @@ def jaccard(a: set[tuple[str, ...]], b: set[tuple[str, ...]]) -> float:
     return len(a & b) / len(a | b)
 
 
+# Header fields that identify a document. A re-sent copy of a page repeats them
+# exactly (apart from OCR noise); two different notes built from the same
+# template usually do not (another author, another encounter, another MRN).
+_FIELD = re.compile(
+    r"\b(mrn|author|date of service|visit date|dos)\s*[:#]\s*(.{2,48}?)(?=\s{2,}|$)",
+    re.IGNORECASE | re.MULTILINE,
+)
+FIELD_SIMILARITY = 0.8
+
+
+def identity_fields(text: str) -> dict[str, str]:
+    """MRN, author and service date from a page header, letters and digits only."""
+    fields: dict[str, str] = {}
+    for name, value in _FIELD.findall(text):
+        key = name.lower()
+        if key not in fields:
+            fields[key] = "".join(re.findall(r"[a-z0-9]+", value.lower()))
+    return fields
+
+
+def _fields_conflict(a: dict[str, str], b: dict[str, str]) -> bool:
+    return any(
+        k in b and a[k] and b[k] and SequenceMatcher(None, a[k], b[k]).ratio() < FIELD_SIMILARITY
+        for k in a
+    )
+
+
 def _dates_conflict(a: set[object], b: set[object]) -> bool:
     """Each page has a date the other lacks: two different documents (e.g. two cover sheets).
 
@@ -69,7 +96,9 @@ def _ocr_duplicate(ta: set[str], tb: set[str], a: str, b: str) -> bool:
 def mark_duplicates(pages: list[Page], threshold: float = NEAR_DUP_THRESHOLD) -> list[Page]:
     """Set ``duplicate_of`` on every page that repeats an earlier page."""
     seen_hash: dict[str, int] = {}
-    originals: list[tuple[int, set[tuple[str, ...]], bool, str, set[str], set[object]]] = []
+    originals: list[
+        tuple[int, set[tuple[str, ...]], bool, str, set[str], set[object], dict[str, str]]
+    ] = []
     for page in pages:
         if page.source == TextSource.NONE or len(page.words) < MIN_WORDS:
             continue
@@ -80,14 +109,16 @@ def mark_duplicates(pages: list[Page], threshold: float = NEAR_DUP_THRESHOLD) ->
             continue
         sh = _shingles(comparable)
         dates: set[object] = {d for d, _ in find_dates(comparable)}
+        fields = identity_fields(page.text)
         words = re.findall(r"[a-z0-9]+", comparable)
         tokens, alnum = set(words), " ".join(words)
         is_ocr = page.source == TextSource.OCR
         match = next(
             (
                 n
-                for n, osh, o_ocr, otext, otok, odates in originals
+                for n, osh, o_ocr, otext, otok, odates, ofields in originals
                 if not _dates_conflict(dates, odates)
+                and not _fields_conflict(fields, ofields)
                 and (
                     _ocr_duplicate(tokens, otok, alnum, otext)
                     if is_ocr or o_ocr
@@ -100,5 +131,5 @@ def mark_duplicates(pages: list[Page], threshold: float = NEAR_DUP_THRESHOLD) ->
             page.duplicate_of = match
             continue
         seen_hash[digest] = page.page_no
-        originals.append((page.page_no, sh, is_ocr, alnum, tokens, dates))
+        originals.append((page.page_no, sh, is_ocr, alnum, tokens, dates, fields))
     return pages

@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from medchron.ingestion import IngestedCase, TextSource, ingest_productions
+from medchron.ingestion import IngestedCase, Page, TextSource, ingest_productions
 from medchron.ingestion.chunking import chunk_page
 from medchron.ingestion.dedupe import comparable_text
 from medchron.ingestion.identity import find_misfiled, page_identity
@@ -183,3 +183,41 @@ def test_orientation_and_deskew_helpers() -> None:
         ox, oy = _unrotate_quarter(x, y, w, h, rot)
         back = upright.rotate(rot, expand=True)
         assert back.size == (w, h) and 0 <= ox <= w and 0 <= oy <= h
+
+
+def _page(n: int, text: str) -> Page:
+    from medchron.ingestion.models import BBox, Word
+
+    words, pos = [], 0
+    for token in text.split():
+        start = text.index(token, pos)
+        words.append(Word(text=token, bbox=BBox(x0=0, y0=0, x1=1, y1=1), char_start=start,
+                          char_end=start + len(token)))  # fmt: skip
+        pos = start + len(token)
+    return Page(page_no=n, text=text, words=words, source=TextSource.TEXT_LAYER, width=612,
+                height=792, content_hash=str(n))  # fmt: skip
+
+
+BODY = (
+    "POD 3. Incision with erythema and purulent drainage consistent with superficial surgical "
+    "site infection. Wound opened at bedside and packed. Cultures sent. Started cephalexin. "
+    "Afebrile. Tolerating diet. Plan: daily dressing changes and wound check in clinic."
+)
+
+
+def test_templated_notes_with_different_headers_are_not_duplicates() -> None:
+    from medchron.ingestion.dedupe import mark_duplicates
+
+    def note(n: int, mrn: str, author: str, fax: str = "") -> Page:
+        head = f"{fax}\n" if fax else ""
+        return _page(n, f"{head}GENERAL HOSPITAL\nSurgery Progress Note\nPatient: A Person   "
+                        f"DOB: 01/02/1980   MRN: {mrn}\nAuthor: {author}\n{BODY}")  # fmt: skip
+
+    pages = [
+        note(1, "T2592612", "W. Mbeki, MD"),
+        note(2, "T2592612", "W. Mbeki, MD", fax="FAX 03/04/2024 10:12 FROM HIM DEPT    P.002"),
+        note(3, "E3919860", "W. Mbeki, MD"),  # another encounter's chart number
+        note(4, "T2592612", "L. Abernathy, MD"),  # same template, another author
+    ]
+    marked = {p.page_no: p.duplicate_of for p in mark_duplicates(pages)}
+    assert marked == {1: None, 2: 1, 3: None, 4: None}

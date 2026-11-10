@@ -250,7 +250,19 @@ def test_row_level_security_in_postgres(engine: Engine, matter: dict[str, Any]) 
 
     assert visible("alice") > 0
     assert visible("mallory") == 0
-    assert visible(None) > 0  # trusted backend process (worker)
+    # The system bypass (worker sessions) needs membership in medchron_system (migration
+    # 0008). The owner has it; an unprivileged role without it sees nothing.
+    if not probe:
+        assert visible(None) > 0  # the owner is a member of medchron_system
+        return
+    assert visible(None) == 0  # an unprivileged role cannot use the bypass
+    with engine.begin() as conn:
+        conn.execute(text("GRANT medchron_system TO medchron_rls_probe"))
+    try:
+        assert visible(None) > 0  # a trusted backend role (like the worker) can
+    finally:
+        with engine.begin() as conn:
+            conn.execute(text("REVOKE medchron_system FROM medchron_rls_probe"))
 
 
 @needs_db
