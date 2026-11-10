@@ -1,0 +1,70 @@
+{
+  "machine": {
+    "cpus": 4,
+    "memory_gb": 15.7,
+    "platform": "Linux-6.18.44-fc-v338-x86_64-with-glibc2.39",
+    "python": "3.12.3"
+  },
+  "started": "2026-11-10T01:57:44.810420+00:00",
+  "data": {
+    "big_pages": 2029,
+    "big_scanned_pages": 33,
+    "big_documents": 2023,
+    "big_gold_events": 3380,
+    "small_cases": 3,
+    "small_pages": 36,
+    "generate_seconds": 4.8
+  },
+  "reference": {
+    "seconds": 84.8,
+    "pages_per_second": 23.9,
+    "documents": 2018,
+    "events": 3278,
+    "issues": 621,
+    "llm_calls": 2185,
+    "status": "completed"
+  },
+  "workers": 3,
+  "stale_after_seconds": 20.0,
+  "queue_seconds_total": 132.6,
+  "killed": {
+    "worker": "w1",
+    "after_seconds": 69.7,
+    "extract_checkpoints_at_kill": 618,
+    "documents": 2018
+  },
+  "peak_rss_mb": {
+    "w1": 558.8,
+    "w2": 181.0,
+    "w3": 616.4
+  },
+  "checks": {
+    "all_jobs_completed": true,
+    "big_job_attempts": 2,
+    "big_job_resumed_after_kill": true,
+    "chronology_matches_reference": true,
+    "page_rows": 2029,
+    "pages_expected": 2029,
+    "event_rows": 3278,
+    "events_expected": 3278,
+    "chronology_versions": 1,
+    "audit_chain_ok": true,
+    "audit_rows": 1512,
+    "reused_documents_on_resume": 618
+  },
+  "big_job_events": [
+    "queued",
+    "attempt 1 started by worker w1",
+    "ingest: production 1: OCR and text extraction",
+    "classify: indexing production 1 into documents",
+    "extract: 2018 documents, concurrency 4",
+    "recovered stale job -> queued",
+    "attempt 2 started by worker w3",
+    "extract: 2018 documents, concurrency 4",
+    "analyze: investigating the chronology for issues",
+    "verify: checking 621 issues against their evidence",
+    "done: 3278 events, 621 issues, status=completed, cost=$0.0000",
+    "finished: completed"
+  ],
+  "passed": true
+}

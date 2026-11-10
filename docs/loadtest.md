@@ -29,7 +29,23 @@ python scripts/loadtest.py --db-url postgresql+psycopg://medchron:...@localhost:
 
 ## Results
 
-*Being re-measured after the de-duplication fix described below; the numbers are added when that run finishes. Earlier measured run (before the fix): see finding 2.*
+Final run, after both fixes below. The raw output is in [`loadtest/results-2026-11-10.json`](loadtest/results-2026-11-10.json).
+
+| | Measured |
+|---|---|
+| Big production | 2,029 pages (33 scanned), 2,023 gold documents, 3,380 gold events |
+| Reference run (1 process, uninterrupted) | **84.8 s**, 23.9 pages/s; 2,018 documents, 3,278 events, 621 issues, 2,185 oracle calls |
+| Queue run (3 workers, big case plus 3 small cases) | **132.6 s** from first claim to last job finished, including the kill and the 20 s stale-job timeout |
+| Kill | Worker `w1` was SIGKILLed after 69.7 s, with 618 of 2,018 documents' extraction checkpointed |
+| Recovery | Requeued as stale. Attempt 2 ran on worker `w3` and **reused all 618 checkpointed documents**. Attempts: 2 |
+| Result vs reference | **Identical chronology** (3,278 events). 2,029 page rows and 3,278 event rows, so nothing duplicated. One chronology version |
+| Audit | 1,512 rows, **hash chain verifies** |
+| Peak RSS per worker | 559 MB (w1, killed), 616 MB (w3, big job), 181 MB (w2, small jobs only) |
+| Verdict | All checks passed |
+
+The reference found 2,018 documents for 2,023 in the gold. The difference is the 5 remaining false duplicates described in finding 2.
+
+The run before the de-duplication fix also passed every check: an 80.5 s reference, a 119.1 s queue run, and 594 documents reused after the kill. But it was segmenting only 1,947 documents, which is how finding 2 surfaced.
 
 ## What the load test found (and what changed)
 
