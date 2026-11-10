@@ -1,7 +1,7 @@
 {
   "label": "oracle-noise-0.3-dev",
-  "created": "2026-11-10T01:07:51+00:00",
-  "git_sha": "d9be935",
+  "created": "2026-11-10T02:10:29+00:00",
+  "git_sha": "5f17b6d",
   "provider": "oracle",
   "is_model_result": false,
   "models": {
@@ -92,8 +92,8 @@
     "output_tokens": 0,
     "cache_read_input_tokens": 0,
     "rejected_events": 25,
-    "seconds_p50": 1.58,
-    "seconds_max": 3.78,
+    "seconds_p50": 1.41,
+    "seconds_max": 3.08,
     "pages": 102,
     "cost_per_100_pages_usd": 0.0
   },
@@ -1763,7 +1763,7 @@
       "rejected_events": 3,
       "issues": 4,
       "rejected_issues": 0,
-      "seconds": 1.1,
+      "seconds": 1.17,
       "productions": 1,
       "reused_documents": 0
     },
@@ -1781,7 +1781,7 @@
       "rejected_events": 5,
       "issues": 4,
       "rejected_issues": 0,
-      "seconds": 1.62,
+      "seconds": 1.64,
       "productions": 1,
       "reused_documents": 0
     },
@@ -1799,7 +1799,7 @@
       "rejected_events": 3,
       "issues": 6,
       "rejected_issues": 0,
-      "seconds": 0.07,
+      "seconds": 0.06,
       "productions": 2,
       "reused_documents": 6
     },
@@ -1817,7 +1817,7 @@
       "rejected_events": 2,
       "issues": 9,
       "rejected_issues": 0,
-      "seconds": 1.27,
+      "seconds": 1.23,
       "productions": 1,
       "reused_documents": 0
     },
@@ -1835,7 +1835,7 @@
       "rejected_events": 3,
       "issues": 1,
       "rejected_issues": 0,
-      "seconds": 1.58,
+      "seconds": 1.53,
       "productions": 1,
       "reused_documents": 0
     },
@@ -1853,7 +1853,7 @@
       "rejected_events": 3,
       "issues": 2,
       "rejected_issues": 0,
-      "seconds": 3.78,
+      "seconds": 3.08,
       "productions": 1,
       "reused_documents": 0
     },
@@ -1871,7 +1871,7 @@
       "rejected_events": 3,
       "issues": 6,
       "rejected_issues": 0,
-      "seconds": 1.67,
+      "seconds": 1.15,
       "productions": 1,
       "reused_documents": 0
     },
@@ -1889,7 +1889,7 @@
       "rejected_events": 3,
       "issues": 8,
       "rejected_issues": 0,
-      "seconds": 1.44,
+      "seconds": 1.41,
       "productions": 2,
       "reused_documents": 7
     }
