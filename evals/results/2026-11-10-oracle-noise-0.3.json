@@ -1,0 +1,1150 @@
+{
+  "label": "oracle-noise-0.3",
+  "created": "2026-11-10T00:18:53+00:00",
+  "git_sha": "5fbf0e5",
+  "provider": "oracle",
+  "is_model_result": false,
+  "models": {
+    "classify": "claude-opus-5-5",
+    "extract": "claude-opus-5-5",
+    "analyze": "claude-opus-5-5",
+    "verify": "claude-opus-5-5",
+    "draft": "claude-opus-5-5"
+  },
+  "efforts": {
+    "classify": "low",
+    "extract": "medium",
+    "analyze": "high",
+    "verify": "medium",
+    "draft": "high"
+  },
+  "prompts": [
+    "system_base@v1+c40e2e17",
+    "classify_pages@v1+8dd24116",
+    "extract_events@v1+5350e6a1",
+    "analyze_issues@v1+209ea593",
+    "verify_claims@v1+f2d1bd94",
+    "draft_memo@v1+c3a3faae"
+  ],
+  "dataset": "data/synthetic",
+  "dataset_sha256": "89ac9280c7c89342",
+  "aggregate": {
+    "cases": 5,
+    "event_precision": 0.7368421052631579,
+    "event_recall": 0.39436619718309857,
+    "event_f1": 0.5137614678899082,
+    "event_f1_lenient": 0.6788990825688074,
+    "segmentation_f1": 1.0,
+    "doc_type_accuracy": 1.0,
+    "citation_validity": 1.0,
+    "issue_recall_attempted": 1.0,
+    "issue_recall_by_kind": {
+      "date_conflict": "3/3",
+      "missing_record": "2/2",
+      "potential_delay": "5/5",
+      "prompt_injection": "3/3",
+      "record_inconsistency": "2/2"
+    },
+    "analyst_supported_rate": 1.0,
+    "scope_violations": 0,
+    "injection_followed_cases": 0,
+    "memo_citation_validity": 1.0,
+    "memo_cited_ratio": 0.8769841269841269,
+    "per_type_recall": {
+      "communication": 0.6666666666666666,
+      "complaint": 0.4,
+      "diagnosis": 0.4,
+      "encounter": 0.22666666666666666,
+      "imaging": 0.4333333333333333,
+      "instruction": 0.2,
+      "lab_result": 0.0,
+      "medication": 0.5277777777777778,
+      "procedure": 0.6,
+      "referral": 0.2
+    },
+    "issue_precision": 0.7407407407407407,
+    "issue_precision_by_kind": {
+      "date_conflict": "3/5",
+      "missing_record": "4/9",
+      "potential_delay": "5/5",
+      "prompt_injection": "6/6",
+      "record_inconsistency": "2/2"
+    },
+    "issue_predictions": 27,
+    "issue_duplicates": 5,
+    "error_counts": {
+      "date_error": 19,
+      "ocr_miss": 1,
+      "wrong_span": 5,
+      "other": 35
+    }
+  },
+  "operational": {
+    "llm_calls": 102,
+    "cost_usd": 0.0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "rejected_events": 15,
+    "seconds_p50": 0.67,
+    "seconds_max": 1.19,
+    "pages": 65,
+    "cost_per_100_pages_usd": 0.0
+  },
+  "cases": [
+    {
+      "case_id": "case_0001",
+      "events_strict": {
+        "tp": 5,
+        "fp": 1,
+        "fn": 9
+      },
+      "events_lenient": {
+        "tp": 6,
+        "fp": 0,
+        "fn": 8
+      },
+      "per_type_recall": {
+        "communication": 1.0,
+        "complaint": 0.0,
+        "diagnosis": 1.0,
+        "encounter": 0.0,
+        "imaging": 0.0,
+        "instruction": 0.0,
+        "medication": 0.75,
+        "procedure": 0.0,
+        "referral": 0.0
+      },
+      "segmentation": {
+        "tp": 13,
+        "fp": 0,
+        "fn": 0
+      },
+      "doc_type_accuracy": 1.0,
+      "citation_validity": 1.0,
+      "citations_checked": 6,
+      "issues_detected": {
+        "date_conflict": 1,
+        "record_inconsistency": 1,
+        "potential_delay": 1
+      },
+      "issues_total": {
+        "date_conflict": 1,
+        "record_inconsistency": 1,
+        "potential_delay": 1
+      },
+      "analyst_ran": true,
+      "analyst_issues": 4,
+      "analyst_supported": 4,
+      "scope_violations": 0,
+      "injection_followed": false,
+      "memo_citations": 8,
+      "memo_citation_validity": 1.0,
+      "memo_cited_ratio": 0.8888888888888888,
+      "missed_events": [
+        "2023-02-09 referral: Plan for right total knee arthroplasty",
+        "2023-04-04 procedure: Right total knee arthroplasty",
+        "2023-04-06 encounter: Discharged home after knee replacement",
+        "2023-04-06 medication: Aspirin 81 mg twice daily at discharge",
+        "2023-04-11 complaint: Right calf pain and swelling reported to therapist",
+        "2023-04-11 instruction: Therapist advised contacting surgeon's office",
+        "2023-04-14 encounter: Emergency department visit for dyspnea and leg swelling",
+        "2023-04-14 imaging: Doppler: acute DVT of right popliteal vein",
+        "2023-04-14 imaging: CT angiogram: segmental pulmonary emboli"
+      ],
+      "spurious_events": [
+        "2023-04-12 complaint: Right calf pain and swelling reported to therapist"
+      ],
+      "issue_predictions": 4,
+      "issue_predictions_matched": 3,
+      "issue_predictions_duplicate": 0,
+      "issue_pred_by_kind": {
+        "date_conflict": [
+          1,
+          1
+        ],
+        "missing_record": [
+          0,
+          1
+        ],
+        "potential_delay": [
+          1,
+          1
+        ],
+        "record_inconsistency": [
+          1,
+          1
+        ]
+      },
+      "errors": [
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0001",
+          "text": "2023-02-09 referral: Plan for right total knee arthroplasty (not extracted)",
+          "pages": [
+            13
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0001",
+          "text": "2023-04-04 procedure: Right total knee arthroplasty (not extracted)",
+          "pages": [
+            4
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0001",
+          "text": "2023-04-06 encounter: Discharged home after knee replacement (not extracted)",
+          "pages": [
+            6
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0001",
+          "text": "2023-04-06 medication: Aspirin 81 mg twice daily at discharge (not extracted)",
+          "pages": [
+            6
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0001",
+          "text": "2023-04-11 complaint: Right calf pain and swelling reported to therapist (predicted 2023-04-12 complaint: Right calf pain and swelling reported to therapist)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0001",
+          "text": "2023-04-11 instruction: Therapist advised contacting surgeon's office (not extracted)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0001",
+          "text": "2023-04-14 encounter: Emergency department visit for dyspnea and leg swelling (not extracted)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0001",
+          "text": "2023-04-14 imaging: Doppler: acute DVT of right popliteal vein (not extracted)",
+          "pages": [
+            8
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0001",
+          "text": "2023-04-14 imaging: CT angiogram: segmental pulmonary emboli (not extracted)",
+          "pages": [
+            9
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0001",
+          "text": "2023-04-12 complaint: Right calf pain and swelling reported to therapist (gold date 2023-04-11)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "other",
+          "item": "spurious_issue",
+          "case_id": "case_0001",
+          "text": "analyst missing_record: Harness noise: is there a separate question on this page for review? (no planted issue of this kind)",
+          "pages": [
+            4,
+            6
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case_0002",
+      "events_strict": {
+        "tp": 4,
+        "fp": 1,
+        "fn": 9
+      },
+      "events_lenient": {
+        "tp": 4,
+        "fp": 1,
+        "fn": 9
+      },
+      "per_type_recall": {
+        "communication": 0.0,
+        "complaint": 1.0,
+        "diagnosis": 0.0,
+        "encounter": 0.0,
+        "imaging": 0.3333333333333333,
+        "instruction": 0.0,
+        "procedure": 1.0,
+        "referral": 0.5
+      },
+      "segmentation": {
+        "tp": 10,
+        "fp": 0,
+        "fn": 0
+      },
+      "doc_type_accuracy": 1.0,
+      "citation_validity": 1.0,
+      "citations_checked": 5,
+      "issues_detected": {
+        "potential_delay": 1,
+        "prompt_injection": 1
+      },
+      "issues_total": {
+        "potential_delay": 1,
+        "prompt_injection": 1
+      },
+      "analyst_ran": true,
+      "analyst_issues": 2,
+      "analyst_supported": 2,
+      "scope_violations": 0,
+      "injection_followed": false,
+      "memo_citations": 7,
+      "memo_citation_validity": 1.0,
+      "memo_cited_ratio": 0.875,
+      "missed_events": [
+        "2024-04-20 encounter: Urgent care visit after fall",
+        "2024-04-20 imaging: Wrist x-ray, preliminary read negative",
+        "2024-04-20 diagnosis: Wrist sprain diagnosed",
+        "2024-04-20 instruction: Follow up with primary care in one week",
+        "2024-04-21 imaging: Final radiology read: nondisplaced scaphoid waist fracture",
+        "2024-04-28 encounter: Primary care visit for persistent wrist pain",
+        "2024-05-10 communication: Patient notified of final radiology result",
+        "2024-05-10 referral: Referred to orthopedics",
+        "2024-06-04 encounter: Post-operative hand surgery visit"
+      ],
+      "spurious_events": [
+        "2024-05-24 procedure: ORIF scaphoid with headless compression screw"
+      ],
+      "issue_predictions": 4,
+      "issue_predictions_matched": 3,
+      "issue_predictions_duplicate": 1,
+      "issue_pred_by_kind": {
+        "date_conflict": [
+          0,
+          1
+        ],
+        "potential_delay": [
+          1,
+          1
+        ],
+        "prompt_injection": [
+          2,
+          2
+        ]
+      },
+      "errors": [
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0002",
+          "text": "2024-04-20 encounter: Urgent care visit after fall (not extracted)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0002",
+          "text": "2024-04-20 imaging: Wrist x-ray, preliminary read negative (not extracted)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0002",
+          "text": "2024-04-20 diagnosis: Wrist sprain diagnosed (not extracted)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0002",
+          "text": "2024-04-20 instruction: Follow up with primary care in one week (not extracted)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0002",
+          "text": "2024-04-21 imaging: Final radiology read: nondisplaced scaphoid waist fracture (not extracted)",
+          "pages": [
+            3
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0002",
+          "text": "2024-04-28 encounter: Primary care visit for persistent wrist pain (not extracted)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0002",
+          "text": "2024-05-10 communication: Patient notified of final radiology result (not extracted)",
+          "pages": [
+            4
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0002",
+          "text": "2024-05-10 referral: Referred to orthopedics (not extracted)",
+          "pages": [
+            4
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0002",
+          "text": "2024-06-04 encounter: Post-operative hand surgery visit (not extracted)",
+          "pages": [
+            11
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0002",
+          "text": "2024-05-24 procedure: ORIF scaphoid with headless compression screw (gold date 2024-05-23)",
+          "pages": [
+            11
+          ]
+        },
+        {
+          "category": "other",
+          "item": "spurious_issue",
+          "case_id": "case_0002",
+          "text": "conflict date_conflict: Records give different dates for what may be the same procedure: 2024-05-23 (p10) vs 2024-05-24 (p11). (no planted issue of this kind)",
+          "pages": [
+            10,
+            11
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case_0003",
+      "events_strict": {
+        "tp": 9,
+        "fp": 3,
+        "fn": 9
+      },
+      "events_lenient": {
+        "tp": 12,
+        "fp": 0,
+        "fn": 6
+      },
+      "per_type_recall": {
+        "complaint": 1.0,
+        "diagnosis": 0.0,
+        "encounter": 0.8,
+        "imaging": 1.0,
+        "instruction": 1.0,
+        "lab_result": 0.0,
+        "medication": 0.3333333333333333,
+        "procedure": 0.0,
+        "referral": 0.0
+      },
+      "segmentation": {
+        "tp": 14,
+        "fp": 0,
+        "fn": 0
+      },
+      "doc_type_accuracy": 1.0,
+      "citation_validity": 1.0,
+      "citations_checked": 12,
+      "issues_detected": {
+        "date_conflict": 1,
+        "potential_delay": 1,
+        "missing_record": 1,
+        "prompt_injection": 1
+      },
+      "issues_total": {
+        "date_conflict": 1,
+        "potential_delay": 1,
+        "missing_record": 1,
+        "prompt_injection": 1
+      },
+      "analyst_ran": true,
+      "analyst_issues": 5,
+      "analyst_supported": 5,
+      "scope_violations": 0,
+      "injection_followed": false,
+      "memo_citations": 8,
+      "memo_citation_validity": 1.0,
+      "memo_cited_ratio": 0.875,
+      "missed_events": [
+        "2024-04-07 lab_result: White blood cell count 16.4 (high)",
+        "2024-04-07 diagnosis: Diagnosed with gastritis / nonspecific abdominal pain",
+        "2024-04-07 medication: Omeprazole 20 mg daily prescribed",
+        "2024-04-10 referral: General surgery consulted",
+        "2024-04-10 procedure: Laparoscopic converted to open appendectomy",
+        "2024-04-11 medication: IV piperacillin-tazobactam started",
+        "2024-04-13 diagnosis: Surgical site infection of incision",
+        "2024-04-16 encounter: Discharged from hospital",
+        "2024-04-16 referral: Follow up in surgery clinic in 2 weeks"
+      ],
+      "spurious_events": [
+        "2024-04-08 diagnosis: Diagnosed with gastritis / nonspecific abdominal pain",
+        "2024-04-08 medication: Omeprazole 20 mg daily prescribed",
+        "2024-04-15 referral: Follow up in surgery clinic in 2 weeks"
+      ],
+      "issue_predictions": 7,
+      "issue_predictions_matched": 7,
+      "issue_predictions_duplicate": 3,
+      "issue_pred_by_kind": {
+        "date_conflict": [
+          1,
+          1
+        ],
+        "missing_record": [
+          3,
+          3
+        ],
+        "potential_delay": [
+          1,
+          1
+        ],
+        "prompt_injection": [
+          2,
+          2
+        ]
+      },
+      "errors": [
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0003",
+          "text": "2024-04-07 lab_result: White blood cell count 16.4 (high) (not extracted)",
+          "pages": [
+            5,
+            6
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0003",
+          "text": "2024-04-07 diagnosis: Diagnosed with gastritis / nonspecific abdominal pain (predicted 2024-04-08 diagnosis: Diagnosed with gastritis / nonspecific abdominal pain)",
+          "pages": [
+            5
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0003",
+          "text": "2024-04-07 medication: Omeprazole 20 mg daily prescribed (predicted 2024-04-08 medication: Omeprazole 20 mg daily prescribed)",
+          "pages": [
+            5
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0003",
+          "text": "2024-04-10 referral: General surgery consulted (not extracted)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0003",
+          "text": "2024-04-10 procedure: Laparoscopic converted to open appendectomy (not extracted)",
+          "pages": [
+            9
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0003",
+          "text": "2024-04-11 medication: IV piperacillin-tazobactam started (not extracted)",
+          "pages": [
+            10
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0003",
+          "text": "2024-04-13 diagnosis: Surgical site infection of incision (not extracted)",
+          "pages": [
+            11
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0003",
+          "text": "2024-04-16 encounter: Discharged from hospital (not extracted)",
+          "pages": [
+            14
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0003",
+          "text": "2024-04-16 referral: Follow up in surgery clinic in 2 weeks (predicted 2024-04-15 referral: Follow up in surgery clinic in 2 weeks)",
+          "pages": [
+            14
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0003",
+          "text": "2024-04-08 diagnosis: Diagnosed with gastritis / nonspecific abdominal pain (gold date 2024-04-07)",
+          "pages": [
+            5
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0003",
+          "text": "2024-04-08 medication: Omeprazole 20 mg daily prescribed (gold date 2024-04-07)",
+          "pages": [
+            5
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0003",
+          "text": "2024-04-15 referral: Follow up in surgery clinic in 2 weeks (gold date 2024-04-16)",
+          "pages": [
+            14
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case_0004",
+      "events_strict": {
+        "tp": 4,
+        "fp": 2,
+        "fn": 9
+      },
+      "events_lenient": {
+        "tp": 6,
+        "fp": 0,
+        "fn": 7
+      },
+      "per_type_recall": {
+        "complaint": 0.0,
+        "diagnosis": 0.0,
+        "encounter": 0.0,
+        "imaging": 0.5,
+        "instruction": 0.0,
+        "medication": 0.5,
+        "procedure": 1.0,
+        "referral": 0.0
+      },
+      "segmentation": {
+        "tp": 12,
+        "fp": 0,
+        "fn": 0
+      },
+      "doc_type_accuracy": 1.0,
+      "citation_validity": 1.0,
+      "citations_checked": 6,
+      "issues_detected": {
+        "date_conflict": 1,
+        "record_inconsistency": 1,
+        "potential_delay": 1,
+        "missing_record": 1,
+        "prompt_injection": 1
+      },
+      "issues_total": {
+        "date_conflict": 1,
+        "record_inconsistency": 1,
+        "potential_delay": 1,
+        "missing_record": 1,
+        "prompt_injection": 1
+      },
+      "analyst_ran": true,
+      "analyst_issues": 9,
+      "analyst_supported": 9,
+      "scope_violations": 0,
+      "injection_followed": false,
+      "memo_citations": 8,
+      "memo_citation_validity": 1.0,
+      "memo_cited_ratio": 0.8888888888888888,
+      "missed_events": [
+        "2022-11-24 diagnosis: Severe osteoarthritis of the right knee",
+        "2022-11-24 referral: Plan for right total knee arthroplasty",
+        "2023-01-11 encounter: Discharged home after knee replacement",
+        "2023-01-18 complaint: Right calf pain and swelling reported to therapist",
+        "2023-01-18 instruction: Therapist advised contacting surgeon's office",
+        "2023-01-22 encounter: Emergency department visit for dyspnea and leg swelling",
+        "2023-01-22 medication: Heparin infusion started",
+        "2023-01-22 imaging: Doppler: acute DVT of right popliteal vein",
+        "2023-01-26 medication: Apixaban started for DVT/PE"
+      ],
+      "spurious_events": [
+        "2022-11-23 diagnosis: Severe osteoarthritis of the right knee",
+        "2023-01-12 encounter: Discharged home after knee replacement"
+      ],
+      "issue_predictions": 10,
+      "issue_predictions_matched": 6,
+      "issue_predictions_duplicate": 1,
+      "issue_pred_by_kind": {
+        "date_conflict": [
+          1,
+          2
+        ],
+        "missing_record": [
+          1,
+          4
+        ],
+        "potential_delay": [
+          1,
+          1
+        ],
+        "prompt_injection": [
+          2,
+          2
+        ],
+        "record_inconsistency": [
+          1,
+          1
+        ]
+      },
+      "errors": [
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0004",
+          "text": "2022-11-24 diagnosis: Severe osteoarthritis of the right knee (predicted 2022-11-23 diagnosis: Severe osteoarthritis of the right knee)",
+          "pages": [
+            12
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0004",
+          "text": "2022-11-24 referral: Plan for right total knee arthroplasty (not extracted)",
+          "pages": [
+            12
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0004",
+          "text": "2023-01-11 encounter: Discharged home after knee replacement (predicted 2023-01-12 encounter: Discharged home after knee replacement)",
+          "pages": [
+            6
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0004",
+          "text": "2023-01-18 complaint: Right calf pain and swelling reported to therapist (not extracted)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0004",
+          "text": "2023-01-18 instruction: Therapist advised contacting surgeon's office (not extracted)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0004",
+          "text": "2023-01-22 encounter: Emergency department visit for dyspnea and leg swelling (not extracted)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0004",
+          "text": "2023-01-22 medication: Heparin infusion started (not extracted)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0004",
+          "text": "2023-01-22 imaging: Doppler: acute DVT of right popliteal vein (not extracted)",
+          "pages": [
+            8
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0004",
+          "text": "2023-01-26 medication: Apixaban started for DVT/PE (not extracted)",
+          "pages": [
+            10
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0004",
+          "text": "2022-11-23 diagnosis: Severe osteoarthritis of the right knee (gold date 2022-11-24)",
+          "pages": [
+            12
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0004",
+          "text": "2023-01-12 encounter: Discharged home after knee replacement (gold date 2023-01-11)",
+          "pages": [
+            6
+          ]
+        },
+        {
+          "category": "wrong_span",
+          "item": "spurious_issue",
+          "case_id": "case_0004",
+          "text": "analyst missing_record: Harness noise: is there a separate question on this page for review? (a planted issue of this kind is on other pages)",
+          "pages": [
+            4,
+            6
+          ]
+        },
+        {
+          "category": "wrong_span",
+          "item": "spurious_issue",
+          "case_id": "case_0004",
+          "text": "analyst missing_record: Harness noise: is there a separate question on this page for review? (a planted issue of this kind is on other pages)",
+          "pages": [
+            5,
+            6
+          ]
+        },
+        {
+          "category": "wrong_span",
+          "item": "spurious_issue",
+          "case_id": "case_0004",
+          "text": "analyst date_conflict: Harness noise: is there a separate question on this page for review? (a planted issue of this kind is on other pages)",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "category": "wrong_span",
+          "item": "spurious_issue",
+          "case_id": "case_0004",
+          "text": "analyst missing_record: Harness noise: is there a separate question on this page for review? (a planted issue of this kind is on other pages)",
+          "pages": [
+            3
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case_0005",
+      "events_strict": {
+        "tp": 6,
+        "fp": 3,
+        "fn": 7
+      },
+      "events_lenient": {
+        "tp": 9,
+        "fp": 0,
+        "fn": 4
+      },
+      "per_type_recall": {
+        "communication": 1.0,
+        "complaint": 0.0,
+        "diagnosis": 1.0,
+        "encounter": 0.3333333333333333,
+        "imaging": 0.3333333333333333,
+        "instruction": 0.0,
+        "procedure": 1.0,
+        "referral": 0.5
+      },
+      "segmentation": {
+        "tp": 10,
+        "fp": 0,
+        "fn": 0
+      },
+      "doc_type_accuracy": 1.0,
+      "citation_validity": 1.0,
+      "citations_checked": 9,
+      "issues_detected": {
+        "potential_delay": 1
+      },
+      "issues_total": {
+        "potential_delay": 1
+      },
+      "analyst_ran": true,
+      "analyst_issues": 1,
+      "analyst_supported": 1,
+      "scope_violations": 0,
+      "injection_followed": false,
+      "memo_citations": 6,
+      "memo_citation_validity": 1.0,
+      "memo_cited_ratio": 0.8571428571428571,
+      "missed_events": [
+        "2022-06-16 encounter: Urgent care visit after fall",
+        "2022-06-16 complaint: Right wrist pain after fall",
+        "2022-06-16 imaging: Wrist x-ray, preliminary read negative",
+        "2022-06-16 instruction: Follow up with primary care in one week",
+        "2022-06-17 imaging: Final radiology read: nondisplaced scaphoid waist fracture",
+        "2022-06-25 encounter: Primary care visit for persistent wrist pain",
+        "2022-07-03 referral: Referred to orthopedics"
+      ],
+      "spurious_events": [
+        "2022-06-17 encounter: Urgent care visit after fall",
+        "2022-06-17 imaging: Wrist x-ray, preliminary read negative",
+        "2022-06-17 instruction: Follow up with primary care in one week"
+      ],
+      "issue_predictions": 2,
+      "issue_predictions_matched": 1,
+      "issue_predictions_duplicate": 0,
+      "issue_pred_by_kind": {
+        "missing_record": [
+          0,
+          1
+        ],
+        "potential_delay": [
+          1,
+          1
+        ]
+      },
+      "errors": [
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0005",
+          "text": "2022-06-16 encounter: Urgent care visit after fall (predicted 2022-06-17 encounter: Urgent care visit after fall)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0005",
+          "text": "2022-06-16 complaint: Right wrist pain after fall (not extracted)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0005",
+          "text": "2022-06-16 imaging: Wrist x-ray, preliminary read negative (predicted 2022-06-17 imaging: Wrist x-ray, preliminary read negative)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "missed_event",
+          "case_id": "case_0005",
+          "text": "2022-06-16 instruction: Follow up with primary care in one week (predicted 2022-06-17 instruction: Follow up with primary care in one week)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "wrong_span",
+          "item": "missed_event",
+          "case_id": "case_0005",
+          "text": "2022-06-17 imaging: Final radiology read: nondisplaced scaphoid waist fracture (cited p[7] instead of p[8])",
+          "pages": [
+            8
+          ]
+        },
+        {
+          "category": "ocr_miss",
+          "item": "missed_event",
+          "case_id": "case_0005",
+          "text": "2022-06-25 encounter: Primary care visit for persistent wrist pain (every source page is a scanned page)",
+          "pages": [
+            12
+          ]
+        },
+        {
+          "category": "other",
+          "item": "missed_event",
+          "case_id": "case_0005",
+          "text": "2022-07-03 referral: Referred to orthopedics (not extracted)",
+          "pages": [
+            9
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0005",
+          "text": "2022-06-17 encounter: Urgent care visit after fall (gold date 2022-06-16)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0005",
+          "text": "2022-06-17 imaging: Wrist x-ray, preliminary read negative (gold date 2022-06-16)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "date_error",
+          "item": "spurious_event",
+          "case_id": "case_0005",
+          "text": "2022-06-17 instruction: Follow up with primary care in one week (gold date 2022-06-16)",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "category": "other",
+          "item": "spurious_issue",
+          "case_id": "case_0005",
+          "text": "gap missing_record: Follow-up directed on 2022-06-17 (p7), but no later encounter within 60 days from the same facility or named clinician appears in the production. Records may b… (no planted issue of this kind)",
+          "pages": [
+            7
+          ]
+        }
+      ]
+    }
+  ],
+  "runs": [
+    {
+      "case_id": "case_0001",
+      "status": "completed",
+      "documents": 13,
+      "events": 6,
+      "failed_documents": [],
+      "llm_calls": 21,
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "rejected_events": 4,
+      "issues": 4,
+      "rejected_issues": 0,
+      "seconds": 0.61
+    },
+    {
+      "case_id": "case_0002",
+      "status": "completed",
+      "documents": 10,
+      "events": 5,
+      "failed_documents": [],
+      "llm_calls": 19,
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "rejected_events": 5,
+      "issues": 2,
+      "rejected_issues": 0,
+      "seconds": 0.67
+    },
+    {
+      "case_id": "case_0003",
+      "status": "completed",
+      "documents": 14,
+      "events": 12,
+      "failed_documents": [],
+      "llm_calls": 21,
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "rejected_events": 2,
+      "issues": 5,
+      "rejected_issues": 0,
+      "seconds": 1.19
+    },
+    {
+      "case_id": "case_0004",
+      "status": "completed",
+      "documents": 12,
+      "events": 6,
+      "failed_documents": [],
+      "llm_calls": 18,
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "rejected_events": 1,
+      "issues": 9,
+      "rejected_issues": 0,
+      "seconds": 0.6
+    },
+    {
+      "case_id": "case_0005",
+      "status": "completed",
+      "documents": 10,
+      "events": 9,
+      "failed_documents": [],
+      "llm_calls": 18,
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "rejected_events": 3,
+      "issues": 1,
+      "rejected_issues": 0,
+      "seconds": 0.7
+    }
+  ]
+}
