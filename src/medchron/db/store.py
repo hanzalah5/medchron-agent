@@ -71,6 +71,7 @@ def save_ingested(
             duplicate_of=p.duplicate_of,
             words=[w.model_dump() for w in p.words],
             production=p.production,
+            bates=p.bates,
         )
         for p in case.pages
     )
@@ -120,6 +121,7 @@ def load_ingested(session: Session, matter_id: str) -> IngestedCase:
                     "content_hash": p.content_hash,
                     "duplicate_of": p.duplicate_of,
                     "production": p.production,
+                    "bates": p.bates,
                 }
             )
             for p in pages

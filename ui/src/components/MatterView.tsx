@@ -1,12 +1,20 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, Chronology, Issue, Job, MatterDetail, Memo, ReviewState, ReviewStatus, TriageStatus } from "../api";
+import { api, Chronology, Issue, Job, MatterDetail, Me, Memo, ReviewState, ReviewStatus, TriageStatus } from "../api";
 import { ChronologyTable } from "./ChronologyTable";
+import { ExportPanel } from "./ExportPanel";
+import { GapsPanel } from "./GapsPanel";
+import { ProvidersPanel } from "./ProvidersPanel";
+import { VersionsPanel } from "./VersionsPanel";
 import { IssuesPanel } from "./IssuesPanel";
 import { MemoPanel } from "./MemoPanel";
 import { Highlight, PageViewer } from "./PageViewer";
 import { StatusBadge } from "./StatusBadge";
 
-export function MatterView({ matterId }: { matterId: string }) {
+const TABS = ["Review", "Providers", "Gaps", "Versions", "Export"] as const;
+type Tab = (typeof TABS)[number];
+
+export function MatterView({ matterId, me }: { matterId: string; me: Me }) {
+  const [tab, setTab] = useState<Tab>("Review");
   const [detail, setDetail] = useState<MatterDetail | null>(null);
   const [chron, setChron] = useState<Chronology | null>(null);
   const [review, setReview] = useState<ReviewState | null>(null);
@@ -121,6 +129,23 @@ export function MatterView({ matterId }: { matterId: string }) {
     setReview((prev) => (prev ? { ...prev, ...r } : prev));
   }
 
+  async function approveChronology() {
+    try {
+      const approval = await api.approveChronology(matterId);
+      setReview((prev) => (prev ? { ...prev, chronology_approval: approval } : prev));
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  async function refreshReview() {
+    try {
+      setReview(await api.review(matterId));
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
   function cite(eventId: string | null, h: Highlight) {
     setSelected(eventId);
     setHighlight(h);
@@ -150,9 +175,9 @@ export function MatterView({ matterId }: { matterId: string }) {
           </div>
         </div>
         {chron && (
-          <a className="button" href={api.exportUrl(matterId)} data-testid="export">
-            Export draft (.md)
-          </a>
+          <button className="button" onClick={() => { setTab("Export"); refreshReview(); }} data-testid="export">
+            Export…
+          </button>
         )}
       </div>
       {error && <p className="error">{error}</p>}
@@ -170,8 +195,55 @@ export function MatterView({ matterId }: { matterId: string }) {
       {job?.status === "failed" && <p className="error">Job failed: {job.error}</p>}
 
       {chron && review && (
+        <div className="tabs" role="tablist" aria-label="Matter views">
+          {TABS.map((t) => (
+            <button
+              key={t}
+              role="tab"
+              id={`tab-${t}`}
+              aria-selected={tab === t}
+              aria-controls={`panel-${t}`}
+              className={tab === t ? "tab tab-active" : "tab"}
+              onClick={() => {
+                setTab(t);
+                if (t === "Export") refreshReview();
+              }}
+              data-testid={`tab-${t.toLowerCase()}`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {chron && review && (
         <div className="split">
-          <div className="left">
+          <div className="left" role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
+            {tab === "Providers" && <ProvidersPanel matterId={matterId} onCite={(h) => cite(null, h)} />}
+            {tab === "Gaps" && <GapsPanel matterId={matterId} />}
+            {tab === "Versions" && detail && (
+              <VersionsPanel
+                matterId={matterId}
+                productions={detail.productions}
+                provider={job?.provider ?? "anthropic"}
+                busy={!!job && ["queued", "running"].includes(job.status)}
+                onAdded={() => {
+                  setProgress([]);
+                  loadAll();
+                }}
+                onCite={(h) => cite(null, h)}
+              />
+            )}
+            {tab === "Export" && (
+              <ExportPanel
+                matterId={matterId}
+                approval={review.chronology_approval}
+                indexConfirmed={!!review.index_confirmed_at}
+                canApprove={me.roles.includes("attorney")}
+                onApprove={approveChronology}
+              />
+            )}
+            {tab === "Review" && (<>
             <section className="card" data-testid="for-review">
               <h2>For review</h2>
               <ul className="signals">
@@ -272,6 +344,7 @@ export function MatterView({ matterId }: { matterId: string }) {
                 </tbody>
               </table>
             </section>
+            </>)}
           </div>
           <div className="right">
             <PageViewer

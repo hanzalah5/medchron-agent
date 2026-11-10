@@ -165,6 +165,7 @@ def process(engine: Engine, job_id: str, storage: Storage | None = None) -> None
         assert matter is not None
         provider_name, budget, kind = job.provider, job.budget_usd, job.kind
         matter_id, sha = matter.matter_id, matter.source_sha256
+        bates_prefix = matter.bates_prefix or None
         keys = [r.storage_key for r in list_productions(s, matter_id)] or [matter.source_path]
 
     summary: dict[str, Any] | None = None
@@ -175,7 +176,15 @@ def process(engine: Engine, job_id: str, storage: Storage | None = None) -> None
             status, error = "completed", None
         else:
             summary = _pipeline(
-                engine, storage, matter_id, keys, provider, budget, note, job_id=job_id
+                engine,
+                storage,
+                matter_id,
+                keys,
+                provider,
+                budget,
+                note,
+                job_id=job_id,
+                bates_prefix=bates_prefix,
             )
             status, error = str(summary["status"]), None
     except Exception as e:  # the job records the failure; the worker keeps running
@@ -208,6 +217,7 @@ def _pipeline(
     budget: float | None,
     note: Callable[[str], None],
     job_id: str | None = None,
+    bates_prefix: str | None = None,
 ) -> dict[str, Any]:
     """Run every production of the matter, in order. Earlier work is reused from checkpoints."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -217,9 +227,8 @@ def _pipeline(
             pdf.write_bytes(storage.get(key))
             pdfs.append(pdf)
         out = Path(os.environ.get("MEDCHRON_RUNS_DIR", "runs")) / matter_id
-        result = run_case(
-            pdfs, matter_id, provider, RunConfig(out_dir=out, budget_usd=budget), progress=note
-        )
+        config = RunConfig(out_dir=out, budget_usd=budget, bates_prefix=bates_prefix)
+        result = run_case(pdfs, matter_id, provider, config, progress=note)
     with Session(engine) as s, s.begin():
         save_ingested(s, result.case, get_embedder())
         record_page_ranges(s, result.case)

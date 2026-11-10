@@ -44,6 +44,7 @@ PERMISSIONS: dict[str, set[Role]] = {
     "issues.triage": {Role.ATTORNEY},
     "memo.draft": {Role.ATTORNEY},
     "memo.approve": {Role.ATTORNEY},
+    "chronology.approve": {Role.ATTORNEY},
     "audit.read": {Role.AUDITOR, Role.ADMIN},
 }
 

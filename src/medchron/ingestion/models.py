@@ -52,6 +52,7 @@ class Page(BaseModel):
     content_hash: str = Field(description="SHA-256 of whitespace-normalized text")
     duplicate_of: int | None = Field(default=None, description="Earlier page this duplicates")
     production: int = Field(default=1, ge=1, description="Which production (upload) it came in")
+    bates: str = Field(default="", description="Bates-style ID, e.g. SMITH-000123")
 
     @property
     def needs_review(self) -> bool:

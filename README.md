@@ -24,11 +24,16 @@ Firms handling medical malpractice and personal-injury matters receive record pr
 
 1. **Ingests** messy PDFs: text layer plus Tesseract OCR with confidence scores, duplicate-page detection, segmentation into documents, and page-anchored spans with word boxes.
 2. **Extracts** events with agents whose tool **rejects any event it can't ground**: the span must exist, the quote must be found in it, and the date must parse and match. The model corrects itself.
-3. **Builds a chronology**: merges mentions across documents (keeping every source), and flags *candidate* date conflicts and missing follow-up records.
+3. **Builds a chronology**: merges mentions across documents (keeping every source), and flags *candidate* date conflicts, missing follow-up records and pages that appear to belong to another patient. Records that arrive later as a **second production** reuse earlier work, and each change produces a new **chronology version** with a diff. Reviewer decisions carry over.
 4. **Investigates**: an issue-analyst agent with read-only tools raises **questions for expert review**. A scope guard rejects conclusions ("negligent", "met the standard of care").
 5. **Verifies**: an independent judge rates each issue against only its cited evidence.
 6. **Drafts** a memo with Claude's native **Citations**. Every cited character range is checked against the page text.
-7. Keeps **humans in control** at four checkpoints: confirm the index → review events → triage issues → approve the memo, which is the only route to export.
+7. Keeps **humans in control** at four checkpoints: confirm the index → review events → triage issues → approve the memo.
+8. **Exports** the chronology as DOCX, XLSX or Markdown in the conventional layout:
+   - columns: date | provider / facility | event | source (document, page, Bates number)
+   - a **provider and facility index** and a **gaps-in-treatment** view alongside
+   - export only after an attorney approves the current version; any later review edit requires approval again
+   - every export is audited with its digest
 
 ## Architecture
 

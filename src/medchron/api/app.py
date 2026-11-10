@@ -41,11 +41,26 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from medchron import __version__
+from medchron.chronology.analysis import (
+    DEFAULT_GAP_DAYS,
+    ProviderEntry,
+    TreatmentGaps,
+    provider_index,
+    treatment_gaps,
+)
 from medchron.chronology.diff import diff_chronologies
-from medchron.chronology.export import to_markdown
+from medchron.chronology.export import (
+    DOCX_MIME,
+    XLSX_MIME,
+    ExportMeta,
+    to_docx,
+    to_markdown,
+    to_xlsx,
+)
 from medchron.chronology.models import Chronology
 from medchron.db.models import (
     AuditRow,
+    ChronologyVersionRow,
     EventRow,
     IssueRow,
     Job,
@@ -65,6 +80,7 @@ from medchron.db.store import (
     reviewed_chronology,
 )
 from medchron.ingestion.models import Page
+from medchron.ingestion.pipeline import bates_prefix_for
 from medchron.jobs import PROVIDERS, enqueue, notify_worker
 from medchron.observability import setup_tracing
 from medchron.retrieval.embeddings import get_embedder
@@ -114,6 +130,47 @@ def log(session: Session, action: str, matter_id: str | None = None, **kw: Any) 
     audit.record(session, who(session).user_id, action, matter_id=matter_id, **kw)
 
 
+EXPORT_FORMATS = ("md", "docx", "xlsx")
+BATES_PREFIX = re.compile(r"^[A-Z0-9]{1,12}$")
+
+
+def _bates_map(session: Session, matter_id: str) -> dict[int, str]:
+    rows = session.execute(
+        select(PageRow.page_no, PageRow.bates).where(PageRow.matter_id == matter_id)
+    )
+    return {int(n): str(b) for n, b in rows if b}
+
+
+def _latest_version(session: Session, matter_id: str) -> ChronologyVersionRow | None:
+    return session.scalars(
+        select(ChronologyVersionRow)
+        .where(ChronologyVersionRow.matter_id == matter_id)
+        .order_by(ChronologyVersionRow.version.desc())
+        .limit(1)
+    ).first()
+
+
+def _reviewed_digest(session: Session, matter_id: str) -> tuple[str, Chronology]:
+    """Digest of the chronology as reviewed (what an export would contain)."""
+    chron = reviewed_chronology(session, matter_id)
+    return hashlib.sha256(chron.model_dump_json().encode()).hexdigest(), chron
+
+
+def _approval_json(session: Session, matter_id: str) -> dict[str, Any]:
+    latest = _latest_version(session, matter_id)
+    if latest is None:
+        return {"version": None, "approved_by": None, "approved_at": None, "current": False}
+    current = latest.approved_digest is not None and (
+        latest.approved_digest == _reviewed_digest(session, matter_id)[0]
+    )
+    return {
+        "version": latest.version,
+        "approved_by": latest.approved_by,
+        "approved_at": latest.approved_at.isoformat() if latest.approved_at else None,
+        "current": current,
+    }
+
+
 def create_app(engine: Engine | None = None, storage: Storage | None = None) -> FastAPI:
     setup_tracing("medchron-api")
     app = FastAPI(
@@ -143,6 +200,7 @@ def create_app(engine: Engine | None = None, storage: Storage | None = None) -> 
         provider: Annotated[str, Form()] = "anthropic",
         budget_usd: Annotated[float | None, Form()] = None,
         access_code: Annotated[str | None, Form()] = None,
+        bates_prefix: Annotated[str | None, Form()] = None,
     ) -> dict[str, str]:
         user = who(session)
         require(user, "matter.create")
@@ -157,6 +215,9 @@ def create_app(engine: Engine | None = None, storage: Storage | None = None) -> 
         mid = matter_id or f"m-{uuid.uuid4().hex[:10]}"
         if not MATTER_ID.match(mid):
             raise HTTPException(422, "matter_id may contain letters, digits, '.', '_' and '-'")
+        prefix = (bates_prefix or bates_prefix_for(mid)).upper()
+        if not BATES_PREFIX.match(prefix):
+            raise HTTPException(422, "bates_prefix must be 1-12 letters or digits")
         exists = session.execute(
             select(func.medchron_matter_exists(mid))  # sees past RLS without revealing rows
         ).scalar()
@@ -171,6 +232,7 @@ def create_app(engine: Engine | None = None, storage: Storage | None = None) -> 
                 source_sha256=sha,
                 source_path=key,
                 created_by=user.user_id,
+                bates_prefix=prefix,
             )
         )
         session.flush()
@@ -355,6 +417,8 @@ def create_app(engine: Engine | None = None, storage: Storage | None = None) -> 
                 "height": row.height,
                 "content_hash": row.content_hash,
                 "duplicate_of": row.duplicate_of,
+                "production": row.production,
+                "bates": row.bates,
             }
         )
 
@@ -434,6 +498,7 @@ def create_app(engine: Engine | None = None, storage: Storage | None = None) -> 
             if m.index_confirmed_at
             else None,
             "events": {r.event_id: _review_json(r) for r in rows},
+            "chronology_approval": _approval_json(session, matter_id),
         }
 
     @app.patch("/api/matters/{matter_id}/events/{event_id}")
@@ -471,20 +536,97 @@ def create_app(engine: Engine | None = None, storage: Storage | None = None) -> 
             "index_confirmed_at": m.index_confirmed_at.isoformat(),
         }
 
+    # ---------------------------------------------- chronology approval and export
+    @app.post("/api/matters/{matter_id}/chronology/approve")
+    def approve_chronology(session: DB, matter_id: str) -> dict[str, Any]:
+        """An attorney approves the current chronology version, as reviewed, for export."""
+        user = who(session)
+        require(user, "chronology.approve")
+        m = get_matter(session, matter_id)
+        if m.index_confirmed_at is None:
+            raise HTTPException(409, "confirm the document index first")
+        latest = _latest_version(session, matter_id)
+        if latest is None:
+            raise HTTPException(409, "the pipeline has not produced a chronology yet")
+        digest, _ = _reviewed_digest(session, matter_id)
+        pending = session.scalar(
+            select(func.count())
+            .select_from(EventRow)
+            .where(EventRow.matter_id == matter_id, EventRow.review_status == "pending")
+        )
+        latest.approved_by = user.user_id
+        latest.approved_at = dt.datetime.now(dt.UTC)
+        latest.approved_digest = digest
+        log(session, "chronology.approve", matter_id, object_type="version",
+            object_id=str(latest.version),
+            details={"digest": digest, "pending_events": pending or 0})  # fmt: skip
+        session.commit()
+        return _approval_json(session, matter_id)
+
     @app.get("/api/matters/{matter_id}/export.md")
-    def export_markdown(session: DB, matter_id: str) -> Response:
-        """Draft chronology with reviewer edits applied and rejected events left out."""
-        get_matter(session, matter_id)
-        chron = reviewed_chronology(session, matter_id)
-        body = to_markdown(chron)
-        log(session, "chronology.export", matter_id,
-            details={"sha256": hashlib.sha256(body.encode()).hexdigest()})  # fmt: skip
+    def export_markdown_legacy(session: DB, matter_id: str) -> Response:
+        return export_chronology(session, matter_id, "md")
+
+    @app.get("/api/matters/{matter_id}/chronology/export.{fmt}")
+    def export_chronology(session: DB, matter_id: str, fmt: str) -> Response:
+        """The reviewed chronology (edits applied, rejected events left out), once approved.
+
+        Export is gated: the current version must be approved by an attorney, and the
+        review must not have changed since. Every export is audited with its digest.
+        """
+        if fmt not in EXPORT_FORMATS:
+            raise HTTPException(404, "export format must be md, docx or xlsx")
+        m = get_matter(session, matter_id)
+        latest = _latest_version(session, matter_id)
+        digest, chron = _reviewed_digest(session, matter_id)
+        if latest is None or latest.approved_digest is None:
+            raise HTTPException(409, "export requires attorney approval of the chronology")
+        if latest.approved_digest != digest:
+            raise HTTPException(409, "the review changed after approval; approve it again")
+        bates = _bates_map(session, matter_id)
+        meta = ExportMeta(
+            matter_id=matter_id,
+            title=m.title,
+            version=latest.version,
+            approved_by=latest.approved_by,
+            approved_at=latest.approved_at,
+        )
+        body: bytes
+        if fmt == "md":
+            text = to_markdown(chron, bates, meta)
+            body, media = text.encode(), "text/markdown"
+        elif fmt == "docx":
+            body, media = to_docx(chron, meta, bates), DOCX_MIME
+        else:
+            body, media = to_xlsx(chron, meta, bates), XLSX_MIME
+        log(session, "chronology.export", matter_id, object_type="version",
+            object_id=str(latest.version),
+            details={"format": fmt, "sha256": hashlib.sha256(body).hexdigest()})  # fmt: skip
         session.commit()
         return Response(
             body,
-            media_type="text/markdown",
-            headers={"Content-Disposition": f'attachment; filename="{matter_id}-chronology.md"'},
+            media_type=media,
+            headers={"Content-Disposition": f'attachment; filename="{matter_id}-chronology.{fmt}"'},
         )
+
+    @app.get("/api/matters/{matter_id}/providers", response_model=list[ProviderEntry])
+    def providers(session: DB, matter_id: str) -> list[ProviderEntry]:
+        get_matter(session, matter_id)
+        chron = reviewed_chronology(session, matter_id)
+        bates = _bates_map(session, matter_id)
+        log(session, "chronology.view", matter_id, details={"view": "providers"})
+        session.commit()
+        return provider_index(chron, bates)
+
+    @app.get("/api/matters/{matter_id}/gaps", response_model=TreatmentGaps)
+    def gaps(session: DB, matter_id: str, min_days: int = DEFAULT_GAP_DAYS) -> TreatmentGaps:
+        get_matter(session, matter_id)
+        if not 1 <= min_days <= 3650:
+            raise HTTPException(422, "min_days must be between 1 and 3650")
+        chron = reviewed_chronology(session, matter_id)
+        log(session, "chronology.view", matter_id, details={"view": "gaps", "min_days": min_days})
+        session.commit()
+        return treatment_gaps(chron, min_days)
 
     # ------------------------------------------------------------------ issues (HITL-3)
     @app.get("/api/matters/{matter_id}/issues")

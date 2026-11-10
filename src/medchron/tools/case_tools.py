@@ -12,9 +12,9 @@ Security properties (see docs/plan.md, "Tools"):
 from __future__ import annotations
 
 import datetime as dt
-import itertools
 from typing import Any
 
+from medchron.chronology.analysis import intervals
 from medchron.chronology.builder import find_conflicts, find_followup_gaps
 from medchron.chronology.models import Chronology
 from medchron.ingestion.models import IngestedCase, TextSource
@@ -182,16 +182,14 @@ class CaseTools:
         if rule == "date_conflicts":
             return [c.model_dump() for c in find_conflicts(self.chron.events)]
         if rule == "intervals":
-            dated = [e for e in self.chron.events if e.date]
             return [
                 {
-                    "from_event": a.event_id,
-                    "to_event": b.event_id,
-                    "from": f"{a.date} {a.type.value}: {a.summary}",
-                    "to": f"{b.date} {b.type.value}: {b.summary}",
-                    "days": (b.date - a.date).days,  # type: ignore[operator]
+                    "from_event": i.from_event,
+                    "to_event": i.to_event,
+                    "from": f"{i.from_date} {i.from_summary}",
+                    "to": f"{i.to_date} {i.to_summary}",
+                    "days": i.days,
                 }
-                for a, b in itertools.pairwise(dated)
-                if b.date != a.date
+                for i in intervals(self.chron.events)
             ]
         raise ToolInputError("rule must be followup, date_conflicts or intervals")

@@ -6,7 +6,7 @@
   --border: #e3e7ee;
   --accent: #2753c9;
   --accent-soft: #e8eefc;
-  --ok: #157f3b;
+  --ok: #126b34;
   --ok-soft: #e3f5ea;
   --warn: #9a5b00;
   --warn-soft: #fff3dc;
@@ -130,3 +130,21 @@ input, select { font: inherit; padding: 6px 8px; border: 1px solid var(--border)
 .whoami { margin-left: auto; font-size: 12px; color: var(--muted); }
 .roles { display: flex; gap: 12px; border: none; padding: 0; margin: 0; align-items: center; }
 .roles label { display: flex; gap: 4px; align-items: center; font-weight: 400; }
+
+/* Tabs (matter views) */
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; margin: 0 0 12px; border-bottom: 1px solid var(--border); }
+.tab { background: none; border: 1px solid transparent; border-bottom: none; border-radius: 8px 8px 0 0;
+  padding: 8px 14px; color: var(--text); cursor: pointer; font: inherit; }
+.tab:hover { background: var(--accent-soft); }
+.tab-active { background: var(--panel); border-color: var(--border); font-weight: 600; margin-bottom: -1px; }
+.tab:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Version diff: colour plus a text badge, never colour alone */
+.diff { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.diff li { padding: 6px 8px; border-radius: 6px; border-left: 4px solid var(--border); }
+.diff-added { background: var(--ok-soft); border-left-color: var(--ok) !important; }
+.diff-changed { background: var(--warn-soft); border-left-color: var(--warn) !important; }
+.diff-removed { background: var(--bad-soft); border-left-color: var(--bad) !important; }
+.inline-form { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.export-links { list-style: none; padding: 0; display: flex; gap: 10px; flex-wrap: wrap; }
+.bates { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }

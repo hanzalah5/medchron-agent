@@ -62,6 +62,8 @@ export type Page = {
   width: number;
   height: number;
   duplicate_of: number | null;
+  production: number;
+  bates: string;
 };
 
 export type Job = {
@@ -77,7 +79,73 @@ export type Job = {
 };
 
 export type MatterSummary = { matter_id: string; title: string; created_at: string | null; job: Job | null };
-export type MatterDetail = { matter_id: string; title: string; pages: number; jobs: Job[] };
+export type Production = {
+  production_no: number;
+  sha256: string;
+  page_offset: number;
+  page_count: number;
+  created_by: string;
+  created_at: string | null;
+};
+export type MatterDetail = {
+  matter_id: string;
+  title: string;
+  pages: number;
+  jobs: Job[];
+  productions: Production[];
+};
+
+export type Approval = {
+  version: number | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  current: boolean;
+};
+export type VersionInfo = {
+  version: number;
+  created_at: string | null;
+  job_id: string | null;
+  productions: number;
+  events: number;
+  diff: { added: number; changed: number; removed: number } | null;
+};
+export type EventChange = { old: ChronEvent; new: ChronEvent; fields: string[]; added_pages: number[] };
+export type ChronologyDiff = {
+  from_version: number | null;
+  to_version: number | null;
+  added: ChronEvent[];
+  removed: ChronEvent[];
+  changed: EventChange[];
+  unchanged: number;
+};
+export type ProviderEntry = {
+  facility: string;
+  provider: string;
+  first_date: string | null;
+  last_date: string | null;
+  documents: number;
+  events: number;
+  pages: number[];
+  bates_ranges: string[];
+};
+export type Interval = {
+  from_event: string;
+  to_event: string;
+  from_date: string;
+  to_date: string;
+  days: number;
+  from_summary: string;
+  to_summary: string;
+  from_facility: string;
+  to_facility: string;
+};
+export type TreatmentGaps = {
+  min_days: number;
+  encounters: number;
+  intervals: Interval[];
+  followup: Signal[];
+};
+export type ExportFormat = "docx" | "xlsx" | "md";
 
 export type ReviewStatus = "pending" | "accepted" | "edited" | "rejected";
 export type Review = {
@@ -93,6 +161,7 @@ export type ReviewState = {
   index_confirmed_by: string | null;
   index_confirmed_at: string | null;
   events: Record<string, Review>;
+  chronology_approval: Approval;
 };
 
 export type IssueCitation = { span_id: string; page_no: number; quote: string; char_start: number; char_end: number };
@@ -150,7 +219,22 @@ export const api = {
   review: (id: string) => fetch(`/api/matters/${enc(id)}/review`).then((r) => json<ReviewState>(r)),
   page: (id: string, n: number) => fetch(`/api/matters/${enc(id)}/pages/${n}`).then((r) => json<Page>(r)),
   pageImage: (id: string, n: number) => `/api/matters/${enc(id)}/pages/${n}/image?dpi=110`,
-  exportUrl: (id: string) => `/api/matters/${enc(id)}/export.md`,
+  exportUrl: (id: string, fmt: ExportFormat = "md") => `/api/matters/${enc(id)}/chronology/export.${fmt}`,
+  approveChronology: (id: string) =>
+    fetch(`/api/matters/${enc(id)}/chronology/approve`, { method: "POST" }).then((r) => json<Approval>(r)),
+  versions: (id: string) => fetch(`/api/matters/${enc(id)}/chronology/versions`).then((r) => json<VersionInfo[]>(r)),
+  diff: (id: string, from: number | null, to: number) => {
+    const q = new URLSearchParams({ to: String(to) });
+    if (from !== null) q.set("from", String(from));
+    return fetch(`/api/matters/${enc(id)}/chronology/diff?${q}`).then((r) => json<ChronologyDiff>(r));
+  },
+  providers: (id: string) => fetch(`/api/matters/${enc(id)}/providers`).then((r) => json<ProviderEntry[]>(r)),
+  gaps: (id: string, minDays: number) =>
+    fetch(`/api/matters/${enc(id)}/gaps?min_days=${minDays}`).then((r) => json<TreatmentGaps>(r)),
+  addProduction: (id: string, form: FormData) =>
+    fetch(`/api/matters/${enc(id)}/productions`, { method: "POST", body: form }).then((r) =>
+      json<{ matter_id: string; production_no: number; job_id: string }>(r),
+    ),
   upload: (form: FormData) =>
     fetch("/api/matters", { method: "POST", body: form }).then((r) =>
       json<{ matter_id: string; job_id: string }>(r),

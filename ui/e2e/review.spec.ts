@@ -85,7 +85,12 @@ test("upload → pipeline → click citation → highlighted source → review",
     "accepted",
   );
 
-  // The export reflects reviewer decisions.
+  // Export is gated: an attorney approves the reviewed chronology first.
+  const gated = await page.request.get("/api/matters/e2e-case-0004/export.md");
+  expect(gated.status()).toBe(409);
+  await page.getByTestId("tab-export").click();
+  await page.getByTestId("approve-chronology").click();
+  await expect(page.getByTestId("approval-status")).toContainText("approved by e2e-attorney");
   const exported = await page.request.get("/api/matters/e2e-case-0004/export.md");
   expect(exported.ok()).toBeTruthy();
   expect(await exported.text()).toContain("review:accepted");

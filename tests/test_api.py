@@ -167,6 +167,9 @@ def test_review_workflow(client: TestClient, processed: dict[str, str]) -> None:
     confirmed = client.post("/api/matters/demo-0003/index/confirm").json()
     assert confirmed["index_confirmed_by"]
 
+    gated = client.get("/api/matters/demo-0003/export.md")
+    assert gated.status_code == 409 and "approval" in gated.json()["detail"]
+    assert client.post("/api/matters/demo-0003/chronology/approve").status_code == 200
     md = client.get("/api/matters/demo-0003/export.md")
     assert md.status_code == 200 and "attachment" in md.headers["content-disposition"]
     text_md = md.text
@@ -300,3 +303,72 @@ def test_productions_respect_matter_access(client: TestClient) -> None:
         headers=auditor,
     )
     assert r.status_code == 403
+
+
+def test_chronology_export_is_gated_audited_and_bates_numbered(
+    client: TestClient, processed: dict[str, str]
+) -> None:
+    import io
+
+    from docx import Document
+    from openpyxl import load_workbook
+
+    base = "/api/matters/demo-0003"
+    paralegal = {"X-Dev-User": "alice", "X-Dev-Roles": "paralegal"}
+    assert client.post(f"{base}/chronology/approve", headers=paralegal).status_code == 403
+    client.post(f"{base}/index/confirm")
+    approved = client.post(f"{base}/chronology/approve").json()
+    assert approved["current"] and approved["approved_by"] == "alice" and approved["version"]
+
+    page = client.get(f"{base}/pages/1").json()
+    assert page["bates"] == "DEMO0003-000001"
+
+    docx = client.get(f"{base}/chronology/export.docx")
+    assert docx.status_code == 200
+    assert docx.headers["content-type"].startswith("application/vnd.openxmlformats-officedocument")
+    doc = Document(io.BytesIO(docx.content))
+    header = [c.text for c in doc.tables[0].rows[0].cells]
+    assert header == ["Date", "Provider / Facility", "Event", "Source (document, page, Bates)",
+                      "Review"]  # fmt: skip
+    assert any("DEMO0003-0000" in r.cells[3].text for r in doc.tables[0].rows[1:])
+    assert any("SYNTHETIC" in para.text for para in doc.paragraphs)
+
+    xlsx = client.get(f"{base}/chronology/export.xlsx")
+    assert xlsx.status_code == 200
+    wb = load_workbook(io.BytesIO(xlsx.content))
+    ws = wb["Chronology"]
+    assert [c.value for c in ws[1]] == header
+    assert ws.freeze_panes == "A2" and ws.auto_filter.ref
+    assert ws.max_row > 2 and "DEMO0003-" in str(ws.cell(row=2, column=4).value)
+    assert client.get(f"{base}/chronology/export.pdf").status_code == 404
+
+    # A review edit after approval makes the approval stale until it is renewed.
+    chron = client.get(f"{base}/chronology").json()
+    client.patch(f"{base}/events/{chron['events'][-1]['event_id']}", json={"status": "accepted"})
+    stale = client.get(f"{base}/chronology/export.xlsx")
+    assert stale.status_code == 409 and "approve it again" in stale.json()["detail"]
+    assert client.get(f"{base}/review").json()["chronology_approval"]["current"] is False
+    client.post(f"{base}/chronology/approve")
+    assert client.get(f"{base}/chronology/export.xlsx").status_code == 200
+
+    audit_rows = client.get("/api/audit", params={"matter_id": "demo-0003"},
+                            headers={"X-Dev-Roles": "auditor"}).json()  # fmt: skip
+    exports = [a for a in audit_rows if a["action"] == "chronology.export"]
+    assert {e["details"]["format"] for e in exports} >= {"md", "docx", "xlsx"}
+    assert all(len(e["details"]["sha256"]) == 64 for e in exports)
+    assert any(a["action"] == "chronology.approve" for a in audit_rows)
+
+
+def test_provider_index_and_treatment_gaps(client: TestClient, processed: dict[str, str]) -> None:
+    base = "/api/matters/demo-0003"
+    providers = client.get(f"{base}/providers").json()
+    assert providers and all(p["facility"] and p["pages"] for p in providers)
+    assert all(p["bates_ranges"] for p in providers)
+    assert not any(p["provider"] == "Health Information Management" for p in providers)
+    gaps = client.get(f"{base}/gaps", params={"min_days": 1}).json()
+    assert gaps["encounters"] > 1 and gaps["intervals"]
+    assert all(i["days"] >= 1 for i in gaps["intervals"])
+    assert gaps["followup"]  # the planted missing post-operative visit
+    wide = client.get(f"{base}/gaps", params={"min_days": 3650}).json()
+    assert wide["intervals"] == []
+    assert client.get(f"{base}/gaps", params={"min_days": 0}).status_code == 422

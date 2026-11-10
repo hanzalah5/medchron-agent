@@ -70,6 +70,7 @@ export function PageViewer({
         </button>
         <span data-testid="page-label">
           Page {pageNo} / {totalPages || "?"}
+          {page?.bates && <span className="bates"> · {page.bates}</span>}
         </span>
         <button onClick={() => onNavigate(pageNo + 1)} disabled={!!totalPages && pageNo >= totalPages} aria-label="Next page">
           ›

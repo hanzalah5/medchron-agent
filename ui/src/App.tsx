@@ -84,7 +84,7 @@ export function App() {
         {me === undefined ? null : me === null ? (
           <DevSignIn />
         ) : match ? (
-          <MatterView matterId={decodeURIComponent(match[1])} />
+          <MatterView matterId={decodeURIComponent(match[1])} me={me} />
         ) : (
           <MatterList />
         )}

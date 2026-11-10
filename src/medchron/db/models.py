@@ -44,6 +44,7 @@ class Matter(Base):
     source_sha256: Mapped[str] = mapped_column(String(64))
     source_path: Mapped[str] = mapped_column(String(512), default="", server_default="")
     created_by: Mapped[str] = mapped_column(String(128), default="", server_default="")
+    bates_prefix: Mapped[str] = mapped_column(String(16), default="", server_default="")
     index_confirmed_by: Mapped[str | None] = mapped_column(String(128))
     index_confirmed_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[dt.datetime] = mapped_column(
@@ -158,6 +159,7 @@ class PageRow(Base):
     duplicate_of: Mapped[int | None] = mapped_column(Integer)
     words: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
     production: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    bates: Mapped[str] = mapped_column(String(32), default="", server_default="")
 
 
 class SpanRow(Base):
@@ -266,6 +268,10 @@ class ChronologyVersionRow(Base):
     events: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB)
     diff_summary: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    # Attorney approval for export (covers this version as reviewed at approval time).
+    approved_by: Mapped[str | None] = mapped_column(String(128))
+    approved_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    approved_digest: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

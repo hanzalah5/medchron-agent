@@ -111,6 +111,7 @@ class RunConfig:
     concurrency: int = 4
     ocr: bool = True
     analyze: bool = True  # run the issue analyst and verifier after the chronology
+    bates_prefix: str | None = None  # default: derived from the matter ID
 
 
 @dataclass
@@ -200,7 +201,8 @@ def _run_case(
             cp.save("ingest", p_key, extracted)
         pages += extracted.pages
     case_key = cp.key(*shas, case_id, f"ocr={config.ocr}")
-    case = assemble_case(case_id, pages, shas)  # cross-production de-duplication, chunking
+    # Cross-production de-duplication, Bates numbering and chunking.
+    case = assemble_case(case_id, pages, shas, bates_prefix=config.bates_prefix)
     cp.save("case", case_key, case)
     review_flags = [
         CaseFlag(kind="page_needs_review", page_no=p.page_no, note=f"text source={p.source.value}")

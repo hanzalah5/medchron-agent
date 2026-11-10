@@ -23,6 +23,9 @@ dependencies = [
     "opentelemetry-api>=1.27",
     "opentelemetry-sdk>=1.27",
     "opentelemetry-exporter-otlp-proto-http>=1.27",
+    "numpy>=1.26",
+    "python-docx>=1.1",
+    "openpyxl>=3.1",
 ]
 
 [project.optional-dependencies]
@@ -69,7 +72,8 @@ packages = ["medchron"]
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
-module = ["reportlab.*", "pytesseract.*", "pymupdf.*", "pgvector.*", "sentence_transformers.*"]
+module = ["reportlab.*", "pytesseract.*", "pymupdf.*", "pgvector.*", "sentence_transformers.*",
+          "docx.*", "openpyxl.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
