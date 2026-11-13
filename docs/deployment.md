@@ -57,6 +57,8 @@ DATABASE_URL="$OWNER_URL" MEDCHRON_DB_API_PASSWORD=... MEDCHRON_DB_WORKER_PASSWO
   medchron db-users
 ```
 
+`db-users` refuses to run unless both passwords are set, so a role can't be created with its own name as its password. `--allow-default-passwords` exists for throwaway local and CI databases only.
+
 The services must **not** connect as the owner. Postgres exempts superusers from row-level security, and an owner can turn it off.
 
 | Role | Used by | Can |

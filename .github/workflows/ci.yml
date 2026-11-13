@@ -46,7 +46,7 @@ jobs:
       - name: Type-check
         run: make typecheck
       - name: Create the non-owner database roles
-        run: DATABASE_URL="$MEDCHRON_TEST_DATABASE_URL" .venv/bin/medchron db-users
+        run: DATABASE_URL="$MEDCHRON_TEST_DATABASE_URL" .venv/bin/medchron db-users --allow-default-passwords
       - name: Test
         run: make test
 
