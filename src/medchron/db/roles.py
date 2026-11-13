@@ -43,16 +43,42 @@ class LoginRole:
     system: bool  # may use the system bypass (worker only)
 
 
-def login_roles_from_env() -> list[LoginRole]:
+class MissingRolePassword(RuntimeError):
+    """A login role's password is unset and default passwords were not allowed."""
+
+
+def _password(var: str, default: str, *, allow_default: bool) -> str:
+    value = os.environ.get(var)
+    if value:
+        return value
+    if allow_default:
+        return default
+    raise MissingRolePassword(
+        f"{var} is not set. Set it to a strong password; the default is the role's own "
+        "name. For local development or CI only, pass --allow-default-passwords."
+    )
+
+
+def login_roles_from_env(*, allow_defaults: bool = False) -> list[LoginRole]:
+    """Login roles from the environment.
+
+    An unset password used to fall back silently to the role's name, which anyone
+    reading this file can guess. Defaults are now opt-in (``allow_defaults=True``, or
+    ``medchron db-users --allow-default-passwords``) for throwaway local and CI
+    databases; otherwise an unset password raises ``MissingRolePassword`` before
+    anything touches the database.
+    """
     return [
         LoginRole(
             os.environ.get("MEDCHRON_DB_API_USER", "medchron_api"),
-            os.environ.get("MEDCHRON_DB_API_PASSWORD", "medchron_api"),
+            _password("MEDCHRON_DB_API_PASSWORD", "medchron_api", allow_default=allow_defaults),
             system=False,
         ),
         LoginRole(
             os.environ.get("MEDCHRON_DB_WORKER_USER", "medchron_worker"),
-            os.environ.get("MEDCHRON_DB_WORKER_PASSWORD", "medchron_worker"),
+            _password(
+                "MEDCHRON_DB_WORKER_PASSWORD", "medchron_worker", allow_default=allow_defaults
+            ),
             system=True,
         ),
     ]
