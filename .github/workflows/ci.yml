@@ -133,7 +133,7 @@ jobs:
         with:
           terraform_version: 1.9.8
       - name: Format
-        run: terraform fmt -check -recursive infra/terraform
+        run: terraform fmt -check -diff -recursive infra/terraform
       - name: Validate environments
         run: |
           for env in dev prod-demo; do

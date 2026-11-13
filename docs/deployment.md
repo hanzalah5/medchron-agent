@@ -39,8 +39,13 @@ terraform apply
 
 ```bash
 # 2. Secret values (never stored in Terraform)
-echo -n "postgresql+psycopg://USER:PASS@HOST/medchron?sslmode=require" | \
-  gcloud secrets versions add medchron-dev-database-url --data-file=-
+# Three database URLs, one per identity (roles are created in step 4):
+echo -n "postgresql+psycopg://OWNER:PASS@HOST/medchron?sslmode=require" | \
+  gcloud secrets versions add medchron-dev-database-url-migrate --data-file=-
+echo -n "postgresql+psycopg://medchron_api:PASS@HOST/medchron?sslmode=require" | \
+  gcloud secrets versions add medchron-dev-database-url-api --data-file=-
+echo -n "postgresql+psycopg://medchron_worker:PASS@HOST/medchron?sslmode=require" | \
+  gcloud secrets versions add medchron-dev-database-url-worker --data-file=-
 echo -n "$ANTHROPIC_API_KEY" | gcloud secrets versions add medchron-dev-anthropic-api-key --data-file=-
 echo -n "$(openssl rand -hex 12)" | gcloud secrets versions add medchron-dev-demo-access-code --data-file=-
 ```
@@ -65,9 +70,17 @@ The services must **not** connect as the owner. Postgres exempts superusers from
 | `medchron_api` | API service, MCP server | Read and write rows of matters the caller is a member of. Append to the audit log, never update or delete it. **Cannot** enable the system bypass |
 | `medchron_worker` | Worker job | Same, plus the system bypass (`medchron.system`) for background processing |
 
-Store `medchron_api`'s URL in the API's `database-url` secret and `medchron_worker`'s URL in the worker's. Migrations need the owner URL in a separate secret.
+Each identity can read only its own secrets:
 
-The Terraform module has a single `database-url` secret for both services today, so a real rollout must split it into three: API, worker and migration. This change is described here but not applied in `infra/terraform`.
+| Secret | Read by | Holds |
+|---|---|---|
+| `database-url-migrate` | the `migrate` job | the owner URL |
+| `database-url-api` | the API service | `medchron_api`'s URL |
+| `database-url-worker` | the worker job | `medchron_worker`'s URL |
+| `anthropic-api-key` | the worker job | the model calls run only in the worker |
+| `demo-access-code` | the API service | the demo sign-in |
+
+Deploys run migrations through the separate `migrate` job, so the API and worker never hold the owner credentials.
 
 5. GitHub repository variables: `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_WIF_PROVIDER` (from `terraform output workload_identity_provider`) and `GCP_DEPLOYER_SA` (from `terraform output deployer_service_account`). For `prod-demo`, add required reviewers under Settings → Environments.
 
