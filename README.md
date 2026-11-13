@@ -10,6 +10,11 @@
 > **This is a portfolio reference implementation**, built for a realistic legal and healthcare scenario: medical record review for malpractice and personal-injury matters.
 > It runs **only on synthetic data** that this repository generates. It is **not** a product delivered to any client, it has **not** been validated for real-world use, and it is **not legal or medical advice**. See [DISCLAIMER.md](DISCLAIMER.md).
 
+**TL;DR**
+- **Problem:** legal teams build medical chronologies by hand from hundreds or thousands of scanned, duplicated, out-of-order record pages, and a missed event can change a case.
+- **Approach:** a code-orchestrated pipeline. LLM agents act only inside bounded steps, every extracted event and memo sentence must be found in its source text, and attorneys approve at four checkpoints.
+- **Status:** the pipeline, a synthetic benchmark with gold labels, and CI/CD are built and tested offline. The first live-model scorecard is still pending (see [Evaluation](#evaluation)).
+
 ![Demo: upload, cited chronology, click-to-source, issue triage, cited memo, approval](docs/images/demo.gif)
 
 *Synthetic case, demo engine. Every statement links to the exact text on the source page, including scanned (OCR) pages, and nothing leaves the system without attorney approval.*
@@ -39,13 +44,7 @@
   - a worker heartbeat
   - a load test
 
-**Measured in this release.** The oracle is a gold-label test double, so these numbers measure the system's plumbing, not a model.
-
-| Source | Result |
-|---|---|
-| Oracle self-check, dev / test split | Event recall 100% / 100%, planted-issue precision 94.9% / 97.6% |
-| Oracle with 30% injected noise, dev | Event recall 38.8%, planted-issue precision 78.0% |
-| [Load test](docs/loadtest.md), 2,029 pages | 84.8 s uninterrupted. A run on 3 workers took 132.6 s, with the worker holding the big job SIGKILLed at 69.7 s. It resumed on another worker, reusing 618 checkpointed documents. The chronology was identical, with nothing duplicated and the audit chain verified |
+**Measured in this release:** harness self-checks and a load test, which test the system's plumbing, not a model. They are in [Evaluation](#evaluation).
 
 **Still pending:**
 - the live model scorecard (no API key was available)
@@ -136,6 +135,16 @@ The harness reports the following. Each result records the git SHA, models, effo
 - The merge rule leaves one restated procedure as a duplicate.
 
 The error analysis shows both. See [docs/eval-methodology.md](docs/eval-methodology.md).
+
+### Harness self-checks and load test (not model results)
+
+The oracle is a gold-label test double, so these numbers measure the system's plumbing, not a model.
+
+| Source | Result |
+|---|---|
+| Oracle self-check, dev / test split | Event recall 100% / 100%, planted-issue precision 94.9% / 97.6% |
+| Oracle with 30% injected noise, dev | Event recall 38.8%, planted-issue precision 78.0% |
+| [Load test](docs/loadtest.md), 2,029 pages | 84.8 s uninterrupted. A run on 3 workers took 132.6 s, with the worker holding the big job SIGKILLed at 69.7 s. It resumed on another worker, reusing 618 checkpointed documents. The chronology was identical, with nothing duplicated and the audit chain verified |
 
 ```bash
 make eval-selfcheck                       # oracle self-check on dev and test (no API key)
