@@ -6,6 +6,10 @@ output "worker_job" {
   value = google_cloud_run_v2_job.worker.id
 }
 
+output "migrate_job" {
+  value = google_cloud_run_v2_job.migrate.id
+}
+
 output "image_repository" {
   value = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.images.repository_id}"
 }

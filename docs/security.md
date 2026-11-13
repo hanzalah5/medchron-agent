@@ -51,7 +51,7 @@ The trust boundaries are:
 
 - A Business Associate Agreement with every vendor that handles PHI (cloud, LLM provider, OCR, observability), and a formal risk analysis
 - Blob-store deletion and retention jobs, customer-managed keys and per-matter keys for crypto-shredding
-- Split database credentials in the deployed environments. Compose, CI and the e2e tests already run the API and worker as the non-owner roles `medchron_api` and `medchron_worker`. The Terraform module still has one `database-url` secret (see [deployment](deployment.md)). Secrets rotation is also needed
+- Secrets rotation. Database credentials are already split per identity in Terraform, so the API, the worker and a separate migrate job each read only their own URL (see [deployment](deployment.md))
 - Rate limiting and WAF rules at the edge, an external penetration test and dependency SBOM attestation
 - Identity-provider-managed sessions for the UI: an HttpOnly, Secure cookie set by an auth proxy or backend-for-frontend instead of the development sign-in
 

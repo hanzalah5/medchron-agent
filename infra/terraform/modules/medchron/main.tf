@@ -58,6 +58,13 @@ resource "google_service_account" "worker" {
   display_name = "MedChron worker (${var.environment})"
 }
 
+# Runs database migrations as the owner. The API and worker never get the owner URL.
+resource "google_service_account" "migrate" {
+  project      = var.project_id
+  account_id   = "${local.name}-migrate"
+  display_name = "MedChron migrations (${var.environment})"
+}
+
 # ---------------------------------------------------------------- storage
 resource "google_storage_bucket" "records" {
   project                     = var.project_id
@@ -102,10 +109,39 @@ resource "google_storage_bucket_iam_member" "records_rw" {
 # ---------------------------------------------------------------- secrets
 # Terraform creates the secret containers only. Values are added out of band
 # (gcloud secrets versions add ...), so they never enter Terraform state.
+#
+# Least privilege: each identity can read only the secrets it uses. The API and the
+# worker connect as their own non-owner database roles, and only the migrate job
+# holds the owner URL. These maps (env var -> secret) are the single source of truth.
+locals {
+  api_secret_env = {
+    DATABASE_URL              = "database-url-api"
+    MEDCHRON_DEMO_ACCESS_CODE = "demo-access-code"
+  }
+  worker_secret_env = {
+    DATABASE_URL      = "database-url-worker"
+    ANTHROPIC_API_KEY = "anthropic-api-key"
+  }
+  migrate_secret_env = {
+    DATABASE_URL = "database-url-migrate"
+  }
+  # secret -> the one identity allowed to read it
+  secret_readers = merge(
+    { for s in values(local.api_secret_env) : s => "api" },
+    { for s in values(local.worker_secret_env) : s => "worker" },
+    { for s in values(local.migrate_secret_env) : s => "migrate" },
+  )
+  service_account_emails = {
+    api     = google_service_account.api.email
+    worker  = google_service_account.worker.email
+    migrate = google_service_account.migrate.email
+  }
+}
+
 resource "google_secret_manager_secret" "secrets" {
-  for_each  = toset(["database-url", "anthropic-api-key", "demo-access-code"])
+  for_each  = local.secret_readers
   project   = var.project_id
-  secret_id = "${local.name}-${each.value}"
+  secret_id = "${local.name}-${each.key}"
   labels    = local.labels
 
   replication {
@@ -115,14 +151,11 @@ resource "google_secret_manager_secret" "secrets" {
 }
 
 resource "google_secret_manager_secret_iam_member" "access" {
-  for_each = {
-    for pair in setproduct(keys(google_secret_manager_secret.secrets), ["api", "worker"]) :
-    "${pair[0]}-${pair[1]}" => { secret = pair[0], sa = pair[1] }
-  }
+  for_each  = local.secret_readers
   project   = var.project_id
-  secret_id = google_secret_manager_secret.secrets[each.value.secret].secret_id
+  secret_id = google_secret_manager_secret.secrets[each.key].secret_id
   role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${each.value.sa == "api" ? google_service_account.api.email : google_service_account.worker.email}"
+  member    = "serviceAccount:${local.service_account_emails[each.value]}"
 }
 
 locals {
@@ -136,11 +169,6 @@ locals {
     MEDCHRON_OIDC_ISSUER   = var.oidc_issuer
     MEDCHRON_OIDC_AUDIENCE = var.oidc_audience
   } : {}
-  secret_env = {
-    DATABASE_URL              = "database-url"
-    ANTHROPIC_API_KEY         = "anthropic-api-key"
-    MEDCHRON_DEMO_ACCESS_CODE = "demo-access-code"
-  }
 }
 
 # ---------------------------------------------------------------- worker (job)
@@ -160,7 +188,7 @@ resource "google_cloud_run_v2_job" "worker" {
       containers {
         image   = var.image
         command = ["medchron"]
-        args    = ["worker", "--once"] # deploys run migrations with: --args=migrate
+        args    = ["worker", "--once"] # migrations run in the separate migrate job
         resources {
           limits = { cpu = "1", memory = "2Gi" }
         }
@@ -172,7 +200,7 @@ resource "google_cloud_run_v2_job" "worker" {
           }
         }
         dynamic "env" {
-          for_each = local.secret_env
+          for_each = local.worker_secret_env
           content {
             name = env.key
             value_source {
@@ -196,6 +224,45 @@ resource "google_cloud_run_v2_job_iam_member" "api_runs_worker" {
   name     = google_cloud_run_v2_job.worker.name
   role     = "roles/run.invoker"
   member   = "serviceAccount:${google_service_account.api.email}"
+}
+
+# ---------------------------------------------------------------- migrations (job)
+resource "google_cloud_run_v2_job" "migrate" {
+  project             = var.project_id
+  name                = "${local.name}-migrate"
+  location            = var.region
+  labels              = local.labels
+  deletion_protection = false
+
+  template {
+    task_count = 1
+    template {
+      service_account = google_service_account.migrate.email
+      timeout         = "600s"
+      max_retries     = 0
+      containers {
+        image   = var.image
+        command = ["medchron"]
+        args    = ["migrate"]
+        resources {
+          limits = { cpu = "1", memory = "1Gi" }
+        }
+        dynamic "env" {
+          for_each = local.migrate_secret_env
+          content {
+            name = env.key
+            value_source {
+              secret_key_ref {
+                secret  = google_secret_manager_secret.secrets[env.value].secret_id
+                version = "latest"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  depends_on = [google_secret_manager_secret_iam_member.access]
 }
 
 # ---------------------------------------------------------------- API (service)
@@ -238,7 +305,7 @@ resource "google_cloud_run_v2_service" "api" {
         }
       }
       dynamic "env" {
-        for_each = local.secret_env
+        for_each = local.api_secret_env
         content {
           name = env.key
           value_source {
@@ -308,8 +375,9 @@ resource "google_project_iam_member" "deployer_roles" {
 
 resource "google_service_account_iam_member" "deployer_acts_as" {
   for_each = {
-    api    = google_service_account.api.name
-    worker = google_service_account.worker.name
+    api     = google_service_account.api.name
+    worker  = google_service_account.worker.name
+    migrate = google_service_account.migrate.name
   }
   service_account_id = each.value
   role               = "roles/iam.serviceAccountUser"

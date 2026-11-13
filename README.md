@@ -51,7 +51,6 @@
 - the live model scorecard (no API key was available)
 - verifier calibration against human labels
 - a live run of batch mode and of MCP over HTTP
-- split database credentials in Terraform
 
 Full release notes are in the [CHANGELOG](CHANGELOG.md).
 
@@ -151,7 +150,7 @@ Grounding has **property-based tests** (Hypothesis): quotes are found despite sc
 - **Security** ([docs/security.md](docs/security.md)): OIDC with RBAC (paralegal, attorney, admin, auditor). Matter isolation is enforced in the API **and by Postgres row-level security**. The services connect as non-owner roles, and tests verify the isolation through those real roles. Admins manage ethical walls but cannot read records.
 - **MCP server** (`medchron mcp`): read-only, matter-scoped case tools for an attorney's own assistant, with the same RBAC, RLS and audit as the UI ([ADR-0011](docs/adr/0011-mcp-server.md)).
 - **Audit**: an append-only, **hash-chained** audit log of views, searches (hashed), exports, every review decision and every LLM call (model, tokens, cost, hashes). Tampering is detected even with the trigger disabled.
-- **Sensitive data**: synthetic only. No content in logs or traces (scrubbing filter as a backstop, plus a test), minimum-necessary prompts, local embeddings and no cross-matter memory. What a real deployment needs (BAAs, firm cloud, CMEK, split database credentials) is listed in [docs/deployment.md](docs/deployment.md#what-changes-for-a-real-production-rollout).
+- **Sensitive data**: synthetic only. No content in logs or traces (scrubbing filter as a backstop, plus a test), minimum-necessary prompts, local embeddings and no cross-matter memory. What a real deployment needs (BAAs, firm cloud, CMEK) is listed in [docs/deployment.md](docs/deployment.md#what-changes-for-a-real-production-rollout).
 - **Reliability**: checkpointed, idempotent steps resume after crashes. Failed documents become review flags. A heartbeat thread keeps long steps alive, and stale jobs are recovered with an attempt limit. A worker presumed dead cannot overwrite a job another worker now owns.
 - **Cost**: a per-case budget stop, prompt caching on the stable prefix, per-route model and effort settings, and an early tool-loop exit (about half the calls on extraction). Optional **batch extraction** goes through the Message Batches API at half price, with a synchronous fallback for refused requests ([ADR-0013](docs/adr/0013-batch-extraction.md)). Later productions reuse earlier extraction. The replay or oracle demo costs nothing to view.
 - **Observability**: OpenTelemetry spans for cases and LLM calls (no content), with OTLP export to Tempo, Jaeger or Langfuse.
@@ -221,7 +220,7 @@ Deployment to Google Cloud (Cloud Run, Terraform, GitHub OIDC) is covered in [do
 | 8 | Harder benchmark: 6 scenarios, scan/table/copy-forward/misfiled hazards, incremental productions, dev and held-out test splits (`v1.1`) | ✅ |
 | 9 | Product: Bates IDs, gated DOCX/XLSX export, version diff, provider index, gaps view, axe checks (`v1.1`) | ✅ |
 | 10 | Engineering: property tests, batch extraction, MCP server, load test, non-owner DB roles (`v1.1`) | ✅. Batch path not yet run live |
-| Next | First **live evaluation** and published scorecard (dev, then held-out test), verifier calibration with about 100 hand-labelled claims, a live batch-mode cost comparison, split database credentials in Terraform, narrated video | ⏳ |
+| Next | First **live evaluation** and published scorecard (dev, then held-out test), verifier calibration with about 100 hand-labelled claims, a live batch-mode cost comparison, narrated video | ⏳ |
 
 Changes by version are in the [CHANGELOG](CHANGELOG.md).
 

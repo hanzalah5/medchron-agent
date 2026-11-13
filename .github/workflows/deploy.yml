@@ -64,11 +64,14 @@ jobs:
           docker push "$IMAGE"
           echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
 
-      - name: Update worker job and run migrations
+      - name: Update jobs and run migrations
         run: |
-          JOB="medchron-${ENV_NAME}-worker"
-          gcloud run jobs update "$JOB" --region "$REGION" --image "${{ steps.image.outputs.image }}"
-          gcloud run jobs execute "$JOB" --region "$REGION" --args=migrate --wait
+          IMAGE="${{ steps.image.outputs.image }}"
+          gcloud run jobs update "medchron-${ENV_NAME}-worker" --region "$REGION" --image "$IMAGE"
+          gcloud run jobs update "medchron-${ENV_NAME}-migrate" --region "$REGION" --image "$IMAGE"
+          # Migrations run as the database owner, in their own job and identity; the
+          # worker and API only ever hold their non-owner role credentials.
+          gcloud run jobs execute "medchron-${ENV_NAME}-migrate" --region "$REGION" --wait
 
       - name: Deploy API
         run: |
