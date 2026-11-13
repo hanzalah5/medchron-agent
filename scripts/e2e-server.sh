@@ -10,7 +10,8 @@ export MEDCHRON_UI_DIST="ui/dist"
 .venv/bin/alembic downgrade base >/dev/null
 .venv/bin/alembic upgrade head >/dev/null
 # The API and worker connect as non-owner roles, so row-level security applies to them.
-eval "$(.venv/bin/medchron db-users --shell)"
+# Throwaway e2e database, so default role passwords are acceptable here.
+eval "$(.venv/bin/medchron db-users --shell --allow-default-passwords)"
 DATABASE_URL="$MEDCHRON_WORKER_DATABASE_URL" .venv/bin/medchron worker &
 WORKER=$!
 trap 'kill $WORKER 2>/dev/null || true' EXIT

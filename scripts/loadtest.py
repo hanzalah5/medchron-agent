@@ -177,7 +177,7 @@ def main() -> int:
         command.upgrade(cfg, "head")
     from medchron.db.roles import ensure_login_roles, login_roles_from_env, url_for
 
-    roles = login_roles_from_env()
+    roles = login_roles_from_env(allow_defaults=True)  # throwaway load-test database
     ensure_login_roles(engine, roles)  # workers connect as the non-owner worker role
     worker_url = url_for(args.db_url, roles[1])
     storage = LocalStorage(out / "storage")

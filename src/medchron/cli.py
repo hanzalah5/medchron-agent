@@ -260,10 +260,18 @@ def _cmd_mcp(args: argparse.Namespace) -> int:
 
 def _cmd_db_users(args: argparse.Namespace) -> int:
     """Create or update the API and worker login roles (run with the owner's DATABASE_URL)."""
-    from medchron.db.roles import ensure_login_roles, login_roles_from_env, url_for
+    from medchron.db.roles import (
+        MissingRolePassword,
+        ensure_login_roles,
+        login_roles_from_env,
+        url_for,
+    )
     from medchron.db.store import DEFAULT_URL, make_engine
 
-    roles = login_roles_from_env()
+    try:  # resolved before connecting, so a refusal never touches the database
+        roles = login_roles_from_env(allow_defaults=args.allow_default_passwords)
+    except MissingRolePassword as exc:
+        raise SystemExit(f"db-users: {exc}") from exc
     ensure_login_roles(make_engine(), roles)
     owner = os.environ.get("DATABASE_URL", DEFAULT_URL)
     if args.shell:  # for scripts: eval "$(medchron db-users --shell)"
@@ -391,6 +399,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     users = sub.add_parser("db-users", help="Create the API and worker database login roles")
     users.add_argument("--shell", action="store_true", help="print export lines for the URLs")
+    users.add_argument(
+        "--allow-default-passwords",
+        action="store_true",
+        help="use each role's name as its password when MEDCHRON_DB_*_PASSWORD is unset "
+        "(throwaway local and CI databases only)",
+    )
     users.set_defaults(func=_cmd_db_users)
 
     mig = sub.add_parser("migrate", help="Apply database migrations (DATABASE_URL)")

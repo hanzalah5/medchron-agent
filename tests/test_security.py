@@ -369,7 +369,7 @@ def role_engines(engine: Engine) -> Iterator[dict[str, Engine]]:
     from medchron.db.roles import ensure_login_roles, login_roles_from_env, url_for
     from medchron.db.store import make_engine
 
-    roles = login_roles_from_env()
+    roles = login_roles_from_env(allow_defaults=True)  # throwaway test database
     try:
         ensure_login_roles(engine, roles)
     except Exception as e:  # the test database user cannot create roles
