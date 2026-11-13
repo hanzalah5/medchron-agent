@@ -27,18 +27,18 @@ def test_unset_password_is_refused_by_default() -> None:
 
 @pytest.mark.usefixtures("no_passwords")
 def test_each_unset_password_is_named(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("MEDCHRON_DB_API_PASSWORD", "s3cret-api-0123456789")
+    monkeypatch.setenv("MEDCHRON_DB_API_PASSWORD", "fake-api-password")  # gitleaks:allow
     with pytest.raises(MissingRolePassword, match="MEDCHRON_DB_WORKER_PASSWORD"):
         login_roles_from_env()
 
 
 @pytest.mark.usefixtures("no_passwords")
 def test_explicit_passwords_are_used(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("MEDCHRON_DB_API_PASSWORD", "api-pw-0123456789")
-    monkeypatch.setenv("MEDCHRON_DB_WORKER_PASSWORD", "worker-pw-0123456789")
+    monkeypatch.setenv("MEDCHRON_DB_API_PASSWORD", "fake-api-password")  # gitleaks:allow
+    monkeypatch.setenv("MEDCHRON_DB_WORKER_PASSWORD", "fake-worker-password")  # gitleaks:allow
     assert login_roles_from_env() == [
-        LoginRole("medchron_api", "api-pw-0123456789", system=False),
-        LoginRole("medchron_worker", "worker-pw-0123456789", system=True),
+        LoginRole("medchron_api", "fake-api-password", system=False),
+        LoginRole("medchron_worker", "fake-worker-password", system=True),
     ]
 
 
