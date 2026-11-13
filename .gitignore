@@ -39,3 +39,6 @@ ui/dist/
 
 # Local blob storage (uploaded PDFs)
 var/
+
+# Local AI-assistant config (kept on disk, not tracked)
+CLAUDE.md

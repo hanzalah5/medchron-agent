@@ -1,7 +1,8 @@
 name: Evals (live model)
 
 # Runs the agent pipeline with Claude on the synthetic smoke set.
-# Costs real money, so it only runs on demand, on PRs labeled `run-evals`, or nightly.
+# Costs real money, so it only runs on demand, on PRs labeled `run-evals`, or weekly.
+# (Nightly would spend up to 8 cases x the per-case budget every day once a key exists.)
 # Skips cleanly when the ANTHROPIC_API_KEY repository secret is not configured.
 
 on:
@@ -13,7 +14,7 @@ on:
   pull_request:
     types: [labeled, synchronize]
   schedule:
-    - cron: "17 6 * * *"
+    - cron: "17 6 * * 1"
 
 permissions:
   contents: read
@@ -38,6 +39,8 @@ jobs:
           if [ -z "$ANTHROPIC_API_KEY" ]; then
             echo "present=false" >> "$GITHUB_OUTPUT"
             echo "ANTHROPIC_API_KEY secret not set - skipping live evaluation." >> "$GITHUB_STEP_SUMMARY"
+            # A green run that evaluated nothing must not look like a passing eval.
+            echo "::warning title=Live eval skipped::ANTHROPIC_API_KEY is not set, so no model was evaluated."
           else
             echo "present=true" >> "$GITHUB_OUTPUT"
           fi
